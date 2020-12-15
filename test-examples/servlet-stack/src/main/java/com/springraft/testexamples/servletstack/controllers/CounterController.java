@@ -21,6 +21,16 @@ public class CounterController {
     /**
      * TODO
      * */
+    @RequestMapping(method = RequestMethod.GET)
+    public ResponseEntity<?> get() {
+
+        return new ResponseEntity<>(this.counter.get(), HttpStatus.OK);
+
+    }
+
+    /**
+     * TODO
+     * */
     @RequestMapping(value = "/increment", method = RequestMethod.POST)
     public ResponseEntity<?> increment() {
 
