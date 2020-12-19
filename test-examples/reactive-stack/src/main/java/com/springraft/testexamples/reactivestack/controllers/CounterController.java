@@ -1,6 +1,8 @@
 package com.springraft.testexamples.reactivestack.controllers;
 
 import com.springraft.testexamples.reactivestack.models.Counter;
+import com.springraft.testexamples.reactivestack.services.CommunicationService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -18,8 +20,8 @@ public class CounterController {
     private final Counter counter = new Counter();
 
     /* Inject Communication Service */
-    // @Autowired
-    //private CommunicationService communicationService;
+    @Autowired
+    private CommunicationService communicationService;
 
     /*--------------------------------------------------------------------------------*/
 
@@ -40,7 +42,7 @@ public class CounterController {
     @RequestMapping(value = "/increment", method = RequestMethod.POST)
     public ResponseEntity<?> increment() {
 
-        //communicationService.increment();
+        communicationService.increment();
 
         return new ResponseEntity<>(this.counter.increment().block(), HttpStatus.OK);
 
@@ -52,7 +54,7 @@ public class CounterController {
     @RequestMapping(value = "/decrement", method = RequestMethod.POST)
     public ResponseEntity<?> decrement() {
 
-        //communicationService.increment();
+        communicationService.decrement();
 
         return new ResponseEntity<>(this.counter.decrement().block(), HttpStatus.OK);
 
