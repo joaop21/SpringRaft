@@ -1,23 +1,59 @@
 package com.springraft.testexamples.servletstack.models;
 
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+
+@Entity
 public class Counter {
 
     /*--------------------------------------------------------------------------------*/
 
-    private long value = 0;
+    /* Id of the object */
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private long id;
+
+    private long value;
 
     /*--------------------------------------------------------------------------------*/
 
-    public synchronized Long increment() {
-        return ++this.value;
+    /**
+     * TODO
+     * */
+    protected Counter() {
+        this.value = 0;
     }
 
-    public synchronized Long decrement() {
-        return --this.value;
+    /**
+     * TODO
+     * */
+    public Counter(long id, long value) {
+        this.id = id;
+        this.value = value;
     }
 
-    public Long get() {
-        return this.value;
+    /*--------------------------------------------------------------------------------*/
+
+    /**
+     * TODO
+     * */
+    public long getId() {
+        return id;
     }
 
+    /**
+     * TODO
+     * */
+    public long getValue() {
+        return value;
+    }
+
+    /**
+     * TODO
+     * */
+    public void setValue(long value) {
+        this.value = value;
+    }
 }

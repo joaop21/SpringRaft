@@ -1,7 +1,7 @@
 package com.springraft.testexamples.servletstack.controllers;
 
-import com.springraft.testexamples.servletstack.models.Counter;
 import com.springraft.testexamples.servletstack.services.CommunicationService;
+import com.springraft.testexamples.servletstack.services.CounterService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,8 +15,9 @@ public class CounterController {
 
     /*--------------------------------------------------------------------------------*/
 
-    /* Constant Counter, which doesn't change its reference */
-    private final Counter counter = new Counter();
+    /* Inject Counter Service */
+    @Autowired
+    private CounterService counterService;
 
     /* Inject Communication Service */
     @Autowired
@@ -30,7 +31,7 @@ public class CounterController {
     @RequestMapping(method = RequestMethod.GET)
     public ResponseEntity<?> get() {
 
-        return new ResponseEntity<>(this.counter.get(), HttpStatus.OK);
+        return new ResponseEntity<>(this.counterService.get(1), HttpStatus.OK);
 
     }
 
@@ -42,7 +43,7 @@ public class CounterController {
 
         communicationService.increment();
 
-        return new ResponseEntity<>(this.counter.increment(), HttpStatus.OK);
+        return new ResponseEntity<>(this.counterService.increment(1), HttpStatus.OK);
 
     }
 
@@ -54,7 +55,7 @@ public class CounterController {
 
         communicationService.decrement();
 
-        return new ResponseEntity<>(this.counter.decrement(), HttpStatus.OK);
+        return new ResponseEntity<>(this.counterService.decrement(1), HttpStatus.OK);
 
     }
 
