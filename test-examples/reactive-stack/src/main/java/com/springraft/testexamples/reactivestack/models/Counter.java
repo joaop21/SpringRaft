@@ -1,25 +1,32 @@
 package com.springraft.testexamples.reactivestack.models;
 
+import lombok.*;
+import org.springframework.data.annotation.Id;
 import reactor.core.publisher.Mono;
 
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@ToString
 public class Counter {
 
     /*--------------------------------------------------------------------------------*/
 
-    private long value = 0;
+    /* Id of the object */
+    @Id
+    private long id;
+
+    /* Value of the counter */
+    private long value;
 
     /*--------------------------------------------------------------------------------*/
 
-    public synchronized Mono<Long> increment() {
-        return Mono.just(++this.value);
-    }
-
-    public synchronized Mono<Long> decrement() {
-        return Mono.just(--this.value);
-    }
-
-    public Mono<Long> get() {
-        return Mono.just(value);
+    /**
+     * TODO
+     * */
+    public void setValue(long value) {
+        this.value = value;
     }
 
 }
