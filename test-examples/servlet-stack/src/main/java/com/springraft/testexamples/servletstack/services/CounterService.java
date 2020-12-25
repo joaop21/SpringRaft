@@ -2,6 +2,7 @@ package com.springraft.testexamples.servletstack.services;
 
 import com.springraft.testexamples.servletstack.models.Counter;
 import com.springraft.testexamples.servletstack.repositories.CounterRepository;
+import lombok.Synchronized;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -19,24 +20,26 @@ public class CounterService {
         return counterRepository.save(counter);
     }
 
-    public synchronized Long increment(long id) {
-        Counter counter = counterRepository.getOne(id);
+    @Synchronized
+    public Long increment() {
+        Counter counter = counterRepository.getOne((long)1);
         long newValue = counter.getValue() + 1;
         counter.setValue(newValue);
         counterRepository.save(counter);
         return newValue;
     }
 
-    public synchronized Long decrement(long id) {
-        Counter counter = counterRepository.getOne(id);
+    @Synchronized
+    public Long decrement() {
+        Counter counter = counterRepository.getOne((long)1);
         long newValue = counter.getValue() - 1;
         counter.setValue(newValue);
         counterRepository.save(counter);
         return newValue;
     }
 
-    public Long get(long id) {
-        return counterRepository.getOne(id).getValue();
+    public Long get() {
+        return counterRepository.getOne((long)1).getValue();
     }
 
 
