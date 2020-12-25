@@ -24,9 +24,9 @@ public class CounterService {
     }
 
     @Transactional
-    public Mono<Long> increment(long id) {
+    public Mono<Long> increment() {
 
-        return counterRepository.findById(id)
+        return counterRepository.findById((long)1)
                 .flatMap(counter -> {
                     long newValue = counter.getValue()+1;
                     counter.setValue(newValue);
@@ -36,9 +36,9 @@ public class CounterService {
     }
 
     @Transactional
-    public Mono<Long> decrement(long id) {
+    public Mono<Long> decrement() {
 
-        return counterRepository.findById(id)
+        return counterRepository.findById((long)1)
                 .flatMap(counter -> {
                     long newValue = counter.getValue()-1;
                     counter.setValue(newValue);
@@ -47,8 +47,8 @@ public class CounterService {
 
     }
 
-    public Mono<Long> get(long id) {
-        return counterRepository.findById(id).map(Counter::getValue);
+    public Mono<Long> get() {
+        return counterRepository.findById((long)1).map(Counter::getValue);
     }
 
 }

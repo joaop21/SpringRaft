@@ -2,7 +2,6 @@ package com.springraft.testexamples.reactivestack.models;
 
 import lombok.*;
 import org.springframework.data.annotation.Id;
-import reactor.core.publisher.Mono;
 
 @Data
 @NoArgsConstructor

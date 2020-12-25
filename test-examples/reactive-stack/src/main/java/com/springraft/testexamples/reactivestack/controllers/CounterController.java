@@ -36,7 +36,7 @@ public class CounterController {
     @RequestMapping(method = RequestMethod.GET)
     public ResponseEntity<?> get() {
 
-        return new ResponseEntity<>(counterService.get(1), HttpStatus.OK);
+        return new ResponseEntity<>(counterService.get(), HttpStatus.OK);
 
     }
 
@@ -47,9 +47,9 @@ public class CounterController {
     @RequestMapping(value = "/increment", method = RequestMethod.POST)
     public ResponseEntity<?> increment() {
 
-        //communicationService.increment();
+        communicationService.increment();
 
-        return new ResponseEntity<>(counterService.increment(1), HttpStatus.OK);
+        return new ResponseEntity<>(counterService.increment(), HttpStatus.OK);
 
     }
 
@@ -59,9 +59,9 @@ public class CounterController {
     @RequestMapping(value = "/decrement", method = RequestMethod.POST)
     public ResponseEntity<?> decrement() {
 
-        //communicationService.decrement();
+        communicationService.decrement();
 
-        return new ResponseEntity<>(counterService.decrement(1), HttpStatus.OK);
+        return new ResponseEntity<>(counterService.decrement(), HttpStatus.OK);
 
     }
 
