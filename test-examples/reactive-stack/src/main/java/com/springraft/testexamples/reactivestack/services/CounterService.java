@@ -7,7 +7,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 @Service
 public class CounterService {
@@ -24,31 +26,59 @@ public class CounterService {
     }
 
     @Transactional
-    public Mono<Long> increment() {
+    public Mono<?> increment() {
 
-        return counterRepository.findById((long)1)
+        return safeIncrement();
+
+    }
+
+    /**
+     * TODO
+     * */
+    private Mono<Long> safeIncrement () {
+
+        return counterRepository.findById((long)0)
                 .flatMap(counter -> {
+
                     long newValue = counter.getValue()+1;
                     counter.setValue(newValue);
-                    return counterRepository.save(counter).map(Counter::getValue);
+
+                    return counterRepository.save(counter)
+                            .map(Counter::getValue)
+                            .onErrorResume(e -> safeIncrement());
+
                 });
 
     }
 
     @Transactional
-    public Mono<Long> decrement() {
+    public Mono<?> decrement() {
 
-        return counterRepository.findById((long)1)
+        return safeDecrement();
+
+    }
+
+    /**
+     * TODO
+     * */
+    private Mono<Long> safeDecrement () {
+
+        return counterRepository.findById((long)0)
                 .flatMap(counter -> {
+
                     long newValue = counter.getValue()-1;
                     counter.setValue(newValue);
-                    return counterRepository.save(counter).map(Counter::getValue);
+
+                    return counterRepository.save(counter)
+                            .map(Counter::getValue)
+                            .onErrorResume(e -> safeDecrement());
+
                 });
 
     }
 
     public Mono<Long> get() {
-        return counterRepository.findById((long)1).map(Counter::getValue);
+        return counterRepository.findById((long)0).map(Counter::getValue);
     }
 
 }

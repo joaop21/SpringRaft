@@ -8,8 +8,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.r2dbc.connection.R2dbcTransactionManager;
 import org.springframework.r2dbc.connection.init.ConnectionFactoryInitializer;
 import org.springframework.r2dbc.connection.init.ResourceDatabasePopulator;
+import org.springframework.transaction.ReactiveTransactionManager;
 
 @SpringBootApplication
 public class ReactiveStackApplication {
@@ -39,8 +41,9 @@ public class ReactiveStackApplication {
 
 		return (args) -> {
 			// save a Counter for further utilization
-			// ID - 1, VALUE - 0
-			service.save(new Counter(0,0)).subscribe();
+			// ID - 1, VALUE - 0, VERSION - 0
+			service.save(new Counter(0,0,0))
+					.subscribe();
 		};
 	}
 

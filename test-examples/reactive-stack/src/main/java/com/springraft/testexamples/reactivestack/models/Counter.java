@@ -2,6 +2,7 @@ package com.springraft.testexamples.reactivestack.models;
 
 import lombok.*;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Version;
 
 @Data
 @NoArgsConstructor
@@ -18,6 +19,10 @@ public class Counter {
 
     /* Value of the counter */
     private long value;
+
+    /* Version of the counter (Optimistic Locking) */
+    @Version
+    private long version;
 
     /*--------------------------------------------------------------------------------*/
 
