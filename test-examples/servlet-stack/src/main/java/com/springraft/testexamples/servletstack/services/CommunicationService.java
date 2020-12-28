@@ -19,9 +19,6 @@ public class CommunicationService {
     /*--------------------------------------------------------------------------------*/
 
     /* TODO */
-    private final Log log = LogFactory.getLog(getClass());
-
-    /* TODO */
     @Autowired
     private RestTemplate restTemplate;
 

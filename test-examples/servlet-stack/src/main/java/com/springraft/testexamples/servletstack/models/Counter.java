@@ -1,23 +1,37 @@
 package com.springraft.testexamples.servletstack.models;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+import javax.persistence.*;
+
+@Entity
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
 public class Counter {
 
     /*--------------------------------------------------------------------------------*/
 
-    private long value = 0;
+    /* Id of the object */
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private long id;
+
+    /* Value of the counter */
+    private long value;
+
+    /* Version of the counter (Optimistic Locking) */
+    @Version
+    private long version;
 
     /*--------------------------------------------------------------------------------*/
 
-    public synchronized Long increment() {
-        return ++this.value;
+    /**
+     * TODO
+     * */
+    public void setValue(long value) {
+        this.value = value;
     }
-
-    public synchronized Long decrement() {
-        return --this.value;
-    }
-
-    public Long get() {
-        return this.value;
-    }
-
 }
