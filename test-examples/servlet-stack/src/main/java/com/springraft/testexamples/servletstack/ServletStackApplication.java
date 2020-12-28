@@ -28,7 +28,7 @@ public class ServletStackApplication {
 		return (args) -> {
 			// save a Counter for further utilization
 			// ID - 1, VALUE - 0
-			service.save(new Counter(1, 0));
+			service.save(new Counter(1, 0, 0));
 		};
 
 	}
