@@ -60,7 +60,7 @@ public class CommunicationService {
 
         Flux.fromIterable(group)
                 .flatMap(server -> callOtherService(server, route))
-                .subscribeOn(Schedulers.parallel())
+                .subscribeOn(Schedulers.immediate())
                 .subscribe();
     }
 
