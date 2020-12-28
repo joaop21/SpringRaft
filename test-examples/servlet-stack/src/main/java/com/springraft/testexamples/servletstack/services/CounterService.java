@@ -2,22 +2,22 @@ package com.springraft.testexamples.servletstack.services;
 
 import com.springraft.testexamples.servletstack.models.Counter;
 import com.springraft.testexamples.servletstack.repositories.CounterRepository;
+import lombok.AllArgsConstructor;
 import lombok.Synchronized;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+@AllArgsConstructor
 @Service
 public class CounterService {
 
     /*--------------------------------------------------------------------------------*/
 
-    @Autowired
-    private CounterRepository counterRepository;
+    private final CounterRepository counterRepository;
 
     /*--------------------------------------------------------------------------------*/
 
-    public Counter save(Counter counter) {
-        return counterRepository.save(counter);
+    public void save(Counter counter) {
+        counterRepository.save(counter);
     }
 
     @Synchronized
