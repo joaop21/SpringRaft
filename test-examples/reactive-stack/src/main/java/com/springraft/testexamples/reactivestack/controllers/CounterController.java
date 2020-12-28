@@ -2,6 +2,7 @@ package com.springraft.testexamples.reactivestack.controllers;
 
 import com.springraft.testexamples.reactivestack.models.Counter;
 import com.springraft.testexamples.reactivestack.services.CommunicationService;
+import com.springraft.testexamples.reactivestack.services.CounterService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,10 @@ public class CounterController {
 
     /* Inject Communication Service */
     @Autowired
+    private CounterService counterService;
+
+    /* Inject Communication Service */
+    @Autowired
     private CommunicationService communicationService;
 
     /*--------------------------------------------------------------------------------*/
@@ -31,7 +36,7 @@ public class CounterController {
     @RequestMapping(method = RequestMethod.GET)
     public ResponseEntity<?> get() {
 
-        return new ResponseEntity<>(this.counter.get(), HttpStatus.OK);
+        return new ResponseEntity<>(counterService.get(), HttpStatus.OK);
 
     }
 
@@ -44,7 +49,7 @@ public class CounterController {
 
         communicationService.increment();
 
-        return new ResponseEntity<>(this.counter.increment().block(), HttpStatus.OK);
+        return new ResponseEntity<>(counterService.increment(), HttpStatus.OK);
 
     }
 
@@ -56,7 +61,7 @@ public class CounterController {
 
         communicationService.decrement();
 
-        return new ResponseEntity<>(this.counter.decrement().block(), HttpStatus.OK);
+        return new ResponseEntity<>(counterService.decrement(), HttpStatus.OK);
 
     }
 

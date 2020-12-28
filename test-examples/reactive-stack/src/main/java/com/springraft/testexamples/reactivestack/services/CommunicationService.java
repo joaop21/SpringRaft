@@ -59,7 +59,8 @@ public class CommunicationService {
         group.remove((Integer)serverPort);
 
         Flux.fromIterable(group)
-                .flatMap(server -> callOtherService(server, route)).subscribeOn(Schedulers.parallel())
+                .flatMap(server -> callOtherService(server, route))
+                .subscribeOn(Schedulers.immediate())
                 .subscribe();
     }
 
