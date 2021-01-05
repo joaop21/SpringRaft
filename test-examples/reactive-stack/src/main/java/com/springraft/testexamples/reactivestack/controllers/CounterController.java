@@ -1,6 +1,5 @@
 package com.springraft.testexamples.reactivestack.controllers;
 
-import com.springraft.testexamples.reactivestack.models.Counter;
 import com.springraft.testexamples.reactivestack.services.CommunicationService;
 import com.springraft.testexamples.reactivestack.services.CounterService;
 import lombok.AllArgsConstructor;
@@ -37,7 +36,6 @@ public class CounterController {
 
     /**
      * TODO
-     * @return
      */
     @RequestMapping(value = "/increment", method = RequestMethod.POST)
     public ResponseEntity<?> increment() {
