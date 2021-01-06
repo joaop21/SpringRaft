@@ -17,9 +17,6 @@ public class CommunicationService {
     /*--------------------------------------------------------------------------------*/
 
     /* TODO */
-    private final Log log = LogFactory.getLog(getClass());
-
-    /* TODO */
     @Value("${server.port}")
     private int serverPort;
 
