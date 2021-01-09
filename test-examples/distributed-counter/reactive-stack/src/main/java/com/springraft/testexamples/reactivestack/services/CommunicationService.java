@@ -1,13 +1,10 @@
 package com.springraft.testexamples.reactivestack.services;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
@@ -33,17 +30,20 @@ public class CommunicationService {
     /**
      * TODO
      * */
-    public void increment() {
-        if (leader)
-            sendToGroups("increment");
+    public Flux<Long> increment() {
+         return leader
+                 ? sendToGroups("increment")
+                 : Flux.just((long)0) ;
     }
 
     /**
      * TODO
+     *
      * */
-    public void decrement() {
-        if (leader)
-            sendToGroups("decrement");
+    public Flux<Long> decrement() {
+        return leader
+                ? sendToGroups("decrement")
+                : Flux.just((long)0) ;
     }
 
     /*--------------------------------------------------------------------------------*/
@@ -51,14 +51,12 @@ public class CommunicationService {
     /**
      * TODO
      * */
-    private void sendToGroups(String route) {
+    private Flux<Long> sendToGroups(String route) {
 
         group.remove((Integer)serverPort);
 
-        Flux.fromIterable(group)
-                .flatMap(server -> callOtherService(server, route))
-                .subscribeOn(Schedulers.immediate())
-                .subscribe();
+        return Flux.fromIterable(group)
+                .flatMap(server -> callOtherService(server, route));
     }
 
     /**
@@ -66,9 +64,8 @@ public class CommunicationService {
      * */
     private Mono<Long> callOtherService(int port, String route) {
 
-        WebClient webClient = WebClient.create("http://localhost:" + port);
-
-        return webClient.post()
+        return WebClient.create("http://localhost:" + port)
+                .post()
                 .uri("/counter/{route}", route)
                 .retrieve()
                 .bodyToMono(Long.class);
