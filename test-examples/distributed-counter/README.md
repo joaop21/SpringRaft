@@ -31,8 +31,8 @@ If you are in the benchmark folder you can run, for example:
 
 * `wrk -c 64 -d 1m -t 64 -s CounterIncrementPost.lua http://localhost:8001/counter/increment`
 
-  * `-c 64`: Number of concurrent clients making requests
-  * `-t 64`: Number of threads that handle the existing clientes
-  * `-d 1m`: Benchmark runs for 1 minute
-  * `-s CounterIncrementPost.lua`: File that contains the POST to the API
+  * `-c`: Number of concurrent clients making requests
+  * `-t`: Number of threads that handle the existing clientes
+  * `-d`: Benchmark runs for 1 minute
+  * `-s`: Script that contains the POST to the API
   * `http://localhost:8001/counter/increment`: Route to the leader API
