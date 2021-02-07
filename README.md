@@ -1,3 +1,6 @@
+
+[![Build status](https://github.com/joaop21/SpringRaft/workflows/Test-Examples/badge.svg?branch=main)](https://github.com/joaop21/SpringRaft/actions?query=workflow%3ATest-Examples)
+
 # SpringRaft
 
 SpringRaft is a dissertation project, which consists in the Raft's consensus algorithm implementation, both in Servlet and Reactive stacks. This implementations should be modular, so that they can be expanded, and should be generic, so that they can be reused in different use cases.
