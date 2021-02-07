@@ -1,3 +1,6 @@
+
+[![Build status](https://github.com/joaop21/SpringRaft/workflows/Test-Examples/badge.svg?branch=main)](https://github.com/joaop21/SpringRaft/actions)
+
 # Test Examples
 
 This folder contains examples that were used to test both Servlet and Reactive stacks, and the Raft implementation too.
