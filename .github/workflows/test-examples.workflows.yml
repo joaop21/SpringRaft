@@ -7,13 +7,12 @@ jobs:
   distributed-counter:
 
     name: Distributed Counter - Build, Test and Package
-    
+
     strategy:
       matrix:
-        #os: [windows-latest, ubuntu-18.04, ubuntu-20.04, macos-10.15, macos-11.0]
+        os: [windows-latest, ubuntu-18.04, ubuntu-20.04, macos-10.15, macos-11.0]
         #java-version: [ 8, 9, 10, 11, 12, 13, 14, 15]
-        os: [windows-latest, ubuntu-latest, macos-latest]
-        java-version: [11]
+        java-version: [11, 12, 13, 14, 15]
 
     runs-on: ${{ matrix.os }}
 
