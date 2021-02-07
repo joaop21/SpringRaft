@@ -1,0 +1,27 @@
+name: Test-Examples Workflow
+
+on: [push, pull_request]
+
+jobs:
+
+  distributed-counter:
+
+    name: Distributed Counter - Build, Test and Package
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-18.04, ubuntu-20.04, macos-10.15, macos-11.0]
+        java-version: [ 8, 9, 10, 11, 12, 13, 14, 15]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.java-version }}
+      - name: Build Servlet Stack
+        run: mvn --batch-mode --update-snapshots verify
+        working-directory: ./test-examples/distributed-counter/servlet-stack
+      - name: Build Reactive Stack
+        run: mvn --batch-mode --update-snapshots verify
+        working-directory: ./test-examples/distributed-counter/reactive-stack
