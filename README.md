@@ -1,4 +1,5 @@
 
+[![Build status](https://github.com/joaop21/SpringRaft/workflows/Main-Build/badge.svg?branch=main)](https://github.com/joaop21/SpringRaft/actions?query=workflow%3AMain-Build)
 [![Build status](https://github.com/joaop21/SpringRaft/workflows/Test-Examples/badge.svg?branch=main)](https://github.com/joaop21/SpringRaft/actions?query=workflow%3ATest-Examples)
 
 # SpringRaft
