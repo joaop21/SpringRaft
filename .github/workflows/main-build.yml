@@ -1,0 +1,37 @@
+name: Main-Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+
+  servlet:
+
+    name: Servlet
+    
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-20.04, ubuntu-18.04, macos-latest]
+        java-version: [15]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.java-version }}
+
+      - name: Build with Maven - Package, Build, Test
+        run: mvn --batch-mode --update-snapshots verify
+        working-directory: ./servlet
+
+  # More jobs must be here
+  # ...

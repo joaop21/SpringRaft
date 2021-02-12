@@ -1,6 +1,12 @@
 name: Test-Examples
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
 
@@ -9,9 +15,10 @@ jobs:
     name: Test Examples
     
     strategy:
+      fail-fast: true
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
-        java-version: [11, 12, 13, 14, 15]
+        os: [ubuntu-20.04, ubuntu-18.04, macos-latest]
+        java-version: [11]
 
     runs-on: ${{ matrix.os }}
 
