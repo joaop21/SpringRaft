@@ -1,6 +1,8 @@
 package com.springRaft.servlet.worker;
 
 import lombok.SneakyThrows;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -8,13 +10,19 @@ import org.springframework.stereotype.Component;
 @Scope("singleton")
 public class StateMachineWorker implements Runnable {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(StateMachineWorker.class);
+
+    /* --------------------------------------------------- */
+
     @SneakyThrows
     @Override
     public void run() {
 
-        System.out.println("Entrei");
+        LOGGER.info("Entrei");
+
         Thread.sleep(5000);
-        System.out.println("Terminei a execução");
+
+        LOGGER.info("Terminei a execução");
 
     }
 
