@@ -11,4 +11,5 @@ public interface RaftState {
      * Method for handling RequestVote RPC
      * */
     void requestVote();
+
 }

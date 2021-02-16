@@ -30,7 +30,7 @@ public class RaftProperties {
                     List<String> cluster,
             @DefaultValue("0") @DurationUnit(ChronoUnit.MILLIS)
                     Duration electionTimeout
-            ) {
+    ) {
 
         this.electionTimeout = electionTimeout;
 
