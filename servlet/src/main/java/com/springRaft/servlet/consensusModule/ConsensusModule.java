@@ -30,4 +30,8 @@ public class ConsensusModule {
         this.current.requestVote();
     }
 
+    public void work() {
+        this.current.work();
+    }
+
 }

@@ -12,4 +12,9 @@ public interface RaftState {
      * */
     void requestVote();
 
+    /**
+     * Method for doing the work that it's required
+     * */
+    void work();
+
 }

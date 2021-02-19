@@ -17,4 +17,9 @@ public class Leader implements RaftState {
 
     }
 
+    @Override
+    public void work() {
+
+    }
+
 }

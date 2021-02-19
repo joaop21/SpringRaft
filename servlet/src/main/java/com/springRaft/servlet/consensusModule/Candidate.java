@@ -17,4 +17,9 @@ public class Candidate implements RaftState {
 
     }
 
+    @Override
+    public void work() {
+
+    }
+
 }
