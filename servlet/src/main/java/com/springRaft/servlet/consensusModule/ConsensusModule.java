@@ -2,9 +2,9 @@ package com.springRaft.servlet.consensusModule;
 
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
-@Component
+@Service
 @Scope("singleton")
 public class ConsensusModule {
 
@@ -28,6 +28,10 @@ public class ConsensusModule {
 
     public void requestVote() {
         this.current.requestVote();
+    }
+
+    public void work() {
+        this.current.work();
     }
 
 }

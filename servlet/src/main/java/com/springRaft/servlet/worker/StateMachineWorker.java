@@ -1,8 +1,7 @@
 package com.springRaft.servlet.worker;
 
-import lombok.SneakyThrows;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import com.springRaft.servlet.consensusModule.ConsensusModule;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
@@ -10,20 +9,20 @@ import org.springframework.stereotype.Component;
 @Scope("singleton")
 public class StateMachineWorker implements Runnable {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(StateMachineWorker.class);
+    /* Consensus Module to invoke functions */
+    private final ConsensusModule consensusModule;
 
     /* --------------------------------------------------- */
 
-    @SneakyThrows
+    public StateMachineWorker(ApplicationContext applicationContext) {
+        this.consensusModule = applicationContext.getBean(ConsensusModule.class);
+    }
+
+    /* --------------------------------------------------- */
+
     @Override
     public void run() {
-
-        LOGGER.info("Entrei");
-
-        Thread.sleep(5000);
-
-        LOGGER.info("Terminei a execução");
-
+        this.consensusModule.work();
     }
 
 }
