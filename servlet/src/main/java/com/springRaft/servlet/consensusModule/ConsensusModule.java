@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 public class ConsensusModule {
 
     /* Current Raft state - Follower, Candidate, Leader */
-    private final RaftState current;
+    private RaftState current;
 
     /* --------------------------------------------------- */
 
@@ -18,6 +18,13 @@ public class ConsensusModule {
         // Follower is the raft state where each server starts
         this.current = applicationContext.getBean(Follower.class);
 
+    }
+
+    /* --------------------------------------------------- */
+
+    public void setCurrent(RaftState state) {
+        this.current = state;
+        this.work();
     }
 
     /* --------------------------------------------------- */
