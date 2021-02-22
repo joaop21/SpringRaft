@@ -11,7 +11,7 @@ import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Component;
 
 @Component
-@Order(1)
+@Order(2)
 public class Initialization implements ApplicationRunner {
 
     /* Application Context for getting beans */

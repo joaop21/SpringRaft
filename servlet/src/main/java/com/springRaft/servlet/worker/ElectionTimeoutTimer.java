@@ -24,6 +24,11 @@ public class ElectionTimeoutTimer implements Runnable {
     @Override
     public void run() {
         System.out.println("TIMEOUT!!");
+
+        // increments current term
+        // ...
+
+        // transitions to candidate state
         RaftState candidate = applicationContext.getBean(Candidate.class);
         this.consensusModule.setCurrent(candidate);
     }

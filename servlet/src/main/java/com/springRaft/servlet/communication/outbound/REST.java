@@ -1,23 +1,18 @@
 package com.springRaft.servlet.communication.outbound;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
+import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 @Service
+@AllArgsConstructor
 public class REST implements OutboundCommunication {
 
-    /* TODO */
-    @Autowired
-    private RestTemplate restTemplate;
+    /* Object that helps creating REST requests */
+    private final RestTemplate restTemplate;
 
-    /* TODO */
-    @Bean
-    public RestTemplate restTemplate() {
-        return new RestTemplate();
-    }
+    /* --------------------------------------------------- */
 
     public Boolean appendEntries() {
         try {
