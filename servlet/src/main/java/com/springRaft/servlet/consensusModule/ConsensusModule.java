@@ -14,14 +14,15 @@ public class ConsensusModule {
     /* --------------------------------------------------- */
 
     public ConsensusModule(ApplicationContext applicationContext) {
-
         // Follower is the raft state where each server starts
         this.current = applicationContext.getBean(Follower.class);
-
     }
 
     /* --------------------------------------------------- */
 
+    /**
+     * TODO
+     * */
     public void setCurrent(RaftState state) {
         this.current = state;
         this.work();

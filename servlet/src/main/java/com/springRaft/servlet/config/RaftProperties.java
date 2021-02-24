@@ -20,8 +20,11 @@ public class RaftProperties {
     /* List of Addresses of cluster */
     private final List<InetSocketAddress> cluster;
 
-    /* Timeout to trigger an election */
-    private final Duration electionTimeout;
+    /* Minimum Timeout to trigger an election */
+    private final Duration electionTimeoutMin;
+
+    /* Maximum Timeout to trigger an election */
+    private final Duration electionTimeoutMax;
 
     /* --------------------------------------------------- */
 
@@ -29,10 +32,13 @@ public class RaftProperties {
             @DefaultValue({"localhost:8001", "localhost:8002", "localhost:8003"})
                     List<String> cluster,
             @DefaultValue("0") @DurationUnit(ChronoUnit.MILLIS)
-                    Duration electionTimeout
+                    Duration electionTimeoutMin,
+            @DefaultValue("0") @DurationUnit(ChronoUnit.MILLIS)
+                    Duration electionTimeoutMax
     ) {
 
-        this.electionTimeout = electionTimeout;
+        this.electionTimeoutMin = electionTimeoutMin;
+        this.electionTimeoutMax = electionTimeoutMax;
 
         this.cluster = new ArrayList<>();
         for (String hoststring : cluster) {

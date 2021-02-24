@@ -16,7 +16,7 @@ public class StateService {
      * TODO
      * */
     public State getState() {
-        return repository
+        return this.repository
                 .findById((long) 1)
                 .orElse(null);
     }
@@ -25,7 +25,7 @@ public class StateService {
      * TODO
      * */
     public Long getCurrentTerm() {
-        return repository
+        return this.repository
                 .findById((long) 1)
                 .map(State::getCurrentTerm)
                 .orElse(null);
@@ -35,7 +35,7 @@ public class StateService {
      * TODO
      * */
     public String getVotedFor() {
-        return repository
+        return this.repository
                 .findById((long) 1)
                 .map(State::getVotedFor)
                 .orElse(null);
@@ -44,8 +44,26 @@ public class StateService {
     /**
      * TODO
      * */
+    public void incrementCurrentTerm() {
+        State state = this.getState();
+        state.setCurrentTerm(state.getCurrentTerm() + 1);
+        this.repository.save(state);
+    }
+
+    /**
+     * TODO
+     * */
+    public State setVotedFor(String votedFor) {
+        State state = this.getState();
+        state.setVotedFor(votedFor);
+        return this.repository.save(state);
+    }
+
+    /**
+     * TODO
+     * */
     public State saveState(State state) {
-        return repository.save(state);
+        return this.repository.save(state);
     }
 
 }
