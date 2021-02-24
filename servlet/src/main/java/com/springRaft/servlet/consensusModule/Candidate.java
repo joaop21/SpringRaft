@@ -2,6 +2,8 @@ package com.springRaft.servlet.consensusModule;
 
 import com.springRaft.servlet.persistence.state.StateService;
 import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
@@ -9,6 +11,9 @@ import org.springframework.stereotype.Service;
 @Scope("singleton")
 @AllArgsConstructor
 public class Candidate implements RaftState {
+
+    /* Logger */
+    private static final Logger log = LoggerFactory.getLogger(Candidate.class);
 
     /* Consensus Module for invoking the necessary functions */
     private final ConsensusModule consensusModule;
@@ -41,10 +46,14 @@ public class Candidate implements RaftState {
 
     @Override
     public void work() {
-        System.out.println("CANDIDATE");
+
+        log.info("Transited to CANDIDATE");
+
+        // increments current term
+        this.stateService.incrementCurrentTerm();
 
         // votes for myself
-        System.out.println(this.stateService.setVotedFor("Me").toString());
+        // System.out.println(this.stateService.setVotedFor("Me").toString());
 
         // issue RequestVote RPCs in parallel to each of the other servers in the cluster
 
