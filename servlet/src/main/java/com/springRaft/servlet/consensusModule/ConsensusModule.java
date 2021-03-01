@@ -23,7 +23,7 @@ public class ConsensusModule {
     /**
      * TODO
      * */
-    public void setCurrent(RaftState state) {
+    public void setCurrentState(RaftState state) {
         this.current = state;
         this.work();
     }

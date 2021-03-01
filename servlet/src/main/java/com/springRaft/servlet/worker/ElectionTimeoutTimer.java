@@ -29,7 +29,7 @@ public class ElectionTimeoutTimer implements Runnable {
 
         // transitions to candidate state
         RaftState candidate = applicationContext.getBean(Candidate.class);
-        this.consensusModule.setCurrent(candidate);
+        this.consensusModule.setCurrentState(candidate);
 
     }
 

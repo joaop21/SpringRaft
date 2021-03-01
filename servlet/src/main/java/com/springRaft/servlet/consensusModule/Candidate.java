@@ -1,25 +1,63 @@
 package com.springRaft.servlet.consensusModule;
 
+import com.springRaft.servlet.communication.outbound.OutboundContext;
+import com.springRaft.servlet.config.RaftProperties;
 import com.springRaft.servlet.persistence.state.StateService;
-import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.ScheduledFuture;
+
 @Service
 @Scope("singleton")
-@AllArgsConstructor
 public class Candidate implements RaftState {
 
     /* Logger */
     private static final Logger log = LoggerFactory.getLogger(Candidate.class);
 
-    /* Consensus Module for invoking the necessary functions */
-    private final ConsensusModule consensusModule;
-
     /* Service to access persisted state repository */
     private final StateService stateService;
+
+    /* Raft properties that need to be accessed */
+    private final RaftProperties raftProperties;
+
+    /* Timer handles for timeouts */
+    private final TimerHandler timerHandler;
+
+    /* Current timeout timer */
+    private ScheduledFuture<?> scheduledFuture;
+
+
+
+    /* Outbound context for communication to other servers */
+    private final OutboundContext outbound;
+
+    /* --------------------------------------------------- */
+
+    public Candidate(
+            StateService stateService,
+            RaftProperties raftProperties,
+            TimerHandler timerHandler,
+            OutboundContext outbound) {
+        this.stateService = stateService;
+        this.raftProperties = raftProperties;
+        this.timerHandler = timerHandler;
+        this.outbound = outbound;
+        this.scheduledFuture = null;
+    }
+
+    /* --------------------------------------------------- */
+
+    /**
+     * Sets the value of the scheduledFuture instance variable.
+     *
+     * @param schedule Scheduled task.
+     * */
+    private void setScheduledFuture(ScheduledFuture<?> schedule) {
+        this.scheduledFuture = schedule;
+    }
 
     /* --------------------------------------------------- */
 
@@ -52,12 +90,31 @@ public class Candidate implements RaftState {
         // increments current term
         this.stateService.incrementCurrentTerm();
 
-        // votes for myself
-        // System.out.println(this.stateService.setVotedFor("Me").toString());
+        // vote for myself
+        String host = this.raftProperties.AddressToString(this.raftProperties.getHost());
+        log.info(this.stateService.setVotedFor(host).toString());
 
         // issue RequestVote RPCs in parallel to each of the other servers in the cluster
+        // ..
+        this.outbound.appendEntries("localhost:8002");
 
         // set a candidate timeout
+        this.setTimeout();
+    }
+
+    /* --------------------------------------------------- */
+
+    /**
+     * Set a timer in milliseconds that represents a timeout.
+     * */
+    private void setTimeout() {
+
+        // schedule task
+        ScheduledFuture<?> schedule = this.timerHandler.setElectionTimeout();
+
+        // store runnable
+        this.setScheduledFuture(schedule);
+
     }
 
 

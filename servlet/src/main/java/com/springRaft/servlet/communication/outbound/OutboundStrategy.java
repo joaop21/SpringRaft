@@ -1,6 +1,6 @@
 package com.springRaft.servlet.communication.outbound;
 
-public interface OutboundCommunication {
-    Boolean appendEntries();
+public interface OutboundStrategy {
+    Boolean appendEntries(String to);
     Boolean requestVote();
 }

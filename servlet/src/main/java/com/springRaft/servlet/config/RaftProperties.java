@@ -67,6 +67,12 @@ public class RaftProperties {
         return InetSocketAddress.createUnresolved(split[0], Integer.parseInt(split[1]));
     }
 
+    /* --------------------------------------------------- */
+
+    public String AddressToString(InetSocketAddress address) {
+        return address.getHostName() + ":" + address.getPort();
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder()
