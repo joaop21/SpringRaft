@@ -15,6 +15,7 @@ import org.springframework.stereotype.Component;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -142,27 +143,36 @@ public class PeerWorker implements Runnable, MessageSubscriber {
             // sleep for the remaining time, if any
             long remaining = this.raftProperties.getHeartbeat().toMillis() - (System.currentTimeMillis() - start);
             if (remaining > 0) {
+
+                lock.lock();
                 try {
-                    Thread.sleep(remaining);
-                } catch (InterruptedException ignored) {}
+
+                    if(this.remainingMessages == 0)
+                        this.newMessages.await(remaining, TimeUnit.MILLISECONDS);
+
+                } catch (InterruptedException exception) {
+
+                  log.error("Exception while awaiting", exception);
+
+                } finally {
+                    lock.unlock();
+                }
+
             }
 
-            return null;
-
         } catch (TimeoutException e) {
-            // If the request vote communication exceeded heartbeat timout
 
+            // If the request vote communication exceeded heartbeat timout
             log.warn("Communication to server " + this.targetServerName + " exceeded heartbeat timeout!!");
 
-            return null;
-
         } catch (Exception e) {
-            // If another exception occurs
 
+            // If another exception occurs
             log.error("EXCEPTION NOT EXPECTED", e);
-            return null;
 
         }
+
+        return null;
 
     }
 
@@ -173,6 +183,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
      * */
     @Override
     public void newMessage() {
+
         lock.lock();
         try {
             this.remainingMessages++;
@@ -180,5 +191,6 @@ public class PeerWorker implements Runnable, MessageSubscriber {
         } finally {
             lock.unlock();
         }
+
     }
 }
