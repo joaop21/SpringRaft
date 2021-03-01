@@ -1,6 +1,6 @@
 package com.springRaft.servlet.consensusModule;
 
-import com.springRaft.servlet.communication.outbound.OutboundContext;
+import com.springRaft.servlet.communication.outbound.OutboundManager;
 import com.springRaft.servlet.config.RaftProperties;
 import com.springRaft.servlet.persistence.state.StateService;
 import org.slf4j.Logger;
@@ -29,10 +29,8 @@ public class Candidate implements RaftState {
     /* Current timeout timer */
     private ScheduledFuture<?> scheduledFuture;
 
-
-
-    /* Outbound context for communication to other servers */
-    private final OutboundContext outbound;
+    /* Publisher of messages */
+    private final OutboundManager outboundManager;
 
     /* --------------------------------------------------- */
 
@@ -40,11 +38,12 @@ public class Candidate implements RaftState {
             StateService stateService,
             RaftProperties raftProperties,
             TimerHandler timerHandler,
-            OutboundContext outbound) {
+            OutboundManager outboundManager
+    ) {
         this.stateService = stateService;
         this.raftProperties = raftProperties;
         this.timerHandler = timerHandler;
-        this.outbound = outbound;
+        this.outboundManager = outboundManager;
         this.scheduledFuture = null;
     }
 
@@ -95,8 +94,7 @@ public class Candidate implements RaftState {
         log.info(this.stateService.setVotedFor(host).toString());
 
         // issue RequestVote RPCs in parallel to each of the other servers in the cluster
-        // ..
-        this.outbound.appendEntries("localhost:8002");
+        this.outboundManager.notifySubscribers(this);
 
         // set a candidate timeout
         this.setTimeout();
