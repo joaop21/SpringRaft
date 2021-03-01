@@ -1,6 +1,5 @@
 package com.springRaft.servlet.communication.outbound;
 
-import com.springRaft.servlet.consensusModule.RaftState;
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
@@ -25,9 +24,9 @@ public class OutboundManager {
         this.subscribers.remove(subscriber);
     }
 
-    public void notifySubscribers(RaftState state) {
+    public void newMessage() {
         for(MessageSubscriber subscriber : this.subscribers)
-            subscriber.newMessage(state);
+            subscriber.newMessage();
     }
 
 }

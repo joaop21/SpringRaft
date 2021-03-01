@@ -35,6 +35,9 @@ public class RaftProperties {
     /* Maximum Timeout to trigger an election */
     private final Duration electionTimeoutMax;
 
+    /* Timeout for direct communications */
+    private final Duration heartbeat;
+
     /* --------------------------------------------------- */
 
     public RaftProperties(
@@ -44,11 +47,14 @@ public class RaftProperties {
             @DefaultValue("0") @DurationUnit(ChronoUnit.MILLIS)
                     Duration electionTimeoutMin,
             @DefaultValue("0") @DurationUnit(ChronoUnit.MILLIS)
-                    Duration electionTimeoutMax
+                    Duration electionTimeoutMax,
+            @DefaultValue("0") @DurationUnit(ChronoUnit.MILLIS)
+                    Duration heartbeat
     ) {
 
         this.electionTimeoutMin = electionTimeoutMin;
         this.electionTimeoutMax = electionTimeoutMax;
+        this.heartbeat = heartbeat;
 
         this.host = getAddressFromHostname(hostname);
 
@@ -62,16 +68,22 @@ public class RaftProperties {
 
     /* --------------------------------------------------- */
 
+    /**
+     * TODO
+     * */
     private InetSocketAddress getAddressFromHostname(String hostname) {
         String[] split = hostname.split(":");
         return InetSocketAddress.createUnresolved(split[0], Integer.parseInt(split[1]));
     }
 
-    /* --------------------------------------------------- */
-
+    /**
+     * TODO
+     * */
     public String AddressToString(InetSocketAddress address) {
         return address.getHostName() + ":" + address.getPort();
     }
+
+    /* --------------------------------------------------- */
 
     @Override
     public String toString() {
@@ -92,7 +104,11 @@ public class RaftProperties {
                 .append("Election Properties:\n")
                 .append("\t Timeout is between [")
                 .append(electionTimeoutMin.toMillis()).append(",")
-                .append(electionTimeoutMax.toMillis()).append("]ms\n")
+                .append(electionTimeoutMax.toMillis()).append("]ms\n");
+
+        builder.append("\n")
+                .append("Heartbeat has ")
+                .append(heartbeat.toMillis()).append("ms of duration\n")
                 .append("\n*****************************************");
 
         return builder.toString();

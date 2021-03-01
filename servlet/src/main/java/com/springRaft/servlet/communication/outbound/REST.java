@@ -1,5 +1,8 @@
 package com.springRaft.servlet.communication.outbound;
 
+import com.springRaft.servlet.communication.message.RequestVote;
+import com.springRaft.servlet.communication.message.RequestVoteReply;
+import com.springRaft.servlet.config.RaftProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Service;
@@ -8,6 +11,8 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 @Service
 public class REST implements OutboundStrategy {
@@ -18,12 +23,17 @@ public class REST implements OutboundStrategy {
     /* Task Executor for submit workers to execution */
     private final TaskExecutor taskExecutor;
 
+    /* Raft properties that need to be accessed */
+    private final RaftProperties raftProperties;
+
     public REST(
             RestTemplate restTemplate,
-            @Qualifier(value = "requestsExecutor") TaskExecutor taskExecutor
+            @Qualifier(value = "requestsExecutor") TaskExecutor taskExecutor,
+            RaftProperties raftProperties
     ) {
         this.restTemplate = restTemplate;
         this.taskExecutor = taskExecutor;
+        this.raftProperties = raftProperties;
     }
 
     /* --------------------------------------------------- */
@@ -45,12 +55,13 @@ public class REST implements OutboundStrategy {
     }
 
     @Override
-    public Boolean requestVote() {
-        try {
-            return this.post("localhost:8003", "/requestVote");
-        } catch (ResourceAccessException e) {
-            return false;
-        }
+    public RequestVoteReply requestVote(String to, RequestVote message) throws InterruptedException, ExecutionException, TimeoutException {
+        return CompletableFuture
+                .supplyAsync(() -> {
+                    String endpoint = "http://" + to + "/raft/requestVote";
+                    return restTemplate.postForObject(endpoint, message, RequestVoteReply.class);
+                }, this.taskExecutor)
+                .get(this.raftProperties.getHeartbeat().toMillis(), TimeUnit.MILLISECONDS);
     }
 
     /**

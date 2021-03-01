@@ -44,6 +44,23 @@ public class ThreadPools {
     }
 
     /**
+     * Thread Pool for peer workers
+     *
+     * @return TaskExecutor dedicated to requests
+     * */
+    @Bean(name = "peerWorkersExecutor")
+    public TaskExecutor peerWorkersTaskExecutor() {
+
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(5);
+        executor.setMaxPoolSize(20);
+        executor.setThreadNamePrefix("PeerWorker-");
+        executor.initialize();
+
+        return executor;
+    }
+
+    /**
      * Thread Pool for async requests
      *
      * @return TaskExecutor dedicated to requests

@@ -1,10 +1,14 @@
 package com.springRaft.servlet.consensusModule;
 
+import com.springRaft.servlet.communication.message.Message;
+import com.springRaft.servlet.communication.message.RequestVote;
 import com.springRaft.servlet.communication.outbound.OutboundManager;
 import com.springRaft.servlet.config.RaftProperties;
+import com.springRaft.servlet.persistence.state.State;
 import com.springRaft.servlet.persistence.state.StateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +20,12 @@ public class Candidate implements RaftState {
 
     /* Logger */
     private static final Logger log = LoggerFactory.getLogger(Candidate.class);
+
+    /* Application Context for getting beans */
+    private final ApplicationContext applicationContext;
+
+    /* Module that has the consensus functions to invoke */
+    private final ConsensusModule consensusModule;
 
     /* Service to access persisted state repository */
     private final StateService stateService;
@@ -32,19 +42,27 @@ public class Candidate implements RaftState {
     /* Publisher of messages */
     private final OutboundManager outboundManager;
 
+    /* Message to send to the cluster requesting votes */
+    private Message requestVoteMessage;
+
     /* --------------------------------------------------- */
 
     public Candidate(
+            ApplicationContext applicationContext,
+            ConsensusModule consensusModule,
             StateService stateService,
             RaftProperties raftProperties,
             TimerHandler timerHandler,
             OutboundManager outboundManager
     ) {
+        this.applicationContext = applicationContext;
+        this.consensusModule = consensusModule;
         this.stateService = stateService;
         this.raftProperties = raftProperties;
         this.timerHandler = timerHandler;
         this.outboundManager = outboundManager;
         this.scheduledFuture = null;
+        this.requestVoteMessage = null;
     }
 
     /* --------------------------------------------------- */
@@ -91,13 +109,29 @@ public class Candidate implements RaftState {
 
         // vote for myself
         String host = this.raftProperties.AddressToString(this.raftProperties.getHost());
-        log.info(this.stateService.setVotedFor(host).toString());
+        State state = this.stateService.setVotedFor(host);
+        log.info(state.toString());
+
+        // build Request Vote Message
+        this.requestVoteMessage =
+                this.applicationContext.getBean(
+                        RequestVote.class,
+                        state.getCurrentTerm(),
+                        this.raftProperties.AddressToString(this.raftProperties.getHost()),
+                        this.consensusModule.getCommittedIndex(),
+                        this.consensusModule.getCommittedTerm()
+                        );
 
         // issue RequestVote RPCs in parallel to each of the other servers in the cluster
-        this.outboundManager.notifySubscribers(this);
+        this.outboundManager.newMessage();
 
         // set a candidate timeout
         this.setTimeout();
+    }
+
+    @Override
+    public Message getNextMessage(String to) {
+        return this.requestVoteMessage;
     }
 
     /* --------------------------------------------------- */
