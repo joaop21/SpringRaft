@@ -5,6 +5,7 @@ import com.springRaft.servlet.communication.message.RequestVoteReply;
 import com.springRaft.servlet.config.RaftProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
@@ -59,7 +60,7 @@ public class REST implements OutboundStrategy {
         return CompletableFuture
                 .supplyAsync(() -> {
                     String endpoint = "http://" + to + "/raft/requestVote";
-                    return restTemplate.postForObject(endpoint, message, RequestVoteReply.class);
+                    return restTemplate.postForEntity(endpoint, message, RequestVoteReply.class).getBody();
                 }, this.taskExecutor)
                 .get(this.raftProperties.getHeartbeat().toMillis(), TimeUnit.MILLISECONDS);
     }

@@ -1,6 +1,8 @@
 package com.springRaft.servlet.consensusModule;
 
 import com.springRaft.servlet.communication.message.Message;
+import com.springRaft.servlet.communication.message.RequestVote;
+import com.springRaft.servlet.communication.message.RequestVoteReply;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
@@ -14,8 +16,9 @@ public class Leader implements RaftState {
     }
 
     @Override
-    public void requestVote() {
+    public RequestVoteReply requestVote(RequestVote requestVote) {
 
+        return null;
     }
 
     @Override

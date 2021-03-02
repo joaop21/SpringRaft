@@ -1,6 +1,8 @@
 package com.springRaft.servlet.consensusModule;
 
 import com.springRaft.servlet.communication.message.Message;
+import com.springRaft.servlet.communication.message.RequestVote;
+import com.springRaft.servlet.communication.message.RequestVoteReply;
 
 public interface RaftState {
 
@@ -10,9 +12,13 @@ public interface RaftState {
     void appendEntries();
 
     /**
-     * Method for handling RequestVote RPC
+     * Method for handling RequestVote RPC.
+     *
+     * @param requestVote RequestVote Object sent from a candidate.
+     *
+     * @return RequestVoteReply Reply for the vote request.
      * */
-    void requestVote();
+    RequestVoteReply requestVote(RequestVote requestVote);
 
     /**
      * Method for doing the work that it's required

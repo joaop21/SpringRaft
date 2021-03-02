@@ -2,6 +2,7 @@ package com.springRaft.servlet.consensusModule;
 
 import com.springRaft.servlet.config.RaftProperties;
 import com.springRaft.servlet.worker.ElectionTimeoutTimer;
+import com.springRaft.servlet.worker.NewFollowerState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -66,11 +67,22 @@ public class TimerHandler {
     }
 
     /**
+     * TODO
+     * */
+    public ScheduledFuture<?> setNewFollowerState() {
+
+        NewFollowerState newFollowerState = applicationContext.getBean(NewFollowerState.class);
+
+        return this.threadPoolTaskScheduler.schedule(newFollowerState, new Date());
+
+    }
+
+    /**
      * Cancels the scheduling of a specific scheduled task.
      *
      * @param scheduledFuture Scheduled task to cancel.
      * */
-    public void cancelElectionTimeout(ScheduledFuture<?> scheduledFuture) {
+    public void cancelScheduledTask(ScheduledFuture<?> scheduledFuture) {
         scheduledFuture.cancel(true);
     }
 

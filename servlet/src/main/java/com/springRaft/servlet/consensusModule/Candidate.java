@@ -2,6 +2,7 @@ package com.springRaft.servlet.consensusModule;
 
 import com.springRaft.servlet.communication.message.Message;
 import com.springRaft.servlet.communication.message.RequestVote;
+import com.springRaft.servlet.communication.message.RequestVoteReply;
 import com.springRaft.servlet.communication.outbound.OutboundManager;
 import com.springRaft.servlet.config.RaftProperties;
 import com.springRaft.servlet.persistence.state.State;
@@ -95,14 +96,51 @@ public class Candidate implements RaftState {
     }
 
     @Override
-    public void requestVote() {
+    public RequestVoteReply requestVote(RequestVote requestVote) {
+
+        RequestVoteReply reply = this.applicationContext.getBean(RequestVoteReply.class);
+
+        long currentTerm = this.stateService.getCurrentTerm();
+
+        if(requestVote.getTerm() < currentTerm) {
+
+            // revoke request
+            reply.setTerm(currentTerm);
+            reply.setVoteGranted(false);
+
+        } else if (requestVote.getTerm() > currentTerm) {
+
+            // update term & vote for this request
+            this.stateService.setState(requestVote.getTerm(), requestVote.getCandidateId());
+
+            // begin new follower state and delete the existing timer
+            this.timerHandler.cancelScheduledTask(this.scheduledFuture);
+
+            // change message to null and notify peer workers
+            this.requestVoteMessage = null;
+            this.outboundManager.newMessage();
+
+            // transit to follower state
+            this.setNewFollower();
+
+            reply.setTerm(requestVote.getTerm());
+            reply.setVoteGranted(true);
+
+        } else if (requestVote.getTerm() == currentTerm) {
+
+            reply.setTerm(currentTerm);
+            reply.setVoteGranted(false);
+
+        }
+
+        return reply;
 
     }
 
     @Override
     public void work() {
 
-        log.info("Transited to CANDIDATE");
+        log.info("NEW ELECTION");
 
         // increments current term
         this.stateService.incrementCurrentTerm();
@@ -149,6 +187,17 @@ public class Candidate implements RaftState {
 
     }
 
+    /**
+     * Set a new follower scheduled thread.
+     * */
+    private void setNewFollower() {
 
+        // schedule task
+        ScheduledFuture<?> schedule = this.timerHandler.setNewFollowerState();
+
+        // store runnable
+        this.setScheduledFuture(schedule);
+
+    }
 
 }

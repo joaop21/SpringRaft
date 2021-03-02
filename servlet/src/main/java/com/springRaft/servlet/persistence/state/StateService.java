@@ -62,6 +62,16 @@ public class StateService {
     /**
      * TODO
      * */
+    public void setState(Long term, String votedFor) {
+        State state = this.getState();
+        state.setCurrentTerm(term);
+        state.setVotedFor(votedFor);
+        this.repository.save(state);
+    }
+
+    /**
+     * TODO
+     * */
     public State saveState(State state) {
         return this.repository.save(state);
     }

@@ -1,6 +1,12 @@
 package com.springRaft.servlet.consensusModule;
 
 import com.springRaft.servlet.communication.message.Message;
+import com.springRaft.servlet.communication.message.RequestVote;
+import com.springRaft.servlet.communication.message.RequestVoteReply;
+import com.springRaft.servlet.persistence.state.StateService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
@@ -10,15 +16,35 @@ import java.util.concurrent.ScheduledFuture;
 @Scope("singleton")
 public class Follower implements RaftState {
 
+    /* Logger */
+    private static final Logger log = LoggerFactory.getLogger(Candidate.class);
+
+    /* Application Context for getting beans */
+    private final ApplicationContext applicationContext;
+
+    /* Module that has the consensus functions to invoke */
+    private final ConsensusModule consensusModule;
+
+    /* Service to access persisted state repository */
+    private final StateService stateService;
+
     /* Timer handles for timeouts */
     private final TimerHandler timerHandler;
 
-    /* Current timeout timer */
+    /* Scheduled Thread */
     private ScheduledFuture<?> scheduledFuture;
 
     /* --------------------------------------------------- */
 
-    public Follower(TimerHandler timerHandler) {
+    public Follower(
+            ApplicationContext applicationContext,
+            ConsensusModule consensusModule,
+            StateService stateService,
+            TimerHandler timerHandler
+    ) {
+        this.applicationContext = applicationContext;
+        this.consensusModule = consensusModule;
+        this.stateService = stateService;
         this.timerHandler = timerHandler;
         this.scheduledFuture = null;
     }
@@ -40,19 +66,82 @@ public class Follower implements RaftState {
     public void appendEntries() {
 
         // If receive an appendEntries remove the timer and set a new one
-        this.timerHandler.cancelElectionTimeout(this.scheduledFuture);
+        this.timerHandler.cancelScheduledTask(this.scheduledFuture);
         this.setTimeout();
 
     }
 
     @Override
-    public void requestVote() {
+    public RequestVoteReply requestVote(RequestVote requestVote) {
+
+        RequestVoteReply reply = this.applicationContext.getBean(RequestVoteReply.class);
+
+        long currentTerm = this.stateService.getCurrentTerm();
+
+        if(requestVote.getTerm() < currentTerm) {
+
+            // revoke request
+            reply.setTerm(currentTerm);
+            reply.setVoteGranted(false);
+
+        } else if (requestVote.getTerm() > currentTerm) {
+
+            // update term & vote for this request
+            this.stateService.setState(requestVote.getTerm(), requestVote.getCandidateId());
+
+            // begin new follower state and delete the existing timer
+            this.timerHandler.cancelScheduledTask(this.scheduledFuture);
+
+            // transit to follower state
+            this.setNewFollower();
+
+            reply.setTerm(requestVote.getTerm());
+            reply.setVoteGranted(true);
+
+        } else if (requestVote.getTerm() == currentTerm) {
+
+            reply.setTerm(currentTerm);
+
+            // check if candidate's log is at least as up-to-date as mine
+            if (requestVote.getLastLogTerm() > this.consensusModule.getCommittedTerm()) {
+
+                // vote for this request if not voted for anyone yet
+                this.setVote(requestVote, reply);
+
+            } else if (requestVote.getLastLogTerm() < this.consensusModule.getCommittedTerm()) {
+
+                // revoke request
+                reply.setVoteGranted(false);
+
+            } else if (requestVote.getLastLogTerm() == this.consensusModule.getCommittedTerm()) {
+
+                if (requestVote.getLastLogIndex() >= this.consensusModule.getCommittedIndex()) {
+
+                    // vote for this request if not voted for anyone yet
+                    this.setVote(requestVote, reply);
+
+                } else if (requestVote.getLastLogIndex() < this.consensusModule.getCommittedIndex()) {
+
+                    // revoke request
+                    reply.setVoteGranted(false);
+
+                }
+
+            }
+
+        }
+
+        return reply;
 
     }
 
     @Override
     public void work() {
+
+        log.info("Follower");
+
         this.setTimeout();
+
     }
 
     @Override
@@ -72,6 +161,39 @@ public class Follower implements RaftState {
 
         // store runnable
         this.setScheduledFuture(schedule);
+
+    }
+
+    /**
+     * Set a new follower scheduled thread.
+     * */
+    private void setNewFollower() {
+
+        // schedule task
+        ScheduledFuture<?> schedule = this.timerHandler.setNewFollowerState();
+
+        // store runnable
+        this.setScheduledFuture(schedule);
+
+    }
+
+    /**
+     * TODO
+     * */
+    private void setVote(RequestVote requestVote, RequestVoteReply reply) {
+
+        String votedFor = this.stateService.getVotedFor();
+
+        if (this.stateService.getVotedFor() == null || votedFor.equals(requestVote.getCandidateId())) {
+
+            this.stateService.setVotedFor(requestVote.getCandidateId());
+            reply.setVoteGranted(true);
+
+        } else {
+
+            reply.setVoteGranted(false);
+
+        }
 
     }
 

@@ -1,26 +1,28 @@
 package com.springRaft.servlet.communication.message;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.*;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 @Component
 @Scope("prototype")
 @AllArgsConstructor
+@NoArgsConstructor
 @Getter
+@Setter
+@ToString
 public class RequestVote implements Message {
 
     /* Candidate's term */
-    private final Long term;
+    private Long term;
 
     /* Candidate requesting vote */
-    private final String candidateID;
+    private String candidateId;
 
     /* Index of candidate's last log entry */
-    private final Long lastLogIndex;
+    private Long lastLogIndex;
 
     /* Term of candidate's last log entry */
-    private final Long lastLogTerm;
+    private Long lastLogTerm;
 
 }

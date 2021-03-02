@@ -1,6 +1,6 @@
 package com.springRaft.servlet.config.startup;
 
-import com.springRaft.servlet.worker.StateMachineWorker;
+import com.springRaft.servlet.worker.NewFollowerState;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.ApplicationArguments;
@@ -37,7 +37,7 @@ public class Initialization implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        StateMachineWorker worker = applicationContext.getBean(StateMachineWorker.class);
+        NewFollowerState worker = applicationContext.getBean(NewFollowerState.class);
         taskExecutor.execute(worker);
     }
 

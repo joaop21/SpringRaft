@@ -1,6 +1,8 @@
 package com.springRaft.servlet.consensusModule;
 
 import com.springRaft.servlet.communication.message.Message;
+import com.springRaft.servlet.communication.message.RequestVote;
+import com.springRaft.servlet.communication.message.RequestVoteReply;
 import lombok.Getter;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
@@ -15,22 +17,21 @@ public class ConsensusModule implements RaftState {
     private RaftState current;
 
     /* Index of the highest log entry known to be committed */
-    private Long committedIndex;
+    private long committedIndex;
 
     /* Term of the highest log entry known to be committed */
-    private Long committedTerm;
+    private long committedTerm;
 
     /* Index of the highest log entry applied to state machine */
-    private Long lastApplied;
+    private long lastApplied;
 
     /* --------------------------------------------------- */
 
     public ConsensusModule(ApplicationContext applicationContext) {
-        // Follower is the raft state where each server starts
-        this.current = applicationContext.getBean(Follower.class);
-        this.committedIndex = (long) 0;
-        this.committedTerm = (long) 0;
-        this.lastApplied = (long) 0;
+        this.current = null;
+        this.committedIndex = 0;
+        this.committedTerm = 0;
+        this.lastApplied = 0;
     }
 
     /* --------------------------------------------------- */
@@ -72,8 +73,8 @@ public class ConsensusModule implements RaftState {
     }
 
     @Override
-    public void requestVote() {
-        this.current.requestVote();
+    public RequestVoteReply requestVote(RequestVote requestVote) {
+        return this.current.requestVote(requestVote);
     }
 
     @Override

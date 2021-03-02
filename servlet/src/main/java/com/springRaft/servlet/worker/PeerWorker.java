@@ -81,7 +81,8 @@ public class PeerWorker implements Runnable, MessageSubscriber {
             Message message = this.consensusModule.getNextMessage(this.targetServerName);
 
             // send message
-            this.send(message);
+            if (message != null)
+                this.send(message);
 
         }
 
@@ -107,7 +108,9 @@ public class PeerWorker implements Runnable, MessageSubscriber {
     }
 
     /**
-     * TODO
+     * Depending on the message class, it decides which method to invoke.
+     *
+     * @param message Message to send.
      * */
     private void send(Message message) {
 
@@ -133,7 +136,10 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
         try {
 
-            return this.outbound.requestVote(this.targetServerName, (RequestVote) message);
+            RequestVoteReply reply = this.outbound.requestVote(this.targetServerName, (RequestVote) message);
+            log.info(reply.toString());
+
+            return reply;
 
         } catch (ExecutionException e) {
             // If target server is not alive

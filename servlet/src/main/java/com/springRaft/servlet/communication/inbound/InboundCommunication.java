@@ -1,6 +1,9 @@
 package com.springRaft.servlet.communication.inbound;
 
+import com.springRaft.servlet.communication.message.RequestVote;
+import com.springRaft.servlet.communication.message.RequestVoteReply;
+
 public interface InboundCommunication {
     Boolean appendEntries();
-    Boolean requestVote();
+    RequestVoteReply requestVote(RequestVote requestVote);
 }
