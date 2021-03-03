@@ -28,7 +28,7 @@ public class Follower implements RaftState {
     /* Service to access persisted state repository */
     private final StateService stateService;
 
-    /* Timer handles for timeouts */
+    /* Transition handler */
     private final TransitionManager transitionManager;
 
     /* Scheduled Thread */
@@ -65,7 +65,7 @@ public class Follower implements RaftState {
     @Override
     public void appendEntries() {
 
-        // If receive an appendEntries remove the timer and set a new one
+        // If receive an appendEntries remove the scheduled task and set a new one
         this.transitionManager.cancelScheduledTask(this.scheduledFuture);
         this.setTimeout();
 
@@ -96,7 +96,7 @@ public class Follower implements RaftState {
 
             if (reply.getVoteGranted()) {
 
-                // begin new follower state and delete the existing timer
+                // begin new follower state and delete the existing task
                 this.transitionManager.cancelScheduledTask(this.scheduledFuture);
 
                 // transit to follower state
@@ -120,14 +120,23 @@ public class Follower implements RaftState {
     @Override
     public void requestVoteReply(RequestVoteReply requestVoteReply) {
 
-        // if term is greater than min, I should update it and transit to new follower
+        // if term is greater than mine, I should update it and transit to new follower
+        if (requestVoteReply.getTerm() > this.stateService.getCurrentTerm()) {
+
+            // begin new follower state and delete the existing task
+            this.transitionManager.cancelScheduledTask(this.scheduledFuture);
+
+            // transit to follower state
+            this.transitionManager.setNewFollowerState();
+
+        }
 
     }
 
     @Override
     public void work() {
 
-        log.info("Follower");
+        log.info("FOLLOWER");
 
         this.setTimeout();
 

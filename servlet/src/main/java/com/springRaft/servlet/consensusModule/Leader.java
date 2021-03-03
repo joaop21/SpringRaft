@@ -50,7 +50,9 @@ public class Leader implements RaftState {
     @Override
     public void work() {
 
-        log.info("\n\n\nLEADER\n\n");
+        log.info("LEADER");
+
+
 
     }
 

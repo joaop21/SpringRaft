@@ -166,10 +166,7 @@ public class Candidate implements RaftState {
                 this.cleanBeforeTransit();
 
                 // transit to leader state
-                // For the next Pull Request
-                // ...
-                // ...
-                // this.transitionManager.setNewLeaderState();
+                this.transitionManager.setNewLeaderState();
 
             }
 
@@ -180,7 +177,7 @@ public class Candidate implements RaftState {
     @Override
     public void work() {
 
-        log.info("NEW ELECTION");
+        log.info("CANDIDATE");
 
         // set votes granted to none
         this.votesGranted = 0;
