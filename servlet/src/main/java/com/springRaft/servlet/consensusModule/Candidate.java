@@ -35,7 +35,7 @@ public class Candidate implements RaftState {
     private final RaftProperties raftProperties;
 
     /* Timer handles for timeouts */
-    private final TimerHandler timerHandler;
+    private final TransitionManager transitionManager;
 
     /* Current timeout timer */
     private ScheduledFuture<?> scheduledFuture;
@@ -46,6 +46,9 @@ public class Candidate implements RaftState {
     /* Message to send to the cluster requesting votes */
     private Message requestVoteMessage;
 
+    /* Votes granted by the cluster */
+    private int votesGranted;
+
     /* --------------------------------------------------- */
 
     public Candidate(
@@ -53,17 +56,18 @@ public class Candidate implements RaftState {
             ConsensusModule consensusModule,
             StateService stateService,
             RaftProperties raftProperties,
-            TimerHandler timerHandler,
+            TransitionManager transitionManager,
             OutboundManager outboundManager
     ) {
         this.applicationContext = applicationContext;
         this.consensusModule = consensusModule;
         this.stateService = stateService;
         this.raftProperties = raftProperties;
-        this.timerHandler = timerHandler;
+        this.transitionManager = transitionManager;
         this.outboundManager = outboundManager;
         this.scheduledFuture = null;
         this.requestVoteMessage = null;
+        this.votesGranted = 0;
     }
 
     /* --------------------------------------------------- */
@@ -110,21 +114,22 @@ public class Candidate implements RaftState {
 
         } else if (requestVote.getTerm() > currentTerm) {
 
-            // update term & vote for this request
-            this.stateService.setState(requestVote.getTerm(), requestVote.getCandidateId());
-
-            // begin new follower state and delete the existing timer
-            this.timerHandler.cancelScheduledTask(this.scheduledFuture);
-
-            // change message to null and notify peer workers
-            this.requestVoteMessage = null;
-            this.outboundManager.newMessage();
-
-            // transit to follower state
-            this.setNewFollower();
+            // update term
+            this.stateService.setState(requestVote.getTerm(), null);
 
             reply.setTerm(requestVote.getTerm());
-            reply.setVoteGranted(true);
+
+            // check if candidate's log is at least as up-to-date as mine
+            this.checkLog(requestVote, reply);
+
+            if (reply.getVoteGranted()) {
+
+                this.cleanBeforeTransit();
+
+                // transit to follower state
+                this.transitionManager.setNewFollowerState();
+
+            }
 
         } else if (requestVote.getTerm() == currentTerm) {
 
@@ -138,9 +143,47 @@ public class Candidate implements RaftState {
     }
 
     @Override
+    public void requestVoteReply(RequestVoteReply requestVoteReply) {
+
+        if (requestVoteReply.getTerm() > this.stateService.getCurrentTerm()) {
+
+            // update term
+            this.stateService.setState(requestVoteReply.getTerm(), null);
+
+            this.cleanBeforeTransit();
+
+            // transit to follower state
+            this.transitionManager.setNewFollowerState();
+
+        }
+
+        if (requestVoteReply.getVoteGranted()) {
+
+            this.votesGranted++;
+
+            if (this.votesGranted >= this.raftProperties.getQuorum()) {
+
+                this.cleanBeforeTransit();
+
+                // transit to leader state
+                // For the next Pull Request
+                // ...
+                // ...
+                // this.transitionManager.setNewLeaderState();
+
+            }
+
+        }
+
+    }
+
+    @Override
     public void work() {
 
         log.info("NEW ELECTION");
+
+        // set votes granted to none
+        this.votesGranted = 0;
 
         // increments current term
         this.stateService.incrementCurrentTerm();
@@ -180,7 +223,7 @@ public class Candidate implements RaftState {
     private void setTimeout() {
 
         // schedule task
-        ScheduledFuture<?> schedule = this.timerHandler.setElectionTimeout();
+        ScheduledFuture<?> schedule = this.transitionManager.setElectionTimeout();
 
         // store runnable
         this.setScheduledFuture(schedule);
@@ -188,15 +231,69 @@ public class Candidate implements RaftState {
     }
 
     /**
-     * Set a new follower scheduled thread.
+     * TODO
      * */
-    private void setNewFollower() {
+    private void checkLog(RequestVote requestVote, RequestVoteReply reply) {
 
-        // schedule task
-        ScheduledFuture<?> schedule = this.timerHandler.setNewFollowerState();
+        if (requestVote.getLastLogTerm() > this.consensusModule.getCommittedTerm()) {
 
-        // store runnable
-        this.setScheduledFuture(schedule);
+            // vote for this request if not voted for anyone yet
+            this.setVote(requestVote, reply);
+
+        } else if (requestVote.getLastLogTerm() < this.consensusModule.getCommittedTerm()) {
+
+            // revoke request
+            reply.setVoteGranted(false);
+
+        } else if (requestVote.getLastLogTerm() == this.consensusModule.getCommittedTerm()) {
+
+            if (requestVote.getLastLogIndex() >= this.consensusModule.getCommittedIndex()) {
+
+                // vote for this request if not voted for anyone yet
+                this.setVote(requestVote, reply);
+
+            } else if (requestVote.getLastLogIndex() < this.consensusModule.getCommittedIndex()) {
+
+                // revoke request
+                reply.setVoteGranted(false);
+
+            }
+
+        }
+
+    }
+
+    /**
+     * TODO
+     * */
+    private void setVote(RequestVote requestVote, RequestVoteReply reply) {
+
+        String votedFor = this.stateService.getVotedFor();
+
+        if (votedFor == null || votedFor.equals(requestVote.getCandidateId())) {
+
+            this.stateService.setVotedFor(requestVote.getCandidateId());
+            reply.setVoteGranted(true);
+
+        } else {
+
+            reply.setVoteGranted(false);
+
+        }
+
+    }
+
+    /**
+     * TODO
+     * */
+    private void cleanBeforeTransit() {
+
+        // delete the existing scheduled task
+        this.transitionManager.cancelScheduledTask(this.scheduledFuture);
+
+        // change message to null and notify peer workers
+        this.requestVoteMessage = null;
+        this.outboundManager.newMessage();
 
     }
 

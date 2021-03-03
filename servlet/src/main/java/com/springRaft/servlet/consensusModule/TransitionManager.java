@@ -1,8 +1,7 @@
 package com.springRaft.servlet.consensusModule;
 
 import com.springRaft.servlet.config.RaftProperties;
-import com.springRaft.servlet.worker.ElectionTimeoutTimer;
-import com.springRaft.servlet.worker.NewFollowerState;
+import com.springRaft.servlet.worker.StateTransition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -16,13 +15,16 @@ import java.util.Random;
 import java.util.concurrent.ScheduledFuture;
 
 @Service
-public class TimerHandler {
+public class TransitionManager {
 
     /* Logger */
-    private static final Logger log = LoggerFactory.getLogger(TimerHandler.class);
+    private static final Logger log = LoggerFactory.getLogger(TransitionManager.class);
 
     /* Context for getting the appropriate Beans */
     private final ApplicationContext applicationContext;
+
+    /* Module that has the consensus functions to invoke */
+    private final ConsensusModule consensusModule;
 
     /* Raft properties that need to be accessed */
     private final RaftProperties raftProperties;
@@ -32,12 +34,14 @@ public class TimerHandler {
 
     /* --------------------------------------------------- */
 
-    public TimerHandler(
+    public TransitionManager(
             ApplicationContext applicationContext,
+            ConsensusModule consensusModule,
             RaftProperties raftProperties,
-            @Qualifier(value = "timerTaskScheduler") ThreadPoolTaskScheduler threadPoolTaskScheduler
+            @Qualifier(value = "transitionTaskExecutor") ThreadPoolTaskScheduler threadPoolTaskScheduler
     ) {
         this.applicationContext = applicationContext;
+        this.consensusModule = consensusModule;
         this.raftProperties = raftProperties;
         this.threadPoolTaskScheduler = threadPoolTaskScheduler;
     }
@@ -51,7 +55,8 @@ public class TimerHandler {
      * */
     public ScheduledFuture<?> setElectionTimeout() {
 
-        ElectionTimeoutTimer timer = applicationContext.getBean(ElectionTimeoutTimer.class);
+        StateTransition transition = applicationContext
+                .getBean(StateTransition.class, applicationContext, consensusModule, Candidate.class);
 
         Long timeout = this.getRandomLongBetweenRange(
                 this.raftProperties.getElectionTimeoutMin().toMillis(),
@@ -63,17 +68,30 @@ public class TimerHandler {
         log.info("Set an election timeout: " + timeout + "ms");
 
         // schedule task
-        return this.threadPoolTaskScheduler.schedule(timer, date);
+        return this.threadPoolTaskScheduler.schedule(transition, date);
     }
 
     /**
      * TODO
      * */
-    public ScheduledFuture<?> setNewFollowerState() {
+    public void setNewFollowerState() {
 
-        NewFollowerState newFollowerState = applicationContext.getBean(NewFollowerState.class);
+        StateTransition transition = applicationContext
+                .getBean(StateTransition.class, applicationContext, consensusModule, Follower.class);
 
-        return this.threadPoolTaskScheduler.schedule(newFollowerState, new Date());
+        this.threadPoolTaskScheduler.schedule(transition, new Date());
+
+    }
+
+    /**
+     * TODO
+     * */
+    public void setNewLeaderState() {
+
+        StateTransition transition = applicationContext
+                .getBean(StateTransition.class, applicationContext, consensusModule, Leader.class);
+
+        this.threadPoolTaskScheduler.schedule(transition, new Date());
 
     }
 

@@ -78,6 +78,11 @@ public class ConsensusModule implements RaftState {
     }
 
     @Override
+    public void requestVoteReply(RequestVoteReply requestVoteReply) {
+        this.current.requestVoteReply(requestVoteReply);
+    }
+
+    @Override
     public void work() {
         this.current.work();
     }

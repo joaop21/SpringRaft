@@ -21,6 +21,11 @@ public interface RaftState {
     RequestVoteReply requestVote(RequestVote requestVote);
 
     /**
+     * TODO
+     */
+    void requestVoteReply(RequestVoteReply requestVoteReply);
+
+    /**
      * Method for doing the work that it's required
      * */
     void work();

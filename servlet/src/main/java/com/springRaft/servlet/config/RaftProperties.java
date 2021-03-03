@@ -21,13 +21,15 @@ import java.util.List;
 public class RaftProperties {
 
     /* Logger */
-    private static final Logger log = LoggerFactory.getLogger(Candidate.class);
+    private static final Logger log = LoggerFactory.getLogger(RaftProperties.class);
 
     /* Address of this server */
     private final InetSocketAddress host;
 
     /* List of Addresses of cluster */
     private final List<InetSocketAddress> cluster;
+
+    private final Integer quorum;
 
     /* Minimum Timeout to trigger an election */
     private final Duration electionTimeoutMin;
@@ -61,6 +63,9 @@ public class RaftProperties {
         this.cluster = new ArrayList<>();
         for (String hoststring : cluster)
             this.cluster.add(getAddressFromHostname(hoststring));
+
+        int clusterSize = this.cluster.size() + 1;
+        this.quorum = (clusterSize / 2) + 1;
 
         log.info(this.toString());
 
@@ -99,6 +104,10 @@ public class RaftProperties {
                     .append(address.getHostName())
                     .append(":")
                     .append(address.getPort());
+
+        builder.append("\n\n")
+                .append("The Quorum size is ").append(this.quorum)
+                .append(" servers");
 
         builder.append("\n\n")
                 .append("Election Properties:\n")

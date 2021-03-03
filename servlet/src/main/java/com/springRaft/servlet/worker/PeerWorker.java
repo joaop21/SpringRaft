@@ -26,7 +26,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class PeerWorker implements Runnable, MessageSubscriber {
 
     /* Logger */
-    private static final Logger log = LoggerFactory.getLogger(Candidate.class);
+    private static final Logger log = LoggerFactory.getLogger(PeerWorker.class);
 
     /* Outbound context for communication to other servers */
     private final OutboundContext outbound;
@@ -118,8 +118,11 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
             RequestVoteReply reply;
             do {
-                reply = this.requestVote(message);
+                reply = this.requestVote((RequestVote) message);
             } while (reply == null && this.remainingMessages == 0);
+
+            if (reply != null)
+                this.consensusModule.requestVoteReply(reply);
 
         }
 
@@ -130,13 +133,13 @@ public class PeerWorker implements Runnable, MessageSubscriber {
     /**
      * TODO
      * */
-    private RequestVoteReply requestVote(Message message) {
+    private RequestVoteReply requestVote(RequestVote requestVote) {
 
         long start = System.currentTimeMillis();
 
         try {
 
-            RequestVoteReply reply = this.outbound.requestVote(this.targetServerName, (RequestVote) message);
+            RequestVoteReply reply = this.outbound.requestVote(this.targetServerName, requestVote);
             log.info(reply.toString());
 
             return reply;

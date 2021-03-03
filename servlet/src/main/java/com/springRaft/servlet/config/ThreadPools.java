@@ -33,12 +33,12 @@ public class ThreadPools {
      *
      * @return ThreadPoolTaskScheduler dedicated to timers
      * */
-    @Bean(name = "timerTaskScheduler")
-    public ThreadPoolTaskScheduler timerTaskScheduler(){
+    @Bean(name = "transitionTaskExecutor")
+    public ThreadPoolTaskScheduler transitionTaskExecutor(){
 
         ThreadPoolTaskScheduler threadPoolTaskScheduler = new ThreadPoolTaskScheduler();
         threadPoolTaskScheduler.setPoolSize(1);
-        threadPoolTaskScheduler.setThreadNamePrefix("ScheduledTask-");
+        threadPoolTaskScheduler.setThreadNamePrefix("TransitionTask-");
 
         return threadPoolTaskScheduler;
     }
