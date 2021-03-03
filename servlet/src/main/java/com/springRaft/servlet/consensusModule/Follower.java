@@ -1,47 +1,61 @@
 package com.springRaft.servlet.consensusModule;
 
-import com.springRaft.servlet.config.RaftProperties;
-import com.springRaft.servlet.worker.ElectionTimeoutTimer;
-import org.springframework.beans.factory.annotation.Qualifier;
+import com.springRaft.servlet.communication.message.Message;
+import com.springRaft.servlet.communication.message.RequestVote;
+import com.springRaft.servlet.communication.message.RequestVoteReply;
+import com.springRaft.servlet.persistence.state.StateService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.stereotype.Service;
 
-import java.util.Date;
 import java.util.concurrent.ScheduledFuture;
 
 @Service
 @Scope("singleton")
 public class Follower implements RaftState {
 
-    /* Context for getting the appropriate Beans */
+    /* Logger */
+    private static final Logger log = LoggerFactory.getLogger(Follower.class);
+
+    /* Application Context for getting beans */
     private final ApplicationContext applicationContext;
 
-    /* Raft properties that need to be accessed */
-    private final RaftProperties raftProperties;
+    /* Module that has the consensus functions to invoke */
+    private final ConsensusModule consensusModule;
 
-    /* Pool for scheduled tasks */
-    private final ThreadPoolTaskScheduler threadPoolTaskScheduler;
+    /* Service to access persisted state repository */
+    private final StateService stateService;
 
-    /* Current timeout timer */
+    /* Timer handles for timeouts */
+    private final TransitionManager transitionManager;
+
+    /* Scheduled Thread */
     private ScheduledFuture<?> scheduledFuture;
 
     /* --------------------------------------------------- */
 
     public Follower(
             ApplicationContext applicationContext,
-            RaftProperties raftProperties,
-            @Qualifier(value = "timerTaskScheduler") ThreadPoolTaskScheduler threadPoolTaskScheduler
+            ConsensusModule consensusModule,
+            StateService stateService,
+            TransitionManager transitionManager
     ) {
         this.applicationContext = applicationContext;
-        this.raftProperties = raftProperties;
-        this.threadPoolTaskScheduler = threadPoolTaskScheduler;
+        this.consensusModule = consensusModule;
+        this.stateService = stateService;
+        this.transitionManager = transitionManager;
         this.scheduledFuture = null;
     }
 
     /* --------------------------------------------------- */
 
+    /**
+     * Sets the value of the scheduledFuture instance variable.
+     *
+     * @param schedule Scheduled task.
+     * */
     private void setScheduledFuture(ScheduledFuture<?> schedule) {
         this.scheduledFuture = schedule;
     }
@@ -52,34 +66,143 @@ public class Follower implements RaftState {
     public void appendEntries() {
 
         // If receive an appendEntries remove the timer and set a new one
-        this.scheduledFuture.cancel(true);
+        this.transitionManager.cancelScheduledTask(this.scheduledFuture);
         this.setTimeout();
 
     }
 
     @Override
-    public void requestVote() {
+    public RequestVoteReply requestVote(RequestVote requestVote) {
+
+        RequestVoteReply reply = this.applicationContext.getBean(RequestVoteReply.class);
+
+        long currentTerm = this.stateService.getCurrentTerm();
+
+        if(requestVote.getTerm() < currentTerm) {
+
+            // revoke request
+            reply.setTerm(currentTerm);
+            reply.setVoteGranted(false);
+
+        } else if (requestVote.getTerm() > currentTerm) {
+
+            // update term
+            this.stateService.setState(requestVote.getTerm(), null);
+
+            reply.setTerm(requestVote.getTerm());
+
+            // check if candidate's log is at least as up-to-date as mine
+            this.checkLog(requestVote, reply);
+
+            if (reply.getVoteGranted()) {
+
+                // begin new follower state and delete the existing timer
+                this.transitionManager.cancelScheduledTask(this.scheduledFuture);
+
+                // transit to follower state
+                this.transitionManager.setNewFollowerState();
+
+            }
+
+        } else if (requestVote.getTerm() == currentTerm) {
+
+            reply.setTerm(currentTerm);
+
+            // check if candidate's log is at least as up-to-date as mine
+            this.checkLog(requestVote, reply);
+
+        }
+
+        return reply;
+
+    }
+
+    @Override
+    public void requestVoteReply(RequestVoteReply requestVoteReply) {
+
+        // if term is greater than min, I should update it and transit to new follower
 
     }
 
     @Override
     public void work() {
+
+        log.info("Follower");
+
         this.setTimeout();
+
     }
+
+    @Override
+    public Message getNextMessage(String to) {
+        return null;
+    }
+
+    /* --------------------------------------------------- */
 
     /**
      * Set a timer in milliseconds that represents a timeout.
      * */
     private void setTimeout() {
 
-        ElectionTimeoutTimer timer = applicationContext.getBean(ElectionTimeoutTimer.class);
-        Date date = new Date(System.currentTimeMillis() + this.raftProperties.getElectionTimeout().toMillis());
-
         // schedule task
-        ScheduledFuture<?> schedule = this.threadPoolTaskScheduler.schedule(timer, date);
+        ScheduledFuture<?> schedule = this.transitionManager.setElectionTimeout();
 
         // store runnable
         this.setScheduledFuture(schedule);
+
+    }
+
+    /**
+     * TODO
+     * */
+    private void checkLog(RequestVote requestVote, RequestVoteReply reply) {
+
+        if (requestVote.getLastLogTerm() > this.consensusModule.getCommittedTerm()) {
+
+            // vote for this request if not voted for anyone yet
+            this.setVote(requestVote, reply);
+
+        } else if (requestVote.getLastLogTerm() < this.consensusModule.getCommittedTerm()) {
+
+            // revoke request
+            reply.setVoteGranted(false);
+
+        } else if (requestVote.getLastLogTerm() == this.consensusModule.getCommittedTerm()) {
+
+            if (requestVote.getLastLogIndex() >= this.consensusModule.getCommittedIndex()) {
+
+                // vote for this request if not voted for anyone yet
+                this.setVote(requestVote, reply);
+
+            } else if (requestVote.getLastLogIndex() < this.consensusModule.getCommittedIndex()) {
+
+                // revoke request
+                reply.setVoteGranted(false);
+
+            }
+
+        }
+
+    }
+
+    /**
+     * TODO
+     * */
+    private void setVote(RequestVote requestVote, RequestVoteReply reply) {
+
+        String votedFor = this.stateService.getVotedFor();
+
+        if (votedFor == null || votedFor.equals(requestVote.getCandidateId())) {
+
+            this.stateService.setVotedFor(requestVote.getCandidateId());
+            reply.setVoteGranted(true);
+
+        } else {
+
+            reply.setVoteGranted(false);
+
+        }
 
     }
 
