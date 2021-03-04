@@ -102,7 +102,8 @@ public class Candidate implements RaftState {
     @Override
     public void appendEntriesReply(AppendEntriesReply appendEntriesReply) {
 
-        // Some actions
+        // If receive AppendEntries replies when in candidate state there
+        // is nothing to do
 
     }
 

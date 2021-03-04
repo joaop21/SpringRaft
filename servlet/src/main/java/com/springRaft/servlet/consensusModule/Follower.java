@@ -63,20 +63,37 @@ public class Follower implements RaftState {
     @Override
     public AppendEntriesReply appendEntries(AppendEntries appendEntries) {
 
-        // If receive an appendEntries remove the scheduled task and set a new one
-        this.transitionManager.cancelScheduledTask(this.scheduledFuture);
-        this.setTimeout();
+        AppendEntriesReply reply = this.applicationContext.getBean(AppendEntriesReply.class);
 
-        // Some actions
+        long currentTerm = this.stateService.getCurrentTerm();
 
-        return null;
+        if (appendEntries.getTerm() < currentTerm) {
+
+            reply.setTerm(currentTerm);
+            reply.setSuccess(false);
+
+        } else if (appendEntries.getTerm() > currentTerm) {
+
+            // update term
+            this.stateService.setState(appendEntries.getTerm(), null);
+
+            this.setAppendEntriesReply(appendEntries, reply);
+
+        } else if (appendEntries.getTerm() == currentTerm) {
+
+            this.setAppendEntriesReply(appendEntries, reply);
+
+        }
+
+        return reply;
 
     }
 
     @Override
     public void appendEntriesReply(AppendEntriesReply appendEntriesReply) {
 
-        // Some actions
+        // If receive AppendEntries replies when in follower state there
+        // is nothing to do
 
     }
 
@@ -87,7 +104,7 @@ public class Follower implements RaftState {
 
         long currentTerm = this.stateService.getCurrentTerm();
 
-        if(requestVote.getTerm() < currentTerm) {
+        if (requestVote.getTerm() < currentTerm) {
 
             // revoke request
             reply.setTerm(currentTerm);
@@ -108,8 +125,8 @@ public class Follower implements RaftState {
                 // begin new follower state and delete the existing task
                 this.transitionManager.cancelScheduledTask(this.scheduledFuture);
 
-                // transit to follower state
-                this.transitionManager.setNewFollowerState();
+                // set a new timeout, it's equivalent to transit to a new follower state
+                this.setTimeout();
 
             }
 
@@ -135,8 +152,8 @@ public class Follower implements RaftState {
             // begin new follower state and delete the existing task
             this.transitionManager.cancelScheduledTask(this.scheduledFuture);
 
-            // transit to follower state
-            this.transitionManager.setNewFollowerState();
+            // set a new timeout, it's equivalent to transit to a new follower state
+            this.setTimeout();
 
         }
 
@@ -221,6 +238,33 @@ public class Follower implements RaftState {
             reply.setVoteGranted(false);
 
         }
+
+    }
+
+    /**
+     * A method that encapsulates replicated code, and has the function of setting
+     * the reply for the received AppendEntries.
+     *
+     * @param appendEntries The received AppendEntries communication.
+     * @param reply AppendEntriesReply object, to send as response to the leader.
+     * */
+    private void setAppendEntriesReply(AppendEntries appendEntries, AppendEntriesReply reply) {
+
+        // remove the scheduled task
+        this.transitionManager.cancelScheduledTask(this.scheduledFuture);
+
+        // set a new timeout, it's equivalent to transit to a new follower state
+        this.setTimeout();
+
+        // reply with the current term
+        reply.setTerm(appendEntries.getTerm());
+
+        // check reply's success based on prevLogIndex and prevLogTerm
+        // reply.setSuccess()
+        // ...
+        // ...
+        // this need to be changed
+        reply.setSuccess(true);
 
     }
 
