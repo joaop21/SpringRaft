@@ -1,8 +1,6 @@
 package com.springRaft.servlet.consensusModule;
 
-import com.springRaft.servlet.communication.message.Message;
-import com.springRaft.servlet.communication.message.RequestVote;
-import com.springRaft.servlet.communication.message.RequestVoteReply;
+import com.springRaft.servlet.communication.message.*;
 import com.springRaft.servlet.communication.outbound.OutboundManager;
 import com.springRaft.servlet.config.RaftProperties;
 import com.springRaft.servlet.persistence.state.State;
@@ -84,7 +82,7 @@ public class Candidate implements RaftState {
     /* --------------------------------------------------- */
 
     @Override
-    public void appendEntries() {
+    public AppendEntriesReply appendEntries(AppendEntries appendEntries) {
 
         // If the leader’s term (included in its RPC) is at least
         //as large as the candidate’s current term, then the candidate
@@ -96,6 +94,15 @@ public class Candidate implements RaftState {
         //current term, then the candidate rejects the RPC and
         // continues in candidate state.
         // ...
+
+        return null;
+
+    }
+
+    @Override
+    public void appendEntriesReply(AppendEntriesReply appendEntriesReply) {
+
+        // Some actions
 
     }
 
@@ -175,7 +182,14 @@ public class Candidate implements RaftState {
     }
 
     @Override
-    public void work() {
+    public Message getNextMessage(String to) {
+
+        return this.requestVoteMessage;
+
+    }
+
+    @Override
+    public void start() {
 
         log.info("CANDIDATE");
 
@@ -205,11 +219,6 @@ public class Candidate implements RaftState {
 
         // set a candidate timeout
         this.setTimeout();
-    }
-
-    @Override
-    public Message getNextMessage(String to) {
-        return this.requestVoteMessage;
     }
 
     /* --------------------------------------------------- */

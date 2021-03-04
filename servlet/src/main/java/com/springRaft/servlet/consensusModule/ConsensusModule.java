@@ -1,8 +1,6 @@
 package com.springRaft.servlet.consensusModule;
 
-import com.springRaft.servlet.communication.message.Message;
-import com.springRaft.servlet.communication.message.RequestVote;
-import com.springRaft.servlet.communication.message.RequestVoteReply;
+import com.springRaft.servlet.communication.message.*;
 import lombok.Getter;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
@@ -41,7 +39,7 @@ public class ConsensusModule implements RaftState {
      * */
     public void setCurrentState(RaftState state) {
         this.current = state;
-        this.work();
+        this.start();
     }
 
     /**
@@ -68,8 +66,13 @@ public class ConsensusModule implements RaftState {
     /* --------------------------------------------------- */
 
     @Override
-    public void appendEntries() {
-        this.current.appendEntries();
+    public AppendEntriesReply appendEntries(AppendEntries appendEntries) {
+        return this.current.appendEntries(appendEntries);
+    }
+
+    @Override
+    public void appendEntriesReply(AppendEntriesReply appendEntriesReply) {
+        this.current.appendEntriesReply(appendEntriesReply);
     }
 
     @Override
@@ -83,13 +86,13 @@ public class ConsensusModule implements RaftState {
     }
 
     @Override
-    public void work() {
-        this.current.work();
+    public Message getNextMessage(String to) {
+        return this.current.getNextMessage(to);
     }
 
     @Override
-    public Message getNextMessage(String to) {
-        return this.current.getNextMessage(to);
+    public void start() {
+        this.current.start();
     }
 
 }

@@ -1,12 +1,9 @@
 package com.springRaft.servlet.worker;
 
-import com.springRaft.servlet.communication.message.Message;
-import com.springRaft.servlet.communication.message.RequestVote;
-import com.springRaft.servlet.communication.message.RequestVoteReply;
+import com.springRaft.servlet.communication.message.*;
 import com.springRaft.servlet.communication.outbound.MessageSubscriber;
 import com.springRaft.servlet.communication.outbound.OutboundContext;
 import com.springRaft.servlet.config.RaftProperties;
-import com.springRaft.servlet.consensusModule.Candidate;
 import com.springRaft.servlet.consensusModule.ConsensusModule;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -124,9 +121,17 @@ public class PeerWorker implements Runnable, MessageSubscriber {
             if (reply != null)
                 this.consensusModule.requestVoteReply(reply);
 
-        }
+        } else if (message instanceof AppendEntries) {
 
-        // elseif for append entries
+            AppendEntriesReply reply;
+            do {
+                reply = this.appendEntries((AppendEntries) message);
+            } while (reply == null && this.remainingMessages == 0);
+
+            if (reply != null)
+                this.consensusModule.appendEntriesReply(reply);
+
+        }
 
     }
 
@@ -162,6 +167,58 @@ public class PeerWorker implements Runnable, MessageSubscriber {
                 } catch (InterruptedException exception) {
 
                   log.error("Exception while awaiting", exception);
+
+                } finally {
+                    lock.unlock();
+                }
+
+            }
+
+        } catch (TimeoutException e) {
+
+            // If the request vote communication exceeded heartbeat timout
+            log.warn("Communication to server " + this.targetServerName + " exceeded heartbeat timeout!!");
+
+        } catch (Exception e) {
+
+            // If another exception occurs
+            log.error("EXCEPTION NOT EXPECTED", e);
+
+        }
+
+        return null;
+
+    }
+
+    private AppendEntriesReply appendEntries (AppendEntries appendEntries) {
+
+        long start = System.currentTimeMillis();
+
+        try {
+
+            AppendEntriesReply reply = this.outbound.appendEntries(this.targetServerName, appendEntries);
+            log.info(reply.toString());
+
+            return reply;
+
+        } catch (ExecutionException e) {
+            // If target server is not alive
+
+            log.warn("Server " + this.targetServerName + " is not up!!");
+
+            // sleep for the remaining time, if any
+            long remaining = this.raftProperties.getHeartbeat().toMillis() - (System.currentTimeMillis() - start);
+            if (remaining > 0) {
+
+                lock.lock();
+                try {
+
+                    if(this.remainingMessages == 0)
+                        this.newMessages.await(remaining, TimeUnit.MILLISECONDS);
+
+                } catch (InterruptedException exception) {
+
+                    log.error("Exception while awaiting", exception);
 
                 } finally {
                     lock.unlock();

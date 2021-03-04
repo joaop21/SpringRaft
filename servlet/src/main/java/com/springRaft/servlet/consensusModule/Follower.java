@@ -1,8 +1,6 @@
 package com.springRaft.servlet.consensusModule;
 
-import com.springRaft.servlet.communication.message.Message;
-import com.springRaft.servlet.communication.message.RequestVote;
-import com.springRaft.servlet.communication.message.RequestVoteReply;
+import com.springRaft.servlet.communication.message.*;
 import com.springRaft.servlet.persistence.state.StateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,11 +61,22 @@ public class Follower implements RaftState {
     /* --------------------------------------------------- */
 
     @Override
-    public void appendEntries() {
+    public AppendEntriesReply appendEntries(AppendEntries appendEntries) {
 
         // If receive an appendEntries remove the scheduled task and set a new one
         this.transitionManager.cancelScheduledTask(this.scheduledFuture);
         this.setTimeout();
+
+        // Some actions
+
+        return null;
+
+    }
+
+    @Override
+    public void appendEntriesReply(AppendEntriesReply appendEntriesReply) {
+
+        // Some actions
 
     }
 
@@ -134,17 +143,17 @@ public class Follower implements RaftState {
     }
 
     @Override
-    public void work() {
+    public Message getNextMessage(String to) {
+        return null;
+    }
+
+    @Override
+    public void start() {
 
         log.info("FOLLOWER");
 
         this.setTimeout();
 
-    }
-
-    @Override
-    public Message getNextMessage(String to) {
-        return null;
     }
 
     /* --------------------------------------------------- */

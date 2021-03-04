@@ -1,5 +1,7 @@
 package com.springRaft.servlet.communication.outbound;
 
+import com.springRaft.servlet.communication.message.AppendEntries;
+import com.springRaft.servlet.communication.message.AppendEntriesReply;
 import com.springRaft.servlet.communication.message.RequestVote;
 import com.springRaft.servlet.communication.message.RequestVoteReply;
 import org.springframework.context.ApplicationContext;
@@ -32,8 +34,8 @@ public class OutboundContext implements OutboundStrategy {
     /* --------------------------------------------------- */
 
     @Override
-    public Boolean appendEntries(String to) {
-        return this.communicationStrategy.appendEntries(to);
+    public AppendEntriesReply appendEntries(String to, AppendEntries message) throws InterruptedException, ExecutionException, TimeoutException {
+        return this.communicationStrategy.appendEntries(to, message);
     }
 
     @Override

@@ -1,13 +1,10 @@
 package com.springRaft.servlet.communication.outbound;
 
-import com.springRaft.servlet.communication.message.RequestVote;
-import com.springRaft.servlet.communication.message.RequestVoteReply;
+import com.springRaft.servlet.communication.message.*;
 import com.springRaft.servlet.config.RaftProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.concurrent.CompletableFuture;
@@ -40,38 +37,42 @@ public class REST implements OutboundStrategy {
     /* --------------------------------------------------- */
 
     @Override
-    public Boolean appendEntries(String to) {
+    public AppendEntriesReply appendEntries(String to, AppendEntries message)
+            throws InterruptedException, ExecutionException, TimeoutException
+    {
 
-        try {
-            return CompletableFuture.supplyAsync(() -> this.post(to, "/appendEntries"), taskExecutor)
-                    .exceptionally(e -> {
-                        System.out.println(e.getCause().toString());
-                        return false;
-                    })
-                    .get();
-        } catch (ExecutionException | InterruptedException e) {
-            return false;
-        }
+        return (AppendEntriesReply) sendToServer(to, "/appendEntries", message, AppendEntriesReply.class);
 
     }
 
     @Override
-    public RequestVoteReply requestVote(String to, RequestVote message) throws InterruptedException, ExecutionException, TimeoutException {
-        return CompletableFuture
-                .supplyAsync(() -> {
-                    String endpoint = "http://" + to + "/raft/requestVote";
-                    return restTemplate.postForEntity(endpoint, message, RequestVoteReply.class).getBody();
-                }, this.taskExecutor)
-                .get(this.raftProperties.getHeartbeat().toMillis(), TimeUnit.MILLISECONDS);
+    public RequestVoteReply requestVote(String to, RequestVote message)
+            throws InterruptedException, ExecutionException, TimeoutException
+    {
+
+        return (RequestVoteReply) sendToServer(to, "/requestVote", message, RequestVoteReply.class);
+
     }
+
+
 
     /**
      * TODO
      * */
-    private Boolean post(String host, String route) throws ResourceAccessException {
+    private Message sendToServer(String to, String route, Message message, Class<? extends Message> type)
+            throws InterruptedException, ExecutionException, TimeoutException
+    {
 
-        String endpoint = "http://" + host + "/raft" + route;
-        return restTemplate.postForObject(endpoint, null, Boolean.class);
+        return CompletableFuture
+                .supplyAsync(() -> {
+
+                    String endpoint = "http://" + to + "/raft" + route;
+
+                    return restTemplate.postForEntity(endpoint, message, type)
+                            .getBody();
+
+                }, this.taskExecutor)
+                .get(this.raftProperties.getHeartbeat().toMillis(), TimeUnit.MILLISECONDS);
 
     }
 
