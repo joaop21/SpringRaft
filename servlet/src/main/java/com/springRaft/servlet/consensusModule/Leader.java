@@ -26,6 +26,9 @@ public class Leader implements RaftState {
     /* Application Context for getting beans */
     private final ApplicationContext applicationContext;
 
+    /* Module that has the consensus functions to invoke */
+    private final ConsensusModule consensusModule;
+
     /* Raft properties that need to be accessed */
     private final RaftProperties raftProperties;
 
@@ -34,6 +37,9 @@ public class Leader implements RaftState {
 
     /* Publisher of messages */
     private final OutboundManager outboundManager;
+
+    /* Timer handles for timeouts */
+    private final TransitionManager transitionManager;
 
     /* for each server, index of the next log entry to send to that server
         (initialized to leader last log index + 1) */
@@ -47,14 +53,18 @@ public class Leader implements RaftState {
 
     public Leader(
             ApplicationContext applicationContext,
+            ConsensusModule consensusModule,
             RaftProperties raftProperties,
             StateService stateService,
-            OutboundManager outboundManager
+            OutboundManager outboundManager,
+            TransitionManager transitionManager
     ) {
         this.applicationContext = applicationContext;
+        this.consensusModule = consensusModule;
         this.raftProperties = raftProperties;
         this.stateService = stateService;
         this.outboundManager = outboundManager;
+        this.transitionManager = transitionManager;
 
         this.nextIndex = new HashMap<>();
         this.matchIndex = new HashMap<>();
@@ -65,9 +75,41 @@ public class Leader implements RaftState {
     @Override
     public AppendEntriesReply appendEntries(AppendEntries appendEntries) {
 
-        // Some actions
+        AppendEntriesReply reply = this.applicationContext.getBean(AppendEntriesReply.class);
 
-        return null;
+        long currentTerm = this.stateService.getCurrentTerm();
+
+        if (appendEntries.getTerm() < currentTerm) {
+
+            reply.setTerm(currentTerm);
+            reply.setSuccess(false);
+
+        } else if (appendEntries.getTerm() > currentTerm) {
+
+            // update term
+            this.stateService.setState(appendEntries.getTerm(), null);
+
+            this.cleanVolatileState();
+
+            // reply with the current term
+            reply.setTerm(appendEntries.getTerm());
+
+            // check reply's success based on prevLogIndex and prevLogTerm
+            // reply.setSuccess()
+            // ...
+            // ...
+            // this need to be changed
+            reply.setSuccess(true);
+
+            // transit to follower state
+            this.transitionManager.setNewFollowerState();
+
+        }
+        // The algorithm ensures that no two leaders exist in the same term,
+        // so I cannot receive AppendEntries with the same term as mine when I'm in the Leader state.
+
+
+        return reply;
 
     }
 
@@ -75,6 +117,8 @@ public class Leader implements RaftState {
     public void appendEntriesReply(AppendEntriesReply appendEntriesReply) {
 
         // Some actions
+        // For the leader's election this isn't important
+        // Only the heartbeat is needed
 
     }
 
@@ -82,8 +126,31 @@ public class Leader implements RaftState {
     public RequestVoteReply requestVote(RequestVote requestVote) {
 
         RequestVoteReply reply = this.applicationContext.getBean(RequestVoteReply.class);
-        reply.setTerm(this.stateService.getCurrentTerm());
-        reply.setVoteGranted(false);
+
+        long currentTerm = this.stateService.getCurrentTerm();
+
+        if(requestVote.getTerm() <= currentTerm) {
+
+            // revoke request
+            reply.setTerm(currentTerm);
+            reply.setVoteGranted(false);
+
+        } else if (requestVote.getTerm() > currentTerm) {
+
+            // update term
+            this.stateService.setState(requestVote.getTerm(), null);
+
+            reply.setTerm(requestVote.getTerm());
+
+            // check if candidate's log is at least as up-to-date as mine
+            this.checkLog(requestVote, reply);
+
+            this.cleanVolatileState();
+
+            // transit to follower state
+            this.transitionManager.setNewFollowerState();
+
+        }
 
         return reply;
     }
@@ -91,11 +158,31 @@ public class Leader implements RaftState {
     @Override
     public void requestVoteReply(RequestVoteReply requestVoteReply) {
 
+        // if term is greater than mine, I should update it and transit to new follower
+        if (requestVoteReply.getTerm() > this.stateService.getCurrentTerm()) {
+
+            // update term
+            this.stateService.setState(requestVoteReply.getTerm(), null);
+
+            // clean leader's state
+            this.cleanVolatileState();
+
+            // transit to follower state
+            this.transitionManager.setNewFollowerState();
+
+        }
+
     }
 
     @Override
     public Message getNextMessage(String to) {
 
+        /*
+        * This need to be calculated for the target server
+        *  ...
+        *  ...
+        * This need to be changed
+        * */
         return this.emptyAppendEntries();
 
     }
@@ -136,6 +223,16 @@ public class Leader implements RaftState {
 
     }
 
+    /**
+     * This method cleans the Leader's volatile state.
+     * */
+    private void cleanVolatileState() {
+
+        this.nextIndex = new HashMap<>();
+        this.matchIndex = new HashMap<>();
+
+    }
+
     private AppendEntries emptyAppendEntries() {
 
         State state = this.stateService.getState();
@@ -152,6 +249,59 @@ public class Leader implements RaftState {
                 new ArrayList<>(), // entries
                 (long) 0 // leaderCommit
                 );
+
+    }
+
+    /**
+     * TODO
+     * */
+    private void checkLog(RequestVote requestVote, RequestVoteReply reply) {
+
+        if (requestVote.getLastLogTerm() > this.consensusModule.getCommittedTerm()) {
+
+            // vote for this request if not voted for anyone yet
+            this.setVote(requestVote, reply);
+
+        } else if (requestVote.getLastLogTerm() < this.consensusModule.getCommittedTerm()) {
+
+            // revoke request
+            reply.setVoteGranted(false);
+
+        } else if (requestVote.getLastLogTerm() == this.consensusModule.getCommittedTerm()) {
+
+            if (requestVote.getLastLogIndex() >= this.consensusModule.getCommittedIndex()) {
+
+                // vote for this request if not voted for anyone yet
+                this.setVote(requestVote, reply);
+
+            } else if (requestVote.getLastLogIndex() < this.consensusModule.getCommittedIndex()) {
+
+                // revoke request
+                reply.setVoteGranted(false);
+
+            }
+
+        }
+
+    }
+
+    /**
+     * TODO
+     * */
+    private void setVote(RequestVote requestVote, RequestVoteReply reply) {
+
+        String votedFor = this.stateService.getVotedFor();
+
+        if (votedFor == null || votedFor.equals(requestVote.getCandidateId())) {
+
+            this.stateService.setVotedFor(requestVote.getCandidateId());
+            reply.setVoteGranted(true);
+
+        } else {
+
+            reply.setVoteGranted(false);
+
+        }
 
     }
 

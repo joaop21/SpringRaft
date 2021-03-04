@@ -120,15 +120,11 @@ public class Follower implements RaftState {
             // check if candidate's log is at least as up-to-date as mine
             this.checkLog(requestVote, reply);
 
-            if (reply.getVoteGranted()) {
+            // begin new follower state and delete the existing task
+            this.transitionManager.cancelScheduledTask(this.scheduledFuture);
 
-                // begin new follower state and delete the existing task
-                this.transitionManager.cancelScheduledTask(this.scheduledFuture);
-
-                // set a new timeout, it's equivalent to transit to a new follower state
-                this.setTimeout();
-
-            }
+            // set a new timeout, it's equivalent to transit to a new follower state
+            this.setTimeout();
 
         } else if (requestVote.getTerm() == currentTerm) {
 
@@ -148,6 +144,9 @@ public class Follower implements RaftState {
 
         // if term is greater than mine, I should update it and transit to new follower
         if (requestVoteReply.getTerm() > this.stateService.getCurrentTerm()) {
+
+            // update term
+            this.stateService.setState(requestVoteReply.getTerm(), null);
 
             // begin new follower state and delete the existing task
             this.transitionManager.cancelScheduledTask(this.scheduledFuture);

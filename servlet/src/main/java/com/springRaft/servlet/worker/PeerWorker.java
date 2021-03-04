@@ -123,13 +123,36 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
         } else if (message instanceof AppendEntries) {
 
+            AppendEntries appendEntries = (AppendEntries) message;
             AppendEntriesReply reply;
-            do {
-                reply = this.appendEntries((AppendEntries) message);
-            } while (reply == null && this.remainingMessages == 0);
 
-            if (reply != null)
-                this.consensusModule.appendEntriesReply(reply);
+            // if it is an heartbeat
+            if (appendEntries.getEntries().size() == 0) {
+
+                do {
+
+                    long start = System.currentTimeMillis();
+
+                    reply = this.appendEntries(appendEntries);
+
+                    if (reply != null) {
+
+                        this.consensusModule.appendEntriesReply(reply);
+
+                        // sleep for the remaining time, if any
+                        this.waitOnConditionForAnAmountOfTime(start);
+
+                    }
+
+
+                } while (this.remainingMessages == 0);
+
+            } else {
+
+                // when there are entries to replicate
+                // not needed to leader election
+
+            }
 
         }
 
@@ -155,24 +178,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
             log.warn("Server " + this.targetServerName + " is not up!!");
 
             // sleep for the remaining time, if any
-            long remaining = this.raftProperties.getHeartbeat().toMillis() - (System.currentTimeMillis() - start);
-            if (remaining > 0) {
-
-                lock.lock();
-                try {
-
-                    if(this.remainingMessages == 0)
-                        this.newMessages.await(remaining, TimeUnit.MILLISECONDS);
-
-                } catch (InterruptedException exception) {
-
-                  log.error("Exception while awaiting", exception);
-
-                } finally {
-                    lock.unlock();
-                }
-
-            }
+            this.waitOnConditionForAnAmountOfTime(start);
 
         } catch (TimeoutException e) {
 
@@ -207,24 +213,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
             log.warn("Server " + this.targetServerName + " is not up!!");
 
             // sleep for the remaining time, if any
-            long remaining = this.raftProperties.getHeartbeat().toMillis() - (System.currentTimeMillis() - start);
-            if (remaining > 0) {
-
-                lock.lock();
-                try {
-
-                    if(this.remainingMessages == 0)
-                        this.newMessages.await(remaining, TimeUnit.MILLISECONDS);
-
-                } catch (InterruptedException exception) {
-
-                    log.error("Exception while awaiting", exception);
-
-                } finally {
-                    lock.unlock();
-                }
-
-            }
+            this.waitOnConditionForAnAmountOfTime(start);
 
         } catch (TimeoutException e) {
 
@@ -239,6 +228,37 @@ public class PeerWorker implements Runnable, MessageSubscriber {
         }
 
         return null;
+
+    }
+
+    /**
+     * Method thar makes a thread wait on a conditional variable, until something signals the condition
+     * or an amount of time passes without anything signals the condition.
+     *
+     * @param startTime Time in milliseconds used to calculate the remaining time
+     *                  until the thread has to continue executing.
+     * */
+    private void waitOnConditionForAnAmountOfTime(long startTime) {
+
+        long remaining = this.raftProperties.getHeartbeat().toMillis() - (System.currentTimeMillis() - startTime);
+
+        if (remaining > 0) {
+
+            lock.lock();
+            try {
+
+                if(this.remainingMessages == 0)
+                    this.newMessages.await(remaining, TimeUnit.MILLISECONDS);
+
+            } catch (InterruptedException exception) {
+
+                log.error("Exception while awaiting", exception);
+
+            } finally {
+                lock.unlock();
+            }
+
+        }
 
     }
 

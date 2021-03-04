@@ -125,7 +125,7 @@ public class Candidate implements RaftState {
 
         long currentTerm = this.stateService.getCurrentTerm();
 
-        if(requestVote.getTerm() < currentTerm) {
+        if(requestVote.getTerm() <= currentTerm) {
 
             // revoke request
             reply.setTerm(currentTerm);
@@ -141,19 +141,10 @@ public class Candidate implements RaftState {
             // check if candidate's log is at least as up-to-date as mine
             this.checkLog(requestVote, reply);
 
-            if (reply.getVoteGranted()) {
+            this.cleanBeforeTransit();
 
-                this.cleanBeforeTransit();
-
-                // transit to follower state
-                this.transitionManager.setNewFollowerState();
-
-            }
-
-        } else if (requestVote.getTerm() == currentTerm) {
-
-            reply.setTerm(currentTerm);
-            reply.setVoteGranted(false);
+            // transit to follower state
+            this.transitionManager.setNewFollowerState();
 
         }
 
