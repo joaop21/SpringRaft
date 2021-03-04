@@ -6,6 +6,8 @@ import com.springRaft.servlet.communication.message.RequestVote;
 import com.springRaft.servlet.communication.message.RequestVoteReply;
 import com.springRaft.servlet.consensusModule.ConsensusModule;
 import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,6 +19,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("raft")
 @AllArgsConstructor
 public class RESTController implements InboundCommunication {
+
+    /* Logger */
+    private static final Logger log = LoggerFactory.getLogger(RESTController.class);
 
     /* Module that has the consensus functions to invoke */
     private final ConsensusModule consensusModule;
@@ -38,7 +43,7 @@ public class RESTController implements InboundCommunication {
         // check ip address of client invoking this endpoint
         // log.info("Client IP: " + request.getRemoteAddr() + ":" + request.getRemotePort());
 
-        System.out.println(appendEntries.toString());
+        log.info(appendEntries.toString());
 
         return new ResponseEntity<>(this.appendEntries(appendEntries), HttpStatus.OK);
     }

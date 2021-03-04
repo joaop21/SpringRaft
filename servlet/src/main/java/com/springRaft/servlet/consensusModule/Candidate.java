@@ -206,6 +206,7 @@ public class Candidate implements RaftState {
         String host = this.raftProperties.AddressToString(this.raftProperties.getHost());
         State state = this.stateService.setVotedFor(host);
         log.info(state.toString());
+        this.votesGranted++;
 
         // build Request Vote Message
         this.requestVoteMessage =
