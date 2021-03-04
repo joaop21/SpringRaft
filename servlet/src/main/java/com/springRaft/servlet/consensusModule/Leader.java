@@ -147,10 +147,10 @@ public class Leader implements RaftState {
                 AppendEntries.class,
                 state.getCurrentTerm(), // term
                 this.raftProperties.AddressToString(this.raftProperties.getHost()), // leaderId
-                0, // prevLogIndex
-                0, // prevLogTerm
+                (long) 0, // prevLogIndex
+                (long) 0, // prevLogTerm
                 new ArrayList<>(), // entries
-                0 // leaderCommit
+                (long) 0 // leaderCommit
                 );
 
     }
