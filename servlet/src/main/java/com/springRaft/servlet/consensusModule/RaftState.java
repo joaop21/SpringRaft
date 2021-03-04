@@ -1,15 +1,24 @@
 package com.springRaft.servlet.consensusModule;
 
-import com.springRaft.servlet.communication.message.Message;
-import com.springRaft.servlet.communication.message.RequestVote;
-import com.springRaft.servlet.communication.message.RequestVoteReply;
+import com.springRaft.servlet.communication.message.*;
 
 public interface RaftState {
 
     /**
      * Method for handling AppendEntries RPC
+     *
+     * @param appendEntries AppendEntries object sent from leader.
+     *
+     * @return AppendEntriesReply Reply for the AppendEntries.
      * */
-    void appendEntries();
+    AppendEntriesReply appendEntries(AppendEntries appendEntries);
+
+    /**
+     * Method for handling AppendEntries replies.
+     *
+     * @param appendEntriesReply AppendEntriesReply object sent from other servers.
+     * */
+    void appendEntriesReply(AppendEntriesReply appendEntriesReply);
 
     /**
      * Method for handling RequestVote RPC.
@@ -21,14 +30,11 @@ public interface RaftState {
     RequestVoteReply requestVote(RequestVote requestVote);
 
     /**
-     * TODO
+     * Method for handling RequestVote replies.
+     *
+     * @param requestVoteReply RequestVoteReply object sent from other servers.
      */
     void requestVoteReply(RequestVoteReply requestVoteReply);
-
-    /**
-     * Method for doing the work that it's required
-     * */
-    void work();
 
     /**
      * Method for getting the next message for a specific server.
@@ -38,5 +44,10 @@ public interface RaftState {
      * @return Message to send to the server.
      * */
     Message getNextMessage(String to);
+
+    /**
+     * Method for doing the work that it's required on startup.
+     * */
+    void start();
 
 }

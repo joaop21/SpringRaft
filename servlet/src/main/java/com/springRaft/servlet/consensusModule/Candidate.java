@@ -1,8 +1,6 @@
 package com.springRaft.servlet.consensusModule;
 
-import com.springRaft.servlet.communication.message.Message;
-import com.springRaft.servlet.communication.message.RequestVote;
-import com.springRaft.servlet.communication.message.RequestVoteReply;
+import com.springRaft.servlet.communication.message.*;
 import com.springRaft.servlet.communication.outbound.OutboundManager;
 import com.springRaft.servlet.config.RaftProperties;
 import com.springRaft.servlet.persistence.state.State;
@@ -84,18 +82,39 @@ public class Candidate implements RaftState {
     /* --------------------------------------------------- */
 
     @Override
-    public void appendEntries() {
+    public AppendEntriesReply appendEntries(AppendEntries appendEntries) {
 
-        // If the leader’s term (included in its RPC) is at least
-        //as large as the candidate’s current term, then the candidate
-        //recognizes the leader as legitimate and returns to follower
-        //state.
-        // ...
+        AppendEntriesReply reply = this.applicationContext.getBean(AppendEntriesReply.class);
 
-        // If the term in the RPC is smaller than the candidate’s
-        //current term, then the candidate rejects the RPC and
-        // continues in candidate state.
-        // ...
+        long currentTerm = this.stateService.getCurrentTerm();
+
+        if (appendEntries.getTerm() < currentTerm) {
+
+            reply.setTerm(currentTerm);
+            reply.setSuccess(false);
+
+        } else if (appendEntries.getTerm() > currentTerm) {
+
+            // update term
+            this.stateService.setState(appendEntries.getTerm(), null);
+
+            this.setAppendEntriesReply(appendEntries, reply);
+
+        } else if (appendEntries.getTerm() == currentTerm) {
+
+            this.setAppendEntriesReply(appendEntries, reply);
+
+        }
+
+        return reply;
+
+    }
+
+    @Override
+    public void appendEntriesReply(AppendEntriesReply appendEntriesReply) {
+
+        // If receive AppendEntries replies when in candidate state there
+        // is nothing to do
 
     }
 
@@ -106,7 +125,7 @@ public class Candidate implements RaftState {
 
         long currentTerm = this.stateService.getCurrentTerm();
 
-        if(requestVote.getTerm() < currentTerm) {
+        if(requestVote.getTerm() <= currentTerm) {
 
             // revoke request
             reply.setTerm(currentTerm);
@@ -122,19 +141,10 @@ public class Candidate implements RaftState {
             // check if candidate's log is at least as up-to-date as mine
             this.checkLog(requestVote, reply);
 
-            if (reply.getVoteGranted()) {
+            this.cleanBeforeTransit();
 
-                this.cleanBeforeTransit();
-
-                // transit to follower state
-                this.transitionManager.setNewFollowerState();
-
-            }
-
-        } else if (requestVote.getTerm() == currentTerm) {
-
-            reply.setTerm(currentTerm);
-            reply.setVoteGranted(false);
+            // transit to follower state
+            this.transitionManager.setNewFollowerState();
 
         }
 
@@ -166,10 +176,7 @@ public class Candidate implements RaftState {
                 this.cleanBeforeTransit();
 
                 // transit to leader state
-                // For the next Pull Request
-                // ...
-                // ...
-                // this.transitionManager.setNewLeaderState();
+                this.transitionManager.setNewLeaderState();
 
             }
 
@@ -178,9 +185,16 @@ public class Candidate implements RaftState {
     }
 
     @Override
-    public void work() {
+    public Message getNextMessage(String to) {
 
-        log.info("NEW ELECTION");
+        return this.requestVoteMessage;
+
+    }
+
+    @Override
+    public void start() {
+
+        log.info("CANDIDATE");
 
         // set votes granted to none
         this.votesGranted = 0;
@@ -192,6 +206,7 @@ public class Candidate implements RaftState {
         String host = this.raftProperties.AddressToString(this.raftProperties.getHost());
         State state = this.stateService.setVotedFor(host);
         log.info(state.toString());
+        this.votesGranted++;
 
         // build Request Vote Message
         this.requestVoteMessage =
@@ -208,11 +223,6 @@ public class Candidate implements RaftState {
 
         // set a candidate timeout
         this.setTimeout();
-    }
-
-    @Override
-    public Message getNextMessage(String to) {
-        return this.requestVoteMessage;
     }
 
     /* --------------------------------------------------- */
@@ -294,6 +304,32 @@ public class Candidate implements RaftState {
         // change message to null and notify peer workers
         this.requestVoteMessage = null;
         this.outboundManager.newMessage();
+
+    }
+
+    /**
+     * A method that encapsulates replicated code, and has the function of setting
+     * the reply for the received AppendEntries.
+     *
+     * @param appendEntries The received AppendEntries communication.
+     * @param reply AppendEntriesReply object, to send as response to the leader.
+     * */
+    private void setAppendEntriesReply(AppendEntries appendEntries, AppendEntriesReply reply) {
+
+        this.cleanBeforeTransit();
+
+        // reply with the current term
+        reply.setTerm(appendEntries.getTerm());
+
+        // check reply's success based on prevLogIndex and prevLogTerm
+        // reply.setSuccess()
+        // ...
+        // ...
+        // this need to be changed
+        reply.setSuccess(true);
+
+        // transit to follower state
+        this.transitionManager.setNewFollowerState();
 
     }
 

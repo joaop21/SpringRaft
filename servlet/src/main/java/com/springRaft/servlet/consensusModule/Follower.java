@@ -1,8 +1,6 @@
 package com.springRaft.servlet.consensusModule;
 
-import com.springRaft.servlet.communication.message.Message;
-import com.springRaft.servlet.communication.message.RequestVote;
-import com.springRaft.servlet.communication.message.RequestVoteReply;
+import com.springRaft.servlet.communication.message.*;
 import com.springRaft.servlet.persistence.state.StateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +26,7 @@ public class Follower implements RaftState {
     /* Service to access persisted state repository */
     private final StateService stateService;
 
-    /* Timer handles for timeouts */
+    /* Transition handler */
     private final TransitionManager transitionManager;
 
     /* Scheduled Thread */
@@ -63,11 +61,39 @@ public class Follower implements RaftState {
     /* --------------------------------------------------- */
 
     @Override
-    public void appendEntries() {
+    public AppendEntriesReply appendEntries(AppendEntries appendEntries) {
 
-        // If receive an appendEntries remove the timer and set a new one
-        this.transitionManager.cancelScheduledTask(this.scheduledFuture);
-        this.setTimeout();
+        AppendEntriesReply reply = this.applicationContext.getBean(AppendEntriesReply.class);
+
+        long currentTerm = this.stateService.getCurrentTerm();
+
+        if (appendEntries.getTerm() < currentTerm) {
+
+            reply.setTerm(currentTerm);
+            reply.setSuccess(false);
+
+        } else if (appendEntries.getTerm() > currentTerm) {
+
+            // update term
+            this.stateService.setState(appendEntries.getTerm(), null);
+
+            this.setAppendEntriesReply(appendEntries, reply);
+
+        } else if (appendEntries.getTerm() == currentTerm) {
+
+            this.setAppendEntriesReply(appendEntries, reply);
+
+        }
+
+        return reply;
+
+    }
+
+    @Override
+    public void appendEntriesReply(AppendEntriesReply appendEntriesReply) {
+
+        // If receive AppendEntries replies when in follower state there
+        // is nothing to do
 
     }
 
@@ -78,7 +104,7 @@ public class Follower implements RaftState {
 
         long currentTerm = this.stateService.getCurrentTerm();
 
-        if(requestVote.getTerm() < currentTerm) {
+        if (requestVote.getTerm() < currentTerm) {
 
             // revoke request
             reply.setTerm(currentTerm);
@@ -94,15 +120,11 @@ public class Follower implements RaftState {
             // check if candidate's log is at least as up-to-date as mine
             this.checkLog(requestVote, reply);
 
-            if (reply.getVoteGranted()) {
+            // begin new follower state and delete the existing task
+            this.transitionManager.cancelScheduledTask(this.scheduledFuture);
 
-                // begin new follower state and delete the existing timer
-                this.transitionManager.cancelScheduledTask(this.scheduledFuture);
-
-                // transit to follower state
-                this.transitionManager.setNewFollowerState();
-
-            }
+            // set a new timeout, it's equivalent to transit to a new follower state
+            this.setTimeout();
 
         } else if (requestVote.getTerm() == currentTerm) {
 
@@ -120,22 +142,34 @@ public class Follower implements RaftState {
     @Override
     public void requestVoteReply(RequestVoteReply requestVoteReply) {
 
-        // if term is greater than min, I should update it and transit to new follower
+        // if term is greater than mine, I should update it and transit to new follower
+        if (requestVoteReply.getTerm() > this.stateService.getCurrentTerm()) {
 
-    }
+            // update term
+            this.stateService.setState(requestVoteReply.getTerm(), null);
 
-    @Override
-    public void work() {
+            // begin new follower state and delete the existing task
+            this.transitionManager.cancelScheduledTask(this.scheduledFuture);
 
-        log.info("Follower");
+            // set a new timeout, it's equivalent to transit to a new follower state
+            this.setTimeout();
 
-        this.setTimeout();
+        }
 
     }
 
     @Override
     public Message getNextMessage(String to) {
         return null;
+    }
+
+    @Override
+    public void start() {
+
+        log.info("FOLLOWER");
+
+        this.setTimeout();
+
     }
 
     /* --------------------------------------------------- */
@@ -203,6 +237,33 @@ public class Follower implements RaftState {
             reply.setVoteGranted(false);
 
         }
+
+    }
+
+    /**
+     * A method that encapsulates replicated code, and has the function of setting
+     * the reply for the received AppendEntries.
+     *
+     * @param appendEntries The received AppendEntries communication.
+     * @param reply AppendEntriesReply object, to send as response to the leader.
+     * */
+    private void setAppendEntriesReply(AppendEntries appendEntries, AppendEntriesReply reply) {
+
+        // remove the scheduled task
+        this.transitionManager.cancelScheduledTask(this.scheduledFuture);
+
+        // reply with the current term
+        reply.setTerm(appendEntries.getTerm());
+
+        // check reply's success based on prevLogIndex and prevLogTerm
+        // reply.setSuccess()
+        // ...
+        // ...
+        // this need to be changed
+        reply.setSuccess(true);
+
+        // set a new timeout, it's equivalent to transit to a new follower state
+        this.setTimeout();
 
     }
 
