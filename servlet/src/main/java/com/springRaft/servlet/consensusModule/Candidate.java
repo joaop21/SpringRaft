@@ -84,18 +84,29 @@ public class Candidate implements RaftState {
     @Override
     public AppendEntriesReply appendEntries(AppendEntries appendEntries) {
 
-        // If the leader’s term (included in its RPC) is at least
-        //as large as the candidate’s current term, then the candidate
-        //recognizes the leader as legitimate and returns to follower
-        //state.
-        // ...
+        AppendEntriesReply reply = this.applicationContext.getBean(AppendEntriesReply.class);
 
-        // If the term in the RPC is smaller than the candidate’s
-        //current term, then the candidate rejects the RPC and
-        // continues in candidate state.
-        // ...
+        long currentTerm = this.stateService.getCurrentTerm();
 
-        return null;
+        if (appendEntries.getTerm() < currentTerm) {
+
+            reply.setTerm(currentTerm);
+            reply.setSuccess(false);
+
+        } else if (appendEntries.getTerm() > currentTerm) {
+
+            // update term
+            this.stateService.setState(appendEntries.getTerm(), null);
+
+            this.setAppendEntriesReply(appendEntries, reply);
+
+        } else if (appendEntries.getTerm() == currentTerm) {
+
+            this.setAppendEntriesReply(appendEntries, reply);
+
+        }
+
+        return reply;
 
     }
 
@@ -301,6 +312,32 @@ public class Candidate implements RaftState {
         // change message to null and notify peer workers
         this.requestVoteMessage = null;
         this.outboundManager.newMessage();
+
+    }
+
+    /**
+     * A method that encapsulates replicated code, and has the function of setting
+     * the reply for the received AppendEntries.
+     *
+     * @param appendEntries The received AppendEntries communication.
+     * @param reply AppendEntriesReply object, to send as response to the leader.
+     * */
+    private void setAppendEntriesReply(AppendEntries appendEntries, AppendEntriesReply reply) {
+
+        this.cleanBeforeTransit();
+
+        // reply with the current term
+        reply.setTerm(appendEntries.getTerm());
+
+        // check reply's success based on prevLogIndex and prevLogTerm
+        // reply.setSuccess()
+        // ...
+        // ...
+        // this need to be changed
+        reply.setSuccess(true);
+
+        // transit to follower state
+        this.transitionManager.setNewFollowerState();
 
     }
 

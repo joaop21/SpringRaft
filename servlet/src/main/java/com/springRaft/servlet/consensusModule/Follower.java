@@ -253,9 +253,6 @@ public class Follower implements RaftState {
         // remove the scheduled task
         this.transitionManager.cancelScheduledTask(this.scheduledFuture);
 
-        // set a new timeout, it's equivalent to transit to a new follower state
-        this.setTimeout();
-
         // reply with the current term
         reply.setTerm(appendEntries.getTerm());
 
@@ -265,6 +262,9 @@ public class Follower implements RaftState {
         // ...
         // this need to be changed
         reply.setSuccess(true);
+
+        // set a new timeout, it's equivalent to transit to a new follower state
+        this.setTimeout();
 
     }
 
