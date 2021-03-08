@@ -3,7 +3,6 @@ package com.springRaft.servlet.consensusModule;
 import com.springRaft.servlet.communication.message.*;
 import lombok.Getter;
 import lombok.Synchronized;
-import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
@@ -26,7 +25,7 @@ public class ConsensusModule implements RaftState {
 
     /* --------------------------------------------------- */
 
-    public ConsensusModule(ApplicationContext applicationContext) {
+    public ConsensusModule() {
         this.current = null;
         this.committedIndex = 0;
         this.committedTerm = 0;
