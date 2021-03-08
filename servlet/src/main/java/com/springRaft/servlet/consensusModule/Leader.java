@@ -18,28 +18,10 @@ import java.util.Map;
 
 @Service
 @Scope("singleton")
-public class Leader implements RaftState {
+public class Leader extends RaftStateContext implements RaftState {
 
     /* Logger */
     private static final Logger log = LoggerFactory.getLogger(Leader.class);
-
-    /* Application Context for getting beans */
-    private final ApplicationContext applicationContext;
-
-    /* Module that has the consensus functions to invoke */
-    private final ConsensusModule consensusModule;
-
-    /* Raft properties that need to be accessed */
-    private final RaftProperties raftProperties;
-
-    /* Service to access persisted state repository */
-    private final StateService stateService;
-
-    /* Publisher of messages */
-    private final OutboundManager outboundManager;
-
-    /* Timer handles for timeouts */
-    private final TransitionManager transitionManager;
 
     /* for each server, index of the next log entry to send to that server
         (initialized to leader last log index + 1) */
@@ -54,17 +36,16 @@ public class Leader implements RaftState {
     public Leader(
             ApplicationContext applicationContext,
             ConsensusModule consensusModule,
-            RaftProperties raftProperties,
             StateService stateService,
-            OutboundManager outboundManager,
-            TransitionManager transitionManager
+            RaftProperties raftProperties,
+            TransitionManager transitionManager,
+            OutboundManager outboundManager
     ) {
-        this.applicationContext = applicationContext;
-        this.consensusModule = consensusModule;
-        this.raftProperties = raftProperties;
-        this.stateService = stateService;
-        this.outboundManager = outboundManager;
-        this.transitionManager = transitionManager;
+        super(
+                applicationContext, consensusModule,
+                stateService, raftProperties,
+                transitionManager, outboundManager
+        );
 
         this.nextIndex = new HashMap<>();
         this.matchIndex = new HashMap<>();
@@ -201,6 +182,13 @@ public class Leader implements RaftState {
 
     /* --------------------------------------------------- */
 
+    @Override
+    protected void setAppendEntriesReply(AppendEntries appendEntries, AppendEntriesReply reply) {
+        // not needed in Leader
+    }
+
+    /* --------------------------------------------------- */
+
     /**
      * TODO
      * */
@@ -249,59 +237,6 @@ public class Leader implements RaftState {
                 new ArrayList<>(), // entries
                 (long) 0 // leaderCommit
                 );
-
-    }
-
-    /**
-     * TODO
-     * */
-    private void checkLog(RequestVote requestVote, RequestVoteReply reply) {
-
-        if (requestVote.getLastLogTerm() > this.consensusModule.getCommittedTerm()) {
-
-            // vote for this request if not voted for anyone yet
-            this.setVote(requestVote, reply);
-
-        } else if (requestVote.getLastLogTerm() < this.consensusModule.getCommittedTerm()) {
-
-            // revoke request
-            reply.setVoteGranted(false);
-
-        } else if (requestVote.getLastLogTerm() == this.consensusModule.getCommittedTerm()) {
-
-            if (requestVote.getLastLogIndex() >= this.consensusModule.getCommittedIndex()) {
-
-                // vote for this request if not voted for anyone yet
-                this.setVote(requestVote, reply);
-
-            } else if (requestVote.getLastLogIndex() < this.consensusModule.getCommittedIndex()) {
-
-                // revoke request
-                reply.setVoteGranted(false);
-
-            }
-
-        }
-
-    }
-
-    /**
-     * TODO
-     * */
-    private void setVote(RequestVote requestVote, RequestVoteReply reply) {
-
-        String votedFor = this.stateService.getVotedFor();
-
-        if (votedFor == null || votedFor.equals(requestVote.getCandidateId())) {
-
-            this.stateService.setVotedFor(requestVote.getCandidateId());
-            reply.setVoteGranted(true);
-
-        } else {
-
-            reply.setVoteGranted(false);
-
-        }
 
     }
 
