@@ -8,7 +8,7 @@ import org.springframework.stereotype.Service;
 public class LogService {
 
     /* Repository for Entry operations */
-    private final EntryRepository repository;
+    private final EntryRepository entryRepository;
 
     /* --------------------------------------------------- */
 
@@ -17,7 +17,7 @@ public class LogService {
      * */
     public Entry getIndex(Long index) {
 
-        return this.repository
+        return this.entryRepository
                 .findById(index)
                 .orElse(null);
 
@@ -26,9 +26,18 @@ public class LogService {
     /**
      * TODO
      * */
+    public Long getLastEntry() {
+
+        return this.entryRepository.findLastEntry();
+
+    }
+
+    /**
+     * TODO
+     * */
     public Entry insertEntry(Entry entry) {
 
-        return this.repository.save(entry);
+        return this.entryRepository.save(entry);
 
     }
 
@@ -37,16 +46,16 @@ public class LogService {
      * */
     public void deleteIndex(Long index) {
 
-        this.repository.deleteById(index);
+        this.entryRepository.deleteById(index);
 
     }
 
     /**
      * TODO
      * */
-    public void deleteEntryByIndexGreaterThan(Long index) {
+    public Integer deleteIndexesGreaterThan(Long index) {
 
-        this.repository.deleteEntryByIndexGreaterThan(index);
+        return this.entryRepository.deleteEntryByIndexGreaterThan(index);
 
     }
 
