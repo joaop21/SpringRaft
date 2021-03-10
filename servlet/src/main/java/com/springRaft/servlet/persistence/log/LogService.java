@@ -42,7 +42,8 @@ public class LogService {
      * */
     public Long getLastEntry() {
 
-        return this.entryRepository.findLastEntry();
+        Long index = this.entryRepository.findLastEntry();
+        return index == null ? (long) 0 : index;
 
     }
 
@@ -51,6 +52,8 @@ public class LogService {
      * */
     public Entry insertEntry(Entry entry) {
 
+        Long lastIndex = this.getLastEntry();
+        entry.setIndex(lastIndex + 1);
         return this.entryRepository.save(entry);
 
     }
