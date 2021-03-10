@@ -1,5 +1,7 @@
 package com.springRaft.servlet.config.startup;
 
+import com.springRaft.servlet.persistence.log.LogService;
+import com.springRaft.servlet.persistence.log.LogState;
 import com.springRaft.servlet.persistence.state.State;
 import com.springRaft.servlet.persistence.state.StateService;
 import lombok.AllArgsConstructor;
@@ -14,20 +16,34 @@ import org.springframework.stereotype.Component;
 @AllArgsConstructor
 public class PersistentState implements ApplicationRunner {
 
+    /* Application Context for getting beans */
+    private final ApplicationContext applicationContext;
+
     /* Service to access persisted state repository */
     private final StateService stateService;
 
-    /* Application Context for getting beans */
-    private final ApplicationContext applicationContext;
+    /* Service to access persisted log repository */
+    private final LogService logService;
 
     /* --------------------------------------------------- */
 
     /**
-     * Startup action to check if a state exists in a DB.
-     * If not create one and persist it.
+     * Check persisted state.
      * */
     @Override
     public void run(ApplicationArguments args) {
+
+        this.CheckAndSetState();
+
+        this.CheckAndSetLogState();
+
+    }
+
+    /**
+     * Startup action to check if a state exists in a DB.
+     * If not, create one and persist it.
+     * */
+    private void CheckAndSetState() {
 
         State state = this.stateService.getState();
 
@@ -36,6 +52,27 @@ public class PersistentState implements ApplicationRunner {
             state = stateService.saveState(new_state);
 
             assert state.getId() == 1 && state.getCurrentTerm() == 1;
+        }
+
+    }
+
+    /**
+     * Startup action to check if a log state exists in a DB.
+     * If not, create one and persist it.
+     * */
+    private void CheckAndSetLogState() {
+
+        LogState logState = this.logService.getState();
+
+        if (logState == null) {
+            LogState new_state = applicationContext.getBean("InitialLogState", LogState.class);
+
+            logState = logService.saveState(new_state);
+
+            assert logState.getId() == 1 &&
+                    logState.getCommittedIndex() == 0 &&
+                    logState.getCommittedTerm() == 0 &&
+                    logState.getLastApplied() == 0;
         }
 
     }

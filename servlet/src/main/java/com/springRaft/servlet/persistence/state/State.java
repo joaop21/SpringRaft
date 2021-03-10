@@ -4,7 +4,6 @@ import lombok.*;
 import org.springframework.stereotype.Component;
 
 import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 
 @Entity
@@ -18,7 +17,6 @@ public class State {
 
     /* Id of the object */
     @Id
-    @GeneratedValue
     private Long id;
 
     /* Value for the current term */

@@ -3,6 +3,7 @@ package com.springRaft.servlet.consensusModule;
 import com.springRaft.servlet.communication.message.*;
 import com.springRaft.servlet.communication.outbound.OutboundManager;
 import com.springRaft.servlet.config.RaftProperties;
+import com.springRaft.servlet.persistence.log.LogService;
 import com.springRaft.servlet.persistence.state.State;
 import com.springRaft.servlet.persistence.state.StateService;
 import org.slf4j.Logger;
@@ -37,13 +38,14 @@ public class Leader extends RaftStateContext implements RaftState {
             ApplicationContext applicationContext,
             ConsensusModule consensusModule,
             StateService stateService,
+            LogService logService,
             RaftProperties raftProperties,
             TransitionManager transitionManager,
             OutboundManager outboundManager
     ) {
         super(
                 applicationContext, consensusModule,
-                stateService, raftProperties,
+                stateService, logService, raftProperties,
                 transitionManager, outboundManager
         );
 

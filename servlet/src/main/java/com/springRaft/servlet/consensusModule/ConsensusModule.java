@@ -14,22 +14,10 @@ public class ConsensusModule implements RaftState {
     /* Current Raft state - Follower, Candidate, Leader */
     private RaftState current;
 
-    /* Index of the highest log entry known to be committed */
-    private long committedIndex;
-
-    /* Term of the highest log entry known to be committed */
-    private long committedTerm;
-
-    /* Index of the highest log entry applied to state machine */
-    private long lastApplied;
-
     /* --------------------------------------------------- */
 
     public ConsensusModule() {
         this.current = null;
-        this.committedIndex = 0;
-        this.committedTerm = 0;
-        this.lastApplied = 0;
     }
 
     /* --------------------------------------------------- */
@@ -40,27 +28,6 @@ public class ConsensusModule implements RaftState {
     public void setCurrentState(RaftState state) {
         this.current = state;
         this.start();
-    }
-
-    /**
-     * TODO
-     * */
-    public void incrementCommittedIndex() {
-        this.committedIndex++;
-    }
-
-    /**
-     * TODO
-     * */
-    public void incrementCommittedTerm() {
-        this.committedTerm++;
-    }
-
-    /**
-     * TODO
-     * */
-    public void incrementLastApplied() {
-        this.lastApplied++;
     }
 
     /* --------------------------------------------------- */

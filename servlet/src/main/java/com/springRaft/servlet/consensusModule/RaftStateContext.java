@@ -6,6 +6,8 @@ import com.springRaft.servlet.communication.message.RequestVote;
 import com.springRaft.servlet.communication.message.RequestVoteReply;
 import com.springRaft.servlet.communication.outbound.OutboundManager;
 import com.springRaft.servlet.config.RaftProperties;
+import com.springRaft.servlet.persistence.log.LogService;
+import com.springRaft.servlet.persistence.log.LogState;
 import com.springRaft.servlet.persistence.state.StateService;
 import lombok.AllArgsConstructor;
 import org.springframework.context.ApplicationContext;
@@ -21,6 +23,9 @@ public abstract class RaftStateContext {
 
     /* Service to access persisted state repository */
     protected final StateService stateService;
+
+    /* Service to access persisted log repository */
+    protected final LogService logService;
 
     /* Raft properties that need to be accessed */
     protected final RaftProperties raftProperties;
@@ -38,24 +43,26 @@ public abstract class RaftStateContext {
      * */
     protected void checkLog(RequestVote requestVote, RequestVoteReply reply) {
 
-        if (requestVote.getLastLogTerm() > this.consensusModule.getCommittedTerm()) {
+        LogState logState = this.logService.getState();
+
+        if (requestVote.getLastLogTerm() > logState.getCommittedTerm()) {
 
             // vote for this request if not voted for anyone yet
             this.setVote(requestVote, reply);
 
-        } else if (requestVote.getLastLogTerm() < this.consensusModule.getCommittedTerm()) {
+        } else if (requestVote.getLastLogTerm() < logState.getCommittedTerm()) {
 
             // revoke request
             reply.setVoteGranted(false);
 
-        } else if (requestVote.getLastLogTerm() == this.consensusModule.getCommittedTerm()) {
+        } else if (requestVote.getLastLogTerm() == (long) logState.getCommittedTerm()) {
 
-            if (requestVote.getLastLogIndex() >= this.consensusModule.getCommittedIndex()) {
+            if (requestVote.getLastLogIndex() >= logState.getCommittedIndex()) {
 
                 // vote for this request if not voted for anyone yet
                 this.setVote(requestVote, reply);
 
-            } else if (requestVote.getLastLogIndex() < this.consensusModule.getCommittedIndex()) {
+            } else if (requestVote.getLastLogIndex() < logState.getCommittedIndex()) {
 
                 // revoke request
                 reply.setVoteGranted(false);
