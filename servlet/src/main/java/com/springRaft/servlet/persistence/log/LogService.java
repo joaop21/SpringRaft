@@ -10,7 +10,21 @@ public class LogService {
     /* Repository for Entry operations */
     private final EntryRepository entryRepository;
 
+    /* Repository for Entry operations */
+    private final LogStateRepository logStateRepository;
+
     /* --------------------------------------------------- */
+
+    /**
+     * TODO
+     * */
+    public LogState getState() {
+
+        return this.logStateRepository
+                .findById((long) 1)
+                .orElse(null);
+
+    }
 
     /**
      * TODO
@@ -56,6 +70,15 @@ public class LogService {
     public Integer deleteIndexesGreaterThan(Long index) {
 
         return this.entryRepository.deleteEntryByIndexGreaterThan(index);
+
+    }
+
+    /**
+     * TODO
+     */
+    public LogState saveState(LogState logState) {
+
+        return this.logStateRepository.save(logState);
 
     }
 
