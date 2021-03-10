@@ -4,7 +4,6 @@ import lombok.*;
 import org.springframework.stereotype.Component;
 
 import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 
 @Entity
@@ -18,7 +17,6 @@ public class LogState {
 
     /* Id of the object */
     @Id
-    @GeneratedValue
     private Long id;
 
     /* Index of the highest log entry known to be committed */

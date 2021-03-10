@@ -3,6 +3,8 @@ package com.springRaft.servlet.consensusModule;
 import com.springRaft.servlet.communication.message.*;
 import com.springRaft.servlet.communication.outbound.OutboundManager;
 import com.springRaft.servlet.config.RaftProperties;
+import com.springRaft.servlet.persistence.log.LogService;
+import com.springRaft.servlet.persistence.log.LogState;
 import com.springRaft.servlet.persistence.state.State;
 import com.springRaft.servlet.persistence.state.StateService;
 import org.slf4j.Logger;
@@ -35,13 +37,14 @@ public class Candidate extends RaftStateContext implements RaftState {
             ApplicationContext applicationContext,
             ConsensusModule consensusModule,
             StateService stateService,
+            LogService logService,
             RaftProperties raftProperties,
             TransitionManager transitionManager,
             OutboundManager outboundManager
     ) {
         super(
                 applicationContext, consensusModule,
-                stateService, raftProperties,
+                stateService, logService, raftProperties,
                 transitionManager, outboundManager
         );
         this.scheduledFuture = null;
@@ -168,13 +171,15 @@ public class Candidate extends RaftStateContext implements RaftState {
         this.votesGranted++;
 
         // build Request Vote Message
+        LogState logState = this.logService.getState();
+
         this.requestVoteMessage =
                 this.applicationContext.getBean(
                         RequestVote.class,
                         state.getCurrentTerm(),
                         this.raftProperties.AddressToString(this.raftProperties.getHost()),
-                        this.consensusModule.getCommittedIndex(),
-                        this.consensusModule.getCommittedTerm()
+                        logState.getCommittedIndex(),
+                        logState.getCommittedTerm()
                         );
 
         // issue RequestVote RPCs in parallel to each of the other servers in the cluster
