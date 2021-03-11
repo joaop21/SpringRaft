@@ -50,4 +50,11 @@ public interface RaftState {
      * */
     void start();
 
+    /**
+     * Method for handling the replication of a client request.
+     *
+     * @param command String command to replicate and apply to the FSM.
+     * */
+    void clientRequest(String command);
+
 }

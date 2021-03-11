@@ -189,6 +189,13 @@ public class Candidate extends RaftStateContext implements RaftState {
         this.setTimeout();
     }
 
+    @Override
+    public void clientRequest(String command) {
+
+        // já se vê
+
+    }
+
     /* --------------------------------------------------- */
 
     /**

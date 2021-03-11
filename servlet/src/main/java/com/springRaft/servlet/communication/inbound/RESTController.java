@@ -39,12 +39,6 @@ public class RESTController implements InboundCommunication {
     )
     public ResponseEntity<AppendEntriesReply> appendEntriesEndpoint(@RequestBody AppendEntries appendEntries) {
 
-        // needs to receive (HttpServletRequest request) in this endpoint
-        // check ip address of client invoking this endpoint
-        // log.info("Client IP: " + request.getRemoteAddr() + ":" + request.getRemotePort());
-
-        log.info(appendEntries.toString());
-
         return new ResponseEntity<>(this.appendEntries(appendEntries), HttpStatus.OK);
     }
 
@@ -63,6 +57,21 @@ public class RESTController implements InboundCommunication {
 
     }
 
+    /**
+     * TODO
+     * */
+    @RequestMapping(
+            value = "/request",
+            method = RequestMethod.POST,
+            consumes = "application/json",
+            produces = "application/json"
+    )
+    public void clientRequestEndpoint(@RequestBody String command) {
+
+        //return new ResponseEntity<>(this.requestVote(requestVote), HttpStatus.OK);
+
+    }
+
     /* --------------------------------------------------- */
 
     @Override
@@ -77,6 +86,11 @@ public class RESTController implements InboundCommunication {
 
         return this.consensusModule.requestVote(requestVote);
 
+    }
+
+    @Override
+    public void clientRequest(String command) {
+        this.consensusModule.clientRequest(command);
     }
 
 }

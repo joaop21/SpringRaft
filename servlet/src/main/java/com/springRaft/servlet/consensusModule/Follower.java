@@ -145,6 +145,13 @@ public class Follower extends RaftStateContext implements RaftState {
 
     }
 
+    @Override
+    public void clientRequest(String command) {
+
+        // já se vê
+
+    }
+
     /* --------------------------------------------------- */
 
     /**

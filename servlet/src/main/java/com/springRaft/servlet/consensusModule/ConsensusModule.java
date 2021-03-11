@@ -68,4 +68,9 @@ public class ConsensusModule implements RaftState {
         this.current.start();
     }
 
+    @Override
+    public void clientRequest(String command) {
+        this.current.clientRequest(command);
+    }
+
 }

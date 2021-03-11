@@ -8,4 +8,5 @@ import com.springRaft.servlet.communication.message.RequestVoteReply;
 public interface InboundCommunication {
     AppendEntriesReply appendEntries(AppendEntries appendEntries);
     RequestVoteReply requestVote(RequestVote requestVote);
+    void clientRequest(String command);
 }
