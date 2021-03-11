@@ -185,7 +185,8 @@ public class Leader extends RaftStateContext implements RaftState {
     @Override
     public void clientRequest(String command) {
 
-        // já se vê
+        // appends the command to its log as a new entry
+        // notify PeerWorkers that a new request is available
 
     }
 

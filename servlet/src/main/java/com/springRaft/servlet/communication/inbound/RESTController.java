@@ -66,7 +66,11 @@ public class RESTController implements InboundCommunication {
             consumes = "application/json",
             produces = "application/json"
     )
-    public void clientRequestEndpoint(@RequestBody String command) {
+    public ResponseEntity<String> clientRequestEndpoint(@RequestBody String command) {
+
+        System.out.println("\n\nCommand: " + command + "\n\n");
+
+        return new ResponseEntity<>(command, HttpStatus.OK);
 
         //return new ResponseEntity<>(this.requestVote(requestVote), HttpStatus.OK);
 
@@ -90,7 +94,9 @@ public class RESTController implements InboundCommunication {
 
     @Override
     public void clientRequest(String command) {
+
         this.consensusModule.clientRequest(command);
+
     }
 
 }

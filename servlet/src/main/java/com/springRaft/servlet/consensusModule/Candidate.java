@@ -192,7 +192,11 @@ public class Candidate extends RaftStateContext implements RaftState {
     @Override
     public void clientRequest(String command) {
 
-        // já se vê
+        // When in candidate state, there is nowhere to redirect the request or a leader to
+        // handle them.
+
+        // probably we should store the requests, and redirect them when we became follower
+        // or handle them when became leader
 
     }
 
