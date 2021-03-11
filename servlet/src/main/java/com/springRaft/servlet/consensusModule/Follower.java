@@ -23,6 +23,9 @@ public class Follower extends RaftStateContext implements RaftState {
     /* Scheduled Thread */
     private ScheduledFuture<?> scheduledFuture;
 
+    /* Leader's ID so requests can be redirected */
+    private String leaderId;
+
     /* --------------------------------------------------- */
 
     public Follower(
@@ -40,6 +43,7 @@ public class Follower extends RaftStateContext implements RaftState {
                 transitionManager, outboundManager
         );
         this.scheduledFuture = null;
+        this.leaderId = raftProperties.AddressToString(raftProperties.getHost());
     }
 
     /* --------------------------------------------------- */
@@ -141,7 +145,17 @@ public class Follower extends RaftStateContext implements RaftState {
 
         log.info("FOLLOWER");
 
+        this.leaderId = this.raftProperties.AddressToString(this.raftProperties.getHost());
+
         this.setTimeout();
+
+    }
+
+    @Override
+    public RequestReply clientRequest(String command) {
+
+        // When in follower state, we need to redirect the request to the leader
+        return this.applicationContext.getBean(RequestReply.class, false, true, this.leaderId);
 
     }
 
@@ -155,6 +169,8 @@ public class Follower extends RaftStateContext implements RaftState {
      * @param reply AppendEntriesReply object, to send as response to the leader.
      * */
     protected void setAppendEntriesReply(AppendEntries appendEntries, AppendEntriesReply reply) {
+
+        this.leaderId = appendEntries.getLeaderId();
 
         // remove the scheduled task
         this.transitionManager.cancelScheduledTask(this.scheduledFuture);

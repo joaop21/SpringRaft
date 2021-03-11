@@ -25,4 +25,15 @@ public class Entry {
     /* Command to apply to the state machine */
     private String command;
 
+    /* --------------------------------------------------- */
+
+    /**
+     * Specific constructor for ge
+     * */
+    public Entry(Long term, String command) {
+        this.index = null;
+        this.term = term;
+        this.command = command;
+    }
+
 }
