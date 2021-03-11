@@ -145,14 +145,17 @@ public class Follower extends RaftStateContext implements RaftState {
 
         log.info("FOLLOWER");
 
+        this.leaderId = this.raftProperties.AddressToString(this.raftProperties.getHost());
+
         this.setTimeout();
 
     }
 
     @Override
-    public void clientRequest(String command) {
+    public RequestReply clientRequest(String command) {
 
-        // When in follower state, it is needed to redirect the request to the leader
+        // When in follower state, we need to redirect the request to the leader
+        return this.applicationContext.getBean(RequestReply.class, false, true, this.leaderId);
 
     }
 
@@ -167,7 +170,7 @@ public class Follower extends RaftStateContext implements RaftState {
      * */
     protected void setAppendEntriesReply(AppendEntries appendEntries, AppendEntriesReply reply) {
 
-
+        this.leaderId = appendEntries.getLeaderId();
 
         // remove the scheduled task
         this.transitionManager.cancelScheduledTask(this.scheduledFuture);

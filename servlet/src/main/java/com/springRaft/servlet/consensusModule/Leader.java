@@ -3,6 +3,7 @@ package com.springRaft.servlet.consensusModule;
 import com.springRaft.servlet.communication.message.*;
 import com.springRaft.servlet.communication.outbound.OutboundManager;
 import com.springRaft.servlet.config.RaftProperties;
+import com.springRaft.servlet.persistence.log.Entry;
 import com.springRaft.servlet.persistence.log.LogService;
 import com.springRaft.servlet.persistence.state.State;
 import com.springRaft.servlet.persistence.state.StateService;
@@ -183,10 +184,17 @@ public class Leader extends RaftStateContext implements RaftState {
     }
 
     @Override
-    public void clientRequest(String command) {
+    public RequestReply clientRequest(String command) {
 
         // appends the command to its log as a new entry
+        Entry entry = this.logService.insertEntry(new Entry(this.stateService.getCurrentTerm(), command));
+        log.info("NEW ENTRY IN LOG: " + entry.toString());
+
         // notify PeerWorkers that a new request is available
+        // ...
+
+        // temporary response
+        return this.applicationContext.getBean(RequestReply.class, true, false, null);
 
     }
 

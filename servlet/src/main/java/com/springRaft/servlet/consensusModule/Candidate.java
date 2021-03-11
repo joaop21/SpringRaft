@@ -190,10 +190,12 @@ public class Candidate extends RaftStateContext implements RaftState {
     }
 
     @Override
-    public void clientRequest(String command) {
+    public RequestReply clientRequest(String command) {
 
         // When in candidate state, there is nowhere to redirect the request or a leader to
         // handle them.
+
+        return this.applicationContext.getBean(RequestReply.class, false, false, null);
 
         // probably we should store the requests, and redirect them when we became follower
         // or handle them when became leader

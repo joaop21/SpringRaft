@@ -1,19 +1,20 @@
 package com.springRaft.servlet.communication.inbound;
 
-import com.springRaft.servlet.communication.message.AppendEntries;
-import com.springRaft.servlet.communication.message.AppendEntriesReply;
-import com.springRaft.servlet.communication.message.RequestVote;
-import com.springRaft.servlet.communication.message.RequestVoteReply;
+import com.springRaft.servlet.communication.message.*;
 import com.springRaft.servlet.consensusModule.ConsensusModule;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.net.URI;
+import java.net.URISyntaxException;
 
 @RestController
 @RequestMapping("raft")
@@ -66,13 +67,22 @@ public class RESTController implements InboundCommunication {
             consumes = "application/json",
             produces = "application/json"
     )
-    public ResponseEntity<String> clientRequestEndpoint(@RequestBody String command) {
+    public ResponseEntity<Boolean> clientRequestEndpoint(@RequestBody String command) throws URISyntaxException {
 
-        System.out.println("\n\nCommand: " + command + "\n\n");
+        RequestReply reply = this.clientRequest(command);
 
-        return new ResponseEntity<>(command, HttpStatus.OK);
+        if (reply.getRedirect()) {
 
-        //return new ResponseEntity<>(this.requestVote(requestVote), HttpStatus.OK);
+            URI leaderURL = new URI("http:/" + reply.getRedirectTo() + "/raft/request");
+            HttpHeaders httpHeaders = new HttpHeaders();
+            httpHeaders.setLocation(leaderURL);
+            return new ResponseEntity<>(httpHeaders, HttpStatus.TEMPORARY_REDIRECT);
+
+        } else {
+
+            return new ResponseEntity<>(reply.getSuccess(), HttpStatus.CREATED);
+
+        }
 
     }
 
@@ -93,9 +103,9 @@ public class RESTController implements InboundCommunication {
     }
 
     @Override
-    public void clientRequest(String command) {
+    public RequestReply clientRequest(String command) {
 
-        this.consensusModule.clientRequest(command);
+        return this.consensusModule.clientRequest(command);
 
     }
 
