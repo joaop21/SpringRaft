@@ -67,6 +67,34 @@ public class PeerWorker implements Runnable, MessageSubscriber {
     /* --------------------------------------------------- */
 
     @Override
+    public void newMessage() {
+
+        lock.lock();
+        try {
+            this.remainingMessages++;
+            this.newMessages.signal();
+        } finally {
+            lock.unlock();
+        }
+
+    }
+
+    @Override
+    public void clearMessages() {
+
+        lock.lock();
+        try {
+            this.remainingMessages = 0;
+            this.newMessages.signal();
+        } finally {
+            lock.unlock();
+        }
+
+    }
+
+    /* --------------------------------------------------- */
+
+    @Override
     public void run() {
         log.info("Start Peer Worker that handles communications with " + this.targetServerName);
 
@@ -148,9 +176,26 @@ public class PeerWorker implements Runnable, MessageSubscriber {
                 } while (this.remainingMessages == 0);
 
             } else {
-
                 // when there are entries to replicate
-                // not needed to leader election
+
+                do {
+
+                    //
+                    // Solution may be increment the number of remaining messages
+                    // and then decrement it again
+                    //
+
+                    reply = this.appendEntries(appendEntries);
+
+                    if (reply != null) {
+
+                        this.consensusModule.appendEntriesReply(reply);
+                        break;
+
+                    }
+
+                    // if you get here, it means that the reply is null
+                } while (this.remainingMessages != 0);
 
             }
 
@@ -196,6 +241,9 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
     }
 
+    /**
+     * TODO
+     * */
     private AppendEntriesReply appendEntries (AppendEntries appendEntries) {
 
         long start = System.currentTimeMillis();
@@ -262,21 +310,4 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
     }
 
-    /* --------------------------------------------------- */
-
-    /**
-     * TODO
-     * */
-    @Override
-    public void newMessage() {
-
-        lock.lock();
-        try {
-            this.remainingMessages++;
-            this.newMessages.signal();
-        } finally {
-            lock.unlock();
-        }
-
-    }
 }
