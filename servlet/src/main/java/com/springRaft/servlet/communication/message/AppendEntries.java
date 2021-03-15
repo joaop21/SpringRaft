@@ -1,5 +1,6 @@
 package com.springRaft.servlet.communication.message;
 
+import com.springRaft.servlet.persistence.log.Entry;
 import lombok.*;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
@@ -28,9 +29,7 @@ public class AppendEntries implements Message {
     private Long prevLogTerm;
 
     /* Log entries to store (empty for heartbeat; may send more than one for efficiency) */
-    // IT SHOULD NOT BE STRING BUT ENTRY THAT DOESNT EXIST YET
-    // ...
-    private List<String> entries;
+    private List<Entry> entries;
 
     /* Leader’s commitIndex */
     private Long leaderCommit;

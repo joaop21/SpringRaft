@@ -185,8 +185,10 @@ public class PeerWorker implements Runnable, MessageSubscriber {
             reply = this.sendRequestVote(message);
         } while (reply == null && this.active && this.remainingMessages == 0);
 
-        if (reply != null && this.active)
+        if (reply != null && this.active) {
             this.consensusModule.requestVoteReply(reply);
+            this.clearMessages();
+        }
 
     }
 
@@ -243,7 +245,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
             if (reply != null && this.active) {
 
-                this.consensusModule.appendEntriesReply(reply);
+                this.consensusModule.appendEntriesReply(reply, this.targetServerName);
 
                 // sleep for the remaining time, if any
                 this.waitOnConditionForAnAmountOfTime(start);
@@ -266,9 +268,9 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
             reply = this.sendAppendEntries(appendEntries);
 
-            if (reply != null) {
+            if (reply != null && this.active) {
 
-                this.consensusModule.appendEntriesReply(reply);
+                this.consensusModule.appendEntriesReply(reply, this.targetServerName);
                 break;
 
             }

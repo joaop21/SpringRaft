@@ -68,7 +68,7 @@ public class Follower extends RaftStateContext implements RaftState {
     }
 
     @Override
-    public void appendEntriesReply(AppendEntriesReply appendEntriesReply) {
+    public void appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
 
         // If receive AppendEntries replies when in follower state there
         // is nothing to do

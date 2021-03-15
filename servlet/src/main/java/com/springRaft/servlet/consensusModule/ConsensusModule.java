@@ -41,8 +41,8 @@ public class ConsensusModule implements RaftState {
 
     @Override
     @Synchronized
-    public void appendEntriesReply(AppendEntriesReply appendEntriesReply) {
-        this.current.appendEntriesReply(appendEntriesReply);
+    public void appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
+        this.current.appendEntriesReply(appendEntriesReply, from);
     }
 
     @Override

@@ -18,8 +18,9 @@ public interface RaftState {
      * Method for handling AppendEntries replies.
      *
      * @param appendEntriesReply AppendEntriesReply object sent from other servers.
+     * @param from String that identifies the server that sent the reply.
      * */
-    void appendEntriesReply(AppendEntriesReply appendEntriesReply);
+    void appendEntriesReply(AppendEntriesReply appendEntriesReply, String from);
 
     /**
      * Method for handling RequestVote RPC.

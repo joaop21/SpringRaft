@@ -62,50 +62,30 @@ public class Leader extends RaftStateContext implements RaftState {
     @Override
     public AppendEntriesReply appendEntries(AppendEntries appendEntries) {
 
-        AppendEntriesReply reply = this.applicationContext.getBean(AppendEntriesReply.class);
-
-        long currentTerm = this.stateService.getCurrentTerm();
-
-        if (appendEntries.getTerm() < currentTerm) {
-
-            reply.setTerm(currentTerm);
-            reply.setSuccess(false);
-
-        } else if (appendEntries.getTerm() > currentTerm) {
-
-            // update term
-            this.stateService.setState(appendEntries.getTerm(), null);
-
-            this.cleanVolatileState();
-
-            // reply with the current term
-            reply.setTerm(appendEntries.getTerm());
-
-            // check reply's success based on prevLogIndex and prevLogTerm
-            // reply.setSuccess()
-            // ...
-            // ...
-            // this need to be changed
-            reply.setSuccess(true);
-
-            // transit to follower state
-            this.transitionManager.setNewFollowerState();
-
-        }
-        // The algorithm ensures that no two leaders exist in the same term,
-        // so I cannot receive AppendEntries with the same term as mine when I'm in the Leader state.
-
-
-        return reply;
+        return super.appendEntries(appendEntries);
 
     }
 
     @Override
-    public void appendEntriesReply(AppendEntriesReply appendEntriesReply) {
+    public void appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
 
-        // Some actions
-        // For the leader's election this isn't important
-        // Only the heartbeat is needed
+        if (appendEntriesReply.getSuccess()) {
+
+            long nextIndex = this.nextIndex.get(from);
+
+            // compare last entry with next index for "from" server
+            if (nextIndex != this.logService.getLastEntryIndex() + 1) {
+
+                this.matchIndex.put(from, nextIndex);
+                this.nextIndex.put(from, nextIndex + 1);
+
+            }
+
+        } else {
+
+            this.nextIndex.put(from, this.nextIndex.get(from) - 1);
+
+        }
 
     }
 
@@ -177,7 +157,7 @@ public class Leader extends RaftStateContext implements RaftState {
             // if there is an entry, and the logs are matching,
             // send that entry
 
-            return new Pair<>(this.createAppendEntries(entry, new ArrayList<>(List.of(entry.getCommand()))), false);
+            return new Pair<>(this.createAppendEntries(entry, new ArrayList<>(List.of(entry))), false);
 
         } else {
             // if there is an entry, but the logs are not matching,
@@ -209,7 +189,6 @@ public class Leader extends RaftStateContext implements RaftState {
         log.info("NEW ENTRY IN LOG: " + entry.toString());
 
         // notify PeerWorkers that a new request is available
-        // ...
         this.outboundManager.newMessage();
 
         // temporary response
@@ -224,7 +203,15 @@ public class Leader extends RaftStateContext implements RaftState {
 
     @Override
     protected void postAppendEntries(AppendEntries appendEntries) {
-        // not needed in Leader
+
+        this.cleanVolatileState();
+
+        // transit to follower state
+        this.transitionManager.setNewFollowerState();
+
+        // deactivate PeerWorker
+        this.outboundManager.clearMessages();
+
     }
 
     /* --------------------------------------------------- */
@@ -296,7 +283,7 @@ public class Leader extends RaftStateContext implements RaftState {
      *
      * @return AppendEntries Message to pass to another server.
      * */
-    private AppendEntries createAppendEntries(Entry entry, List<String> entries) {
+    private AppendEntries createAppendEntries(Entry entry, List<Entry> entries) {
 
         State state = this.stateService.getState();
         LogState logState = this.logService.getState();
@@ -317,7 +304,7 @@ public class Leader extends RaftStateContext implements RaftState {
      *
      * @return AppendEntries Message to pass to another server.
      * */
-    private AppendEntries createAppendEntries(State state, LogState logState, Entry lastEntry, List<String> entries) {
+    private AppendEntries createAppendEntries(State state, LogState logState, Entry lastEntry, List<Entry> entries) {
 
         return this.applicationContext.getBean(
                 AppendEntries.class,

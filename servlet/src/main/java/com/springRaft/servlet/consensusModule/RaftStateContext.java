@@ -141,9 +141,11 @@ public abstract class RaftStateContext {
         Entry entry = this.logService.getEntryByIndex(appendEntries.getPrevLogIndex());
         entry = entry == null ? new Entry((long) 0, (long) 0, null) : entry;
 
+        System.out.println("\n\n" + entry.toString() + "\n" + appendEntries.toString() + "\n\n");
+
         if(entry.getIndex() == (long) appendEntries.getPrevLogIndex()) {
 
-            if (entry.getTerm() == (long) appendEntries.getTerm()) {
+            if (entry.getTerm() == (long) appendEntries.getPrevLogTerm()) {
 
                 reply.setSuccess(true);
 
@@ -176,7 +178,7 @@ public abstract class RaftStateContext {
             this.logService.deleteIndexesGreaterThan(appendEntries.getPrevLogIndex());
 
             // insert new entry
-            Entry newEntry = new Entry(appendEntries.getTerm(), appendEntries.getEntries().get(0));
+            Entry newEntry = new Entry(appendEntries.getEntries().get(0).getTerm(), appendEntries.getEntries().get(0).getCommand());
             newEntry = this.logService.insertEntry(newEntry);
 
             // update committed entries in LogState
