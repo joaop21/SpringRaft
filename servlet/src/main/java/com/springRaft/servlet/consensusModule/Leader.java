@@ -8,6 +8,7 @@ import com.springRaft.servlet.persistence.log.LogService;
 import com.springRaft.servlet.persistence.log.LogState;
 import com.springRaft.servlet.persistence.state.State;
 import com.springRaft.servlet.persistence.state.StateService;
+import com.springRaft.servlet.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -161,7 +162,7 @@ public class Leader extends RaftStateContext implements RaftState {
     }
 
     @Override
-    public Message getNextMessage(String to) {
+    public Pair<Message, Boolean> getNextMessage(String to) {
 
         // get next index for specific "to" server
         Long index = this.nextIndex.get(to);
@@ -170,22 +171,19 @@ public class Leader extends RaftStateContext implements RaftState {
         if (entry == null) {
             // if there is no entry in log then send heartbeat
 
-            return this.heartbeatAppendEntries();
+            return new Pair<>(this.heartbeatAppendEntries(), true);
 
         } else if (this.matchIndex.get(to) == (index - 1)) {
             // if there is an entry, and the logs are matching,
-            // send that entry and update the nextIndex
+            // send that entry
 
-            this.nextIndex.put(to, index + 1);
-            return this.createAppendEntries(entry);
+            return new Pair<>(this.createAppendEntries(entry, new ArrayList<>(List.of(entry.getCommand()))), false);
 
         } else {
             // if there is an entry, but the logs are not matching,
             // send the appendEntries with no entries
-            // ...
-            // This need to be changed
-            // ...
-            return null;
+
+            return new Pair<>(this.createAppendEntries(entry), false);
 
         }
 
@@ -215,6 +213,9 @@ public class Leader extends RaftStateContext implements RaftState {
         this.outboundManager.newMessage();
 
         // temporary response
+        // ...
+        // ...
+        // ...
         return this.applicationContext.getBean(RequestReply.class, true, false, null);
 
     }
@@ -236,14 +237,13 @@ public class Leader extends RaftStateContext implements RaftState {
         this.nextIndex = new HashMap<>();
         this.matchIndex = new HashMap<>();
 
+        Long defaultNextIndex = this.logService.getLastEntryIndex() + 1;
+
         for (InetSocketAddress addr : this.raftProperties.getCluster()) {
 
             String serverName = this.raftProperties.AddressToString(addr);
 
-            // next index must be changed to the persisted value + 1
-            // ...
-            // ...
-            this.nextIndex.put(serverName, (long) 1);
+            this.nextIndex.put(serverName, defaultNextIndex);
             this.matchIndex.put(serverName, (long) 0);
 
         }
@@ -268,23 +268,15 @@ public class Leader extends RaftStateContext implements RaftState {
     private AppendEntries heartbeatAppendEntries() {
 
         State state = this.stateService.getState();
-        Entry lastEntry = this.logService.getLastEntry();
         LogState logState = this.logService.getState();
+        Entry lastEntry = this.logService.getLastEntry();
 
-        return this.applicationContext.getBean(
-                AppendEntries.class,
-                state.getCurrentTerm(), // term
-                this.raftProperties.AddressToString(this.raftProperties.getHost()), // leaderId
-                lastEntry.getIndex(), // prevLogIndex
-                lastEntry.getTerm(), // prevLogTerm
-                new ArrayList<>(), // entries
-                logState.getCommittedIndex() // leaderCommit
-                );
+        return this.createAppendEntries(state, logState, lastEntry, new ArrayList<>());
 
     }
 
     /**
-     * Method that creates an AppendEntries with the new entry.
+     * Method that creates an AppendEntries with the new entry
      *
      * @param entry New entry to replicate.
      *
@@ -292,11 +284,40 @@ public class Leader extends RaftStateContext implements RaftState {
      * */
     private AppendEntries createAppendEntries(Entry entry) {
 
+        return this.createAppendEntries(entry, new ArrayList<>());
+
+    }
+
+    /**
+     * Method that creates an AppendEntries with the new entry
+     *
+     * @param entry New entry to replicate.
+     * @param entries Entries to send in the AppendEntries.
+     *
+     * @return AppendEntries Message to pass to another server.
+     * */
+    private AppendEntries createAppendEntries(Entry entry, List<String> entries) {
+
         State state = this.stateService.getState();
         LogState logState = this.logService.getState();
-
         Entry lastEntry = this.logService.getEntryByIndex(entry.getIndex() - 1);
         lastEntry = lastEntry == null ? new Entry((long) 0, (long) 0, null) : lastEntry;
+
+        return this.createAppendEntries(state, logState, lastEntry, entries);
+
+    }
+
+    /**
+     * Method that creates an AppendEntries with the new entry.
+     *
+     * @param state State for getting current term.
+     * @param logState Log state for getting the committed index.
+     * @param lastEntry Last Entry in the log for getting its index and term.
+     * @param entries Entries to send in the AppendEntries.
+     *
+     * @return AppendEntries Message to pass to another server.
+     * */
+    private AppendEntries createAppendEntries(State state, LogState logState, Entry lastEntry, List<String> entries) {
 
         return this.applicationContext.getBean(
                 AppendEntries.class,
@@ -304,7 +325,7 @@ public class Leader extends RaftStateContext implements RaftState {
                 this.raftProperties.AddressToString(this.raftProperties.getHost()), // leaderId
                 lastEntry.getIndex(), // prevLogIndex
                 lastEntry.getTerm(), // prevLogTerm
-                new ArrayList<>(List.of(entry.getCommand())), // entries
+                entries, // entries
                 logState.getCommittedIndex() // leaderCommit
         );
 

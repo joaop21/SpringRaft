@@ -7,6 +7,7 @@ import com.springRaft.servlet.persistence.log.LogService;
 import com.springRaft.servlet.persistence.log.LogState;
 import com.springRaft.servlet.persistence.state.State;
 import com.springRaft.servlet.persistence.state.StateService;
+import com.springRaft.servlet.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -147,9 +148,9 @@ public class Candidate extends RaftStateContext implements RaftState {
     }
 
     @Override
-    public Message getNextMessage(String to) {
+    public Pair<Message, Boolean> getNextMessage(String to) {
 
-        return this.requestVoteMessage;
+        return new Pair<>(this.requestVoteMessage, false);
 
     }
 
@@ -255,7 +256,7 @@ public class Candidate extends RaftStateContext implements RaftState {
 
         // change message to null and notify peer workers
         this.requestVoteMessage = null;
-        this.outboundManager.newMessage();
+        this.outboundManager.clearMessages();
 
     }
 

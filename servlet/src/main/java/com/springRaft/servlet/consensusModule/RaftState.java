@@ -1,6 +1,7 @@
 package com.springRaft.servlet.consensusModule;
 
 import com.springRaft.servlet.communication.message.*;
+import com.springRaft.servlet.util.Pair;
 
 public interface RaftState {
 
@@ -41,9 +42,10 @@ public interface RaftState {
      *
      * @param to String that represents the server.
      *
-     * @return Message to send to the server.
+     * @return Pair<Message, Boolean> Message to send to the target server and a boolean that signals
+     *      if this message is a heartbeat.
      * */
-    Message getNextMessage(String to);
+    Pair<Message, Boolean> getNextMessage(String to);
 
     /**
      * Method for doing the work that it's required on startup.

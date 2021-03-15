@@ -5,6 +5,7 @@ import com.springRaft.servlet.communication.outbound.MessageSubscriber;
 import com.springRaft.servlet.communication.outbound.OutboundContext;
 import com.springRaft.servlet.config.RaftProperties;
 import com.springRaft.servlet.consensusModule.ConsensusModule;
+import com.springRaft.servlet.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
@@ -46,6 +47,9 @@ public class PeerWorker implements Runnable, MessageSubscriber {
     /* Remaining messages to send */
     private Integer remainingMessages;
 
+    /* Boolean that flags if PeerWorker should work */
+    private Boolean active;
+
 
     /* --------------------------------------------------- */
 
@@ -62,6 +66,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
         this.lock = new ReentrantLock();
         this.newMessages = lock.newCondition();
         this.remainingMessages = 0;
+        this.active = false;
     }
 
     /* --------------------------------------------------- */
@@ -71,6 +76,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
         lock.lock();
         try {
+            this.active = true;
             this.remainingMessages++;
             this.newMessages.signal();
         } finally {
@@ -84,6 +90,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
         lock.lock();
         try {
+            this.active = false;
             this.remainingMessages = 0;
             this.newMessages.signal();
         } finally {
@@ -103,11 +110,11 @@ public class PeerWorker implements Runnable, MessageSubscriber {
             this.waitForNewMessages();
 
             // get message to send
-            Message message = this.consensusModule.getNextMessage(this.targetServerName);
+            Pair<Message,Boolean> pair = this.consensusModule.getNextMessage(this.targetServerName);
 
             // send message
-            if (message != null)
-                this.send(message);
+            if (pair.getFirst() != null)
+                this.send(pair.getFirst(), pair.getSecond());
 
         }
 
@@ -117,85 +124,49 @@ public class PeerWorker implements Runnable, MessageSubscriber {
      * Method that waits for new messages.
      * */
     private void waitForNewMessages() {
+
         lock.lock();
         try {
 
-            while(this.remainingMessages == 0)
+            while (!this.active)
                 this.newMessages.await();
 
-            this.remainingMessages--;
+            if (this.remainingMessages > 0)
+                this.remainingMessages--;
 
-        } catch (InterruptedException e) {
-            log.error("Break Await", e);
+        } catch (InterruptedException interruptedException) {
+
+            log.error("Break Await in waitForNewMessages");
+
         } finally {
             lock.unlock();
         }
+
     }
 
     /**
      * Depending on the message class, it decides which method to invoke.
      *
      * @param message Message to send.
+     * @param heartbeat Boolean that signals if a message is an heartbeat.
      * */
-    private void send(Message message) {
+    private void send(Message message, Boolean heartbeat) {
 
         if(message instanceof RequestVote) {
 
-            RequestVoteReply reply;
-            do {
-                reply = this.requestVote((RequestVote) message);
-            } while (reply == null && this.remainingMessages == 0);
-
-            if (reply != null)
-                this.consensusModule.requestVoteReply(reply);
+            this.handleRequestVote((RequestVote) message);
 
         } else if (message instanceof AppendEntries) {
 
-            AppendEntries appendEntries = (AppendEntries) message;
-            AppendEntriesReply reply;
+            if (heartbeat) {
+                // if it is an heartbeat
 
-            // if it is an heartbeat
-            if (appendEntries.getEntries().size() == 0) {
-
-                do {
-
-                    long start = System.currentTimeMillis();
-
-                    reply = this.appendEntries(appendEntries);
-
-                    if (reply != null) {
-
-                        this.consensusModule.appendEntriesReply(reply);
-
-                        // sleep for the remaining time, if any
-                        this.waitOnConditionForAnAmountOfTime(start);
-
-                    }
-
-
-                } while (this.remainingMessages == 0);
+                this.handleHeartbeat((AppendEntries) message);
 
             } else {
-                // when there are entries to replicate
+                // if it has an Entry to add to the log or it is an AppendEntries to find a match index
 
-                do {
-
-                    //
-                    // Solution may be increment the number of remaining messages
-                    // and then decrement it again
-                    //
-
-                    reply = this.appendEntries(appendEntries);
-
-                    if (reply != null) {
-
-                        this.consensusModule.appendEntriesReply(reply);
-                        break;
-
-                    }
-
-                    // if you get here, it means that the reply is null
-                } while (this.remainingMessages != 0);
+                this.handleNormalAppendEntries((AppendEntries) message);
 
             }
 
@@ -206,7 +177,23 @@ public class PeerWorker implements Runnable, MessageSubscriber {
     /**
      * TODO
      * */
-    private RequestVoteReply requestVote(RequestVote requestVote) {
+    private void handleRequestVote(RequestVote message) {
+
+        RequestVoteReply reply;
+
+        do {
+            reply = this.sendRequestVote(message);
+        } while (reply == null && this.active && this.remainingMessages == 0);
+
+        if (reply != null && this.active)
+            this.consensusModule.requestVoteReply(reply);
+
+    }
+
+    /**
+     * TODO
+     * */
+    private RequestVoteReply sendRequestVote(RequestVote requestVote) {
 
         long start = System.currentTimeMillis();
 
@@ -233,7 +220,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
         } catch (Exception e) {
 
             // If another exception occurs
-            log.error("EXCEPTION NOT EXPECTED", e);
+            log.error("Exception not expected in requestVote method");
 
         }
 
@@ -244,7 +231,57 @@ public class PeerWorker implements Runnable, MessageSubscriber {
     /**
      * TODO
      * */
-    private AppendEntriesReply appendEntries (AppendEntries appendEntries) {
+    private void handleHeartbeat(AppendEntries appendEntries) {
+
+        AppendEntriesReply reply;
+
+        do {
+
+            long start = System.currentTimeMillis();
+
+            reply = this.sendAppendEntries(appendEntries);
+
+            if (reply != null && this.active) {
+
+                this.consensusModule.appendEntriesReply(reply);
+
+                // sleep for the remaining time, if any
+                this.waitOnConditionForAnAmountOfTime(start);
+
+            }
+
+
+        } while (this.remainingMessages == 0);
+
+    }
+
+    /**
+     * TODO
+     * */
+    private void handleNormalAppendEntries(AppendEntries appendEntries) {
+
+        AppendEntriesReply reply;
+
+        do {
+
+            reply = this.sendAppendEntries(appendEntries);
+
+            if (reply != null) {
+
+                this.consensusModule.appendEntriesReply(reply);
+                break;
+
+            }
+
+            // if you get here, it means that the reply is null
+        } while (this.active);
+
+    }
+
+    /**
+     * TODO
+     * */
+    private AppendEntriesReply sendAppendEntries (AppendEntries appendEntries) {
 
         long start = System.currentTimeMillis();
 
@@ -271,7 +308,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
         } catch (Exception e) {
 
             // If another exception occurs
-            log.error("EXCEPTION NOT EXPECTED", e);
+            log.error("Exception not expected in appendEntries method");
 
         }
 
@@ -295,12 +332,12 @@ public class PeerWorker implements Runnable, MessageSubscriber {
             lock.lock();
             try {
 
-                if(this.remainingMessages == 0)
+                if(this.active && this.remainingMessages == 0)
                     this.newMessages.await(remaining, TimeUnit.MILLISECONDS);
 
             } catch (InterruptedException exception) {
 
-                log.error("Exception while awaiting", exception);
+                log.error("Exception while awaiting on waitOnConditionForAnAmountOfTime method");
 
             } finally {
                 lock.unlock();
