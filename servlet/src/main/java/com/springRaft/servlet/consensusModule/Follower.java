@@ -210,6 +210,11 @@ public class Follower extends RaftStateContext implements RaftState {
 
     }
 
+    /**
+     * Method for insert new entries in log and update the committed values in log state.
+     *
+     * @param appendEntries The received AppendEntries communication.
+     * */
     private void applyAppendEntries(AppendEntries appendEntries) {
 
         if (appendEntries.getEntries().size() != 0) {
@@ -221,6 +226,7 @@ public class Follower extends RaftStateContext implements RaftState {
             Entry newEntry = new Entry(appendEntries.getTerm(), appendEntries.getEntries().get(0));
             newEntry = this.logService.insertEntry(newEntry);
 
+            // update committed entries in LogState
             LogState logState = this.logService.getState();
             if (appendEntries.getLeaderCommit() > logState.getCommittedIndex()) {
 
