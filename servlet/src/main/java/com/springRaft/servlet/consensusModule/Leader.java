@@ -223,7 +223,7 @@ public class Leader extends RaftStateContext implements RaftState {
     /* --------------------------------------------------- */
 
     @Override
-    protected void setAppendEntriesReply(AppendEntries appendEntries, AppendEntriesReply reply) {
+    protected void postAppendEntries(AppendEntries appendEntries) {
         // not needed in Leader
     }
 
