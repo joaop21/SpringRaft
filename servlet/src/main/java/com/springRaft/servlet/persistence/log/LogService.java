@@ -109,9 +109,9 @@ public class LogService {
     /**
      * TODO
      * */
-    public Integer deleteIndexesGreaterThan(Long index) {
+    public void deleteIndexesGreaterThan(Long index) {
 
-        return this.entryRepository.deleteEntryByIndexGreaterThan(index);
+        this.entryRepository.deleteEntryByIndexGreaterThan(index);
 
     }
 

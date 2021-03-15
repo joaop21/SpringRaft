@@ -3,7 +3,9 @@ package com.springRaft.servlet.consensusModule;
 import com.springRaft.servlet.communication.message.*;
 import com.springRaft.servlet.communication.outbound.OutboundManager;
 import com.springRaft.servlet.config.RaftProperties;
+import com.springRaft.servlet.persistence.log.Entry;
 import com.springRaft.servlet.persistence.log.LogService;
+import com.springRaft.servlet.persistence.log.LogState;
 import com.springRaft.servlet.persistence.state.StateService;
 import com.springRaft.servlet.util.Pair;
 import org.slf4j.Logger;
@@ -180,14 +182,66 @@ public class Follower extends RaftStateContext implements RaftState {
         reply.setTerm(appendEntries.getTerm());
 
         // check reply's success based on prevLogIndex and prevLogTerm
-        // reply.setSuccess()
-        // ...
-        // ...
-        // this need to be changed
-        reply.setSuccess(true);
+        Entry entry = this.logService.getEntryByIndex(appendEntries.getPrevLogIndex());
+        entry = entry == null ? new Entry((long) 0, (long) 0, null) : entry;
+
+        if(entry.getIndex() == (long) appendEntries.getPrevLogIndex()) {
+
+            if (entry.getTerm() == (long) appendEntries.getTerm()) {
+
+                reply.setSuccess(true);
+
+                this.applyAppendEntries(appendEntries);
+
+            } else {
+
+                reply.setSuccess(false);
+
+            }
+
+        } else {
+
+            reply.setSuccess(false);
+
+        }
 
         // set a new timeout, it's equivalent to transit to a new follower state
         this.setTimeout();
+
+    }
+
+    private void applyAppendEntries(AppendEntries appendEntries) {
+
+        if (appendEntries.getEntries().size() != 0) {
+
+            // delete all the following conflict entries
+            this.logService.deleteIndexesGreaterThan(appendEntries.getPrevLogIndex());
+
+            // insert new entry
+            Entry newEntry = new Entry(appendEntries.getTerm(), appendEntries.getEntries().get(0));
+            newEntry = this.logService.insertEntry(newEntry);
+
+            LogState logState = this.logService.getState();
+            if (appendEntries.getLeaderCommit() > logState.getCommittedIndex()) {
+
+                if (newEntry.getIndex() <= appendEntries.getLeaderCommit()) {
+
+                    logState.setCommittedIndex(newEntry.getIndex());
+                    logState.setCommittedTerm(newEntry.getTerm());
+                    this.logService.saveState(logState);
+
+                } else {
+
+                    long index = appendEntries.getLeaderCommit();
+                    Entry entry = this.logService.getEntryByIndex(index);
+                    logState.setCommittedIndex(entry.getIndex());
+                    logState.setCommittedTerm(entry.getTerm());
+
+                }
+
+            }
+
+        }
 
     }
 
