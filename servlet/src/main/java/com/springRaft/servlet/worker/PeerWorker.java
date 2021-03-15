@@ -201,10 +201,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
         try {
 
-            RequestVoteReply reply = this.outbound.requestVote(this.targetServerName, requestVote);
-            log.info(reply.toString());
-
-            return reply;
+            return this.outbound.requestVote(this.targetServerName, requestVote);
 
         } catch (ExecutionException e) {
             // If target server is not alive
@@ -289,10 +286,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
         try {
 
-            AppendEntriesReply reply = this.outbound.appendEntries(this.targetServerName, appendEntries);
-            log.info(reply.toString());
-
-            return reply;
+            return this.outbound.appendEntries(this.targetServerName, appendEntries);
 
         } catch (ExecutionException e) {
             // If target server is not alive

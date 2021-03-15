@@ -2,8 +2,6 @@ package com.springRaft.servlet.consensusModule;
 
 import com.springRaft.servlet.config.RaftProperties;
 import com.springRaft.servlet.worker.StateTransition;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -16,9 +14,6 @@ import java.util.concurrent.ScheduledFuture;
 
 @Service
 public class TransitionManager {
-
-    /* Logger */
-    private static final Logger log = LoggerFactory.getLogger(TransitionManager.class);
 
     /* Context for getting the appropriate Beans */
     private final ApplicationContext applicationContext;
@@ -64,8 +59,6 @@ public class TransitionManager {
         );
 
         Date date = new Date(System.currentTimeMillis() + timeout);
-
-        log.info("Set an election timeout: " + timeout + "ms");
 
         // schedule task
         return this.threadPoolTaskScheduler.schedule(transition, date);

@@ -141,8 +141,6 @@ public abstract class RaftStateContext {
         Entry entry = this.logService.getEntryByIndex(appendEntries.getPrevLogIndex());
         entry = entry == null ? new Entry((long) 0, (long) 0, null) : entry;
 
-        System.out.println("\n\n" + entry.toString() + "\n" + appendEntries.toString() + "\n\n");
-
         if(entry.getIndex() == (long) appendEntries.getPrevLogIndex()) {
 
             if (entry.getTerm() == (long) appendEntries.getPrevLogTerm()) {
