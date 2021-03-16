@@ -72,18 +72,32 @@ public class Leader extends RaftStateContext implements RaftState {
         if (appendEntriesReply.getSuccess()) {
 
             long nextIndex = this.nextIndex.get(from);
+            long matchIndex = this.matchIndex.get(from);
 
             // compare last entry with next index for "from" server
             if (nextIndex != this.logService.getLastEntryIndex() + 1) {
 
-                this.matchIndex.put(from, nextIndex);
-                this.nextIndex.put(from, nextIndex + 1);
+                if (matchIndex != (nextIndex - 1)) {
+
+                    this.matchIndex.put(from, nextIndex - 1);
+
+                } else {
+
+                    this.matchIndex.put(from, nextIndex);
+                    this.nextIndex.put(from, nextIndex + 1);
+
+                }
+
+            } else {
+
+                this.matchIndex.put(from, nextIndex - 1);
 
             }
 
         } else {
 
             this.nextIndex.put(from, this.nextIndex.get(from) - 1);
+            this.matchIndex.put(from, (long) 0);
 
         }
 
@@ -117,6 +131,9 @@ public class Leader extends RaftStateContext implements RaftState {
             // transit to follower state
             this.transitionManager.setNewFollowerState();
 
+            // deactivate PeerWorker
+            this.outboundManager.clearMessages();
+
         }
 
         return reply;
@@ -137,6 +154,9 @@ public class Leader extends RaftStateContext implements RaftState {
             // transit to follower state
             this.transitionManager.setNewFollowerState();
 
+            // deactivate PeerWorker
+            this.outboundManager.clearMessages();
+
         }
 
     }
@@ -145,15 +165,21 @@ public class Leader extends RaftStateContext implements RaftState {
     public Pair<Message, Boolean> getNextMessage(String to) {
 
         // get next index for specific "to" server
-        Long index = this.nextIndex.get(to);
-        Entry entry = this.logService.getEntryByIndex(index);
+        Long nextIndex = this.nextIndex.get(to);
+        Long matchIndex = this.matchIndex.get(to);
+        Entry entry = this.logService.getEntryByIndex(nextIndex);
 
-        if (entry == null) {
+        if (entry == null && matchIndex == (nextIndex - 1)) {
             // if there is no entry in log then send heartbeat
 
             return new Pair<>(this.heartbeatAppendEntries(), true);
 
-        } else if (this.matchIndex.get(to) == (index - 1)) {
+        } else if (entry == null) {
+            // if there is no entry and the logs are not matching
+
+            return new Pair<>(this.heartbeatAppendEntries(), false);
+
+        } else if (matchIndex == (nextIndex - 1)) {
             // if there is an entry, and the logs are matching,
             // send that entry
 

@@ -209,7 +209,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
             log.warn("Server " + this.targetServerName + " is not up!!");
 
             // sleep for the remaining time, if any
-            this.waitOnConditionForAnAmountOfTime(start);
+            this.waitWhileActiveAndNoRemainingMessages(start);
 
         } catch (TimeoutException e) {
 
@@ -244,13 +244,16 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
                 this.consensusModule.appendEntriesReply(reply, this.targetServerName);
 
+                if (!reply.getSuccess())
+                    break;
+
                 // sleep for the remaining time, if any
-                this.waitOnConditionForAnAmountOfTime(start);
+                this.waitWhileActiveAndNoRemainingMessages(start);
 
             }
 
 
-        } while (this.remainingMessages == 0);
+        } while (this.active && this.remainingMessages == 0);
 
     }
 
@@ -294,7 +297,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
             log.warn("Server " + this.targetServerName + " is not up!!");
 
             // sleep for the remaining time, if any
-            this.waitOnConditionForAnAmountOfTime(start);
+            this.waitWhileActive(start);
 
         } catch (TimeoutException e) {
 
@@ -313,13 +316,13 @@ public class PeerWorker implements Runnable, MessageSubscriber {
     }
 
     /**
-     * Method thar makes a thread wait on a conditional variable, until something signals the condition
+     * Method that makes a thread wait on a conditional variable, until something signals the condition
      * or an amount of time passes without anything signals the condition.
      *
      * @param startTime Time in milliseconds used to calculate the remaining time
      *                  until the thread has to continue executing.
      * */
-    private void waitOnConditionForAnAmountOfTime(long startTime) {
+    private void waitWhileActiveAndNoRemainingMessages(long startTime) {
 
         long remaining = this.raftProperties.getHeartbeat().toMillis() - (System.currentTimeMillis() - startTime);
 
@@ -329,6 +332,37 @@ public class PeerWorker implements Runnable, MessageSubscriber {
             try {
 
                 if(this.active && this.remainingMessages == 0)
+                    this.newMessages.await(remaining, TimeUnit.MILLISECONDS);
+
+            } catch (InterruptedException exception) {
+
+                log.error("Exception while awaiting on waitOnConditionForAnAmountOfTime method");
+
+            } finally {
+                lock.unlock();
+            }
+
+        }
+
+    }
+
+    /**
+     * Method that makes a thread wait on a conditional variable, until something signals the condition
+     * or an amount of time passes without anything signals the condition.
+     *
+     * @param startTime Time in milliseconds used to calculate the remaining time
+     *                  until the thread has to continue executing.
+     * */
+    private void waitWhileActive(long startTime) {
+
+        long remaining = this.raftProperties.getHeartbeat().toMillis() - (System.currentTimeMillis() - startTime);
+
+        if (remaining > 0) {
+
+            lock.lock();
+            try {
+
+                if(this.active)
                     this.newMessages.await(remaining, TimeUnit.MILLISECONDS);
 
             } catch (InterruptedException exception) {
