@@ -6,6 +6,7 @@ import com.springRaft.servlet.communication.message.RequestVote;
 import com.springRaft.servlet.communication.message.RequestVoteReply;
 import com.springRaft.servlet.communication.outbound.OutboundManager;
 import com.springRaft.servlet.config.RaftProperties;
+import com.springRaft.servlet.persistence.log.Entry;
 import com.springRaft.servlet.persistence.log.LogService;
 import com.springRaft.servlet.persistence.log.LogState;
 import com.springRaft.servlet.persistence.state.StateService;
@@ -95,7 +96,10 @@ public abstract class RaftStateContext {
 
     /* --------------------------------------------------- */
 
-    public AppendEntriesReply appendEntries(AppendEntries appendEntries) {
+    /**
+     * TODO
+     * */
+    protected AppendEntriesReply appendEntries(AppendEntries appendEntries) {
 
         AppendEntriesReply reply = this.applicationContext.getBean(AppendEntriesReply.class);
 
@@ -106,16 +110,15 @@ public abstract class RaftStateContext {
             reply.setTerm(currentTerm);
             reply.setSuccess(false);
 
-        } else if (appendEntries.getTerm() > currentTerm) {
+        } else {
 
-            // update term
-            this.stateService.setState(appendEntries.getTerm(), null);
-
-            this.setAppendEntriesReply(appendEntries, reply);
-
-        } else if (appendEntries.getTerm() == currentTerm) {
+            if (appendEntries.getTerm() > currentTerm) {
+                // update term
+                this.stateService.setState(appendEntries.getTerm(), null);
+            }
 
             this.setAppendEntriesReply(appendEntries, reply);
+            this.postAppendEntries(appendEntries);
 
         }
 
@@ -123,6 +126,91 @@ public abstract class RaftStateContext {
 
     }
 
-    protected abstract void setAppendEntriesReply(AppendEntries appendEntries, AppendEntriesReply reply);
+    /**
+     * A method that encapsulates replicated code, and has the function of setting
+     * the reply for the received AppendEntries.
+     *
+     * @param appendEntries The received AppendEntries communication.
+     * @param reply AppendEntriesReply object, to send as response to the leader.
+     * */
+    private void setAppendEntriesReply(AppendEntries appendEntries, AppendEntriesReply reply) {
+
+        // reply with the current term
+        reply.setTerm(appendEntries.getTerm());
+
+        Entry entry = this.logService.getEntryByIndex(appendEntries.getPrevLogIndex());
+        entry = entry == null ? new Entry((long) 0, (long) 0, null) : entry;
+
+        if(entry.getIndex() == (long) appendEntries.getPrevLogIndex()) {
+
+            if (entry.getTerm() == (long) appendEntries.getPrevLogTerm()) {
+
+                reply.setSuccess(true);
+
+                this.applyAppendEntries(appendEntries);
+
+            } else {
+
+                reply.setSuccess(false);
+
+            }
+
+        } else {
+
+            reply.setSuccess(false);
+
+        }
+
+    }
+
+    /**
+     * Method for insert new entries in log and update the committed values in log state.
+     *
+     * @param appendEntries The received AppendEntries communication.
+     * */
+    private void applyAppendEntries(AppendEntries appendEntries) {
+
+        if (appendEntries.getEntries().size() != 0) {
+
+            // delete all the following conflict entries
+            this.logService.deleteIndexesGreaterThan(appendEntries.getPrevLogIndex());
+
+            // insert new entry
+            Entry newEntry = new Entry(appendEntries.getEntries().get(0).getTerm(), appendEntries.getEntries().get(0).getCommand());
+            newEntry = this.logService.insertEntry(newEntry);
+
+            // update committed entries in LogState
+            LogState logState = this.logService.getState();
+            if (appendEntries.getLeaderCommit() > logState.getCommittedIndex()) {
+
+                if (newEntry.getIndex() <= appendEntries.getLeaderCommit()) {
+
+                    logState.setCommittedIndex(newEntry.getIndex());
+                    logState.setCommittedTerm(newEntry.getTerm());
+                    this.logService.saveState(logState);
+
+                } else {
+
+                    long index = appendEntries.getLeaderCommit();
+                    Entry entry = this.logService.getEntryByIndex(index);
+                    logState.setCommittedIndex(entry.getIndex());
+                    logState.setCommittedTerm(entry.getTerm());
+
+                }
+
+            }
+
+        }
+
+    }
+
+    /**
+     * Abstract method for the Raft state to implement it for post execution operations.
+     *
+     * @param appendEntries The received AppendEntries communication.
+     * */
+    protected abstract void postAppendEntries(AppendEntries appendEntries);
+
+    /* --------------------------------------------------- */
 
 }

@@ -5,8 +5,10 @@ import com.springRaft.servlet.communication.outbound.OutboundManager;
 import com.springRaft.servlet.config.RaftProperties;
 import com.springRaft.servlet.persistence.log.Entry;
 import com.springRaft.servlet.persistence.log.LogService;
+import com.springRaft.servlet.persistence.log.LogState;
 import com.springRaft.servlet.persistence.state.State;
 import com.springRaft.servlet.persistence.state.StateService;
+import com.springRaft.servlet.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Service;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -59,50 +62,44 @@ public class Leader extends RaftStateContext implements RaftState {
     @Override
     public AppendEntriesReply appendEntries(AppendEntries appendEntries) {
 
-        AppendEntriesReply reply = this.applicationContext.getBean(AppendEntriesReply.class);
-
-        long currentTerm = this.stateService.getCurrentTerm();
-
-        if (appendEntries.getTerm() < currentTerm) {
-
-            reply.setTerm(currentTerm);
-            reply.setSuccess(false);
-
-        } else if (appendEntries.getTerm() > currentTerm) {
-
-            // update term
-            this.stateService.setState(appendEntries.getTerm(), null);
-
-            this.cleanVolatileState();
-
-            // reply with the current term
-            reply.setTerm(appendEntries.getTerm());
-
-            // check reply's success based on prevLogIndex and prevLogTerm
-            // reply.setSuccess()
-            // ...
-            // ...
-            // this need to be changed
-            reply.setSuccess(true);
-
-            // transit to follower state
-            this.transitionManager.setNewFollowerState();
-
-        }
-        // The algorithm ensures that no two leaders exist in the same term,
-        // so I cannot receive AppendEntries with the same term as mine when I'm in the Leader state.
-
-
-        return reply;
+        return super.appendEntries(appendEntries);
 
     }
 
     @Override
-    public void appendEntriesReply(AppendEntriesReply appendEntriesReply) {
+    public void appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
 
-        // Some actions
-        // For the leader's election this isn't important
-        // Only the heartbeat is needed
+        if (appendEntriesReply.getSuccess()) {
+
+            long nextIndex = this.nextIndex.get(from);
+            long matchIndex = this.matchIndex.get(from);
+
+            // compare last entry with next index for "from" server
+            if (nextIndex != this.logService.getLastEntryIndex() + 1) {
+
+                if (matchIndex != (nextIndex - 1)) {
+
+                    this.matchIndex.put(from, nextIndex - 1);
+
+                } else {
+
+                    this.matchIndex.put(from, nextIndex);
+                    this.nextIndex.put(from, nextIndex + 1);
+
+                }
+
+            } else {
+
+                this.matchIndex.put(from, nextIndex - 1);
+
+            }
+
+        } else {
+
+            this.nextIndex.put(from, this.nextIndex.get(from) - 1);
+            this.matchIndex.put(from, (long) 0);
+
+        }
 
     }
 
@@ -134,6 +131,9 @@ public class Leader extends RaftStateContext implements RaftState {
             // transit to follower state
             this.transitionManager.setNewFollowerState();
 
+            // deactivate PeerWorker
+            this.outboundManager.clearMessages();
+
         }
 
         return reply;
@@ -154,20 +154,44 @@ public class Leader extends RaftStateContext implements RaftState {
             // transit to follower state
             this.transitionManager.setNewFollowerState();
 
+            // deactivate PeerWorker
+            this.outboundManager.clearMessages();
+
         }
 
     }
 
     @Override
-    public Message getNextMessage(String to) {
+    public Pair<Message, Boolean> getNextMessage(String to) {
 
-        /*
-        * This need to be calculated for the target server
-        *  ...
-        *  ...
-        * This need to be changed
-        * */
-        return this.emptyAppendEntries();
+        // get next index for specific "to" server
+        Long nextIndex = this.nextIndex.get(to);
+        Long matchIndex = this.matchIndex.get(to);
+        Entry entry = this.logService.getEntryByIndex(nextIndex);
+
+        if (entry == null && matchIndex == (nextIndex - 1)) {
+            // if there is no entry in log then send heartbeat
+
+            return new Pair<>(this.heartbeatAppendEntries(), true);
+
+        } else if (entry == null) {
+            // if there is no entry and the logs are not matching
+
+            return new Pair<>(this.heartbeatAppendEntries(), false);
+
+        } else if (matchIndex == (nextIndex - 1)) {
+            // if there is an entry, and the logs are matching,
+            // send that entry
+
+            return new Pair<>(this.createAppendEntries(entry, new ArrayList<>(List.of(entry))), false);
+
+        } else {
+            // if there is an entry, but the logs are not matching,
+            // send the appendEntries with no entries
+
+            return new Pair<>(this.createAppendEntries(entry), false);
+
+        }
 
     }
 
@@ -191,9 +215,12 @@ public class Leader extends RaftStateContext implements RaftState {
         log.info("NEW ENTRY IN LOG: " + entry.toString());
 
         // notify PeerWorkers that a new request is available
-        // ...
+        this.outboundManager.newMessage();
 
         // temporary response
+        // ...
+        // ...
+        // ...
         return this.applicationContext.getBean(RequestReply.class, true, false, null);
 
     }
@@ -201,8 +228,16 @@ public class Leader extends RaftStateContext implements RaftState {
     /* --------------------------------------------------- */
 
     @Override
-    protected void setAppendEntriesReply(AppendEntries appendEntries, AppendEntriesReply reply) {
-        // not needed in Leader
+    protected void postAppendEntries(AppendEntries appendEntries) {
+
+        this.cleanVolatileState();
+
+        // transit to follower state
+        this.transitionManager.setNewFollowerState();
+
+        // deactivate PeerWorker
+        this.outboundManager.clearMessages();
+
     }
 
     /* --------------------------------------------------- */
@@ -215,14 +250,13 @@ public class Leader extends RaftStateContext implements RaftState {
         this.nextIndex = new HashMap<>();
         this.matchIndex = new HashMap<>();
 
+        Long defaultNextIndex = this.logService.getLastEntryIndex() + 1;
+
         for (InetSocketAddress addr : this.raftProperties.getCluster()) {
 
             String serverName = this.raftProperties.AddressToString(addr);
 
-            // next index must be changed to the persisted value + 1
-            // ...
-            // ...
-            this.nextIndex.put(serverName, (long) 1);
+            this.nextIndex.put(serverName, defaultNextIndex);
             this.matchIndex.put(serverName, (long) 0);
 
         }
@@ -239,22 +273,74 @@ public class Leader extends RaftStateContext implements RaftState {
 
     }
 
-    private AppendEntries emptyAppendEntries() {
+    /**
+     * Method that creates an AppendEntries with no entries that represents an heartbeat.
+     *
+     * @return AppendEntries Message to pass to an up-to-date follower.
+     * */
+    private AppendEntries heartbeatAppendEntries() {
 
         State state = this.stateService.getState();
+        LogState logState = this.logService.getState();
+        Entry lastEntry = this.logService.getLastEntry();
 
-        // this need to change to correct values
-        // ...
-        // ...
+        return this.createAppendEntries(state, logState, lastEntry, new ArrayList<>());
+
+    }
+
+    /**
+     * Method that creates an AppendEntries with the new entry
+     *
+     * @param entry New entry to replicate.
+     *
+     * @return AppendEntries Message to pass to another server.
+     * */
+    private AppendEntries createAppendEntries(Entry entry) {
+
+        return this.createAppendEntries(entry, new ArrayList<>());
+
+    }
+
+    /**
+     * Method that creates an AppendEntries with the new entry
+     *
+     * @param entry New entry to replicate.
+     * @param entries Entries to send in the AppendEntries.
+     *
+     * @return AppendEntries Message to pass to another server.
+     * */
+    private AppendEntries createAppendEntries(Entry entry, List<Entry> entries) {
+
+        State state = this.stateService.getState();
+        LogState logState = this.logService.getState();
+        Entry lastEntry = this.logService.getEntryByIndex(entry.getIndex() - 1);
+        lastEntry = lastEntry == null ? new Entry((long) 0, (long) 0, null) : lastEntry;
+
+        return this.createAppendEntries(state, logState, lastEntry, entries);
+
+    }
+
+    /**
+     * Method that creates an AppendEntries with the new entry.
+     *
+     * @param state State for getting current term.
+     * @param logState Log state for getting the committed index.
+     * @param lastEntry Last Entry in the log for getting its index and term.
+     * @param entries Entries to send in the AppendEntries.
+     *
+     * @return AppendEntries Message to pass to another server.
+     * */
+    private AppendEntries createAppendEntries(State state, LogState logState, Entry lastEntry, List<Entry> entries) {
+
         return this.applicationContext.getBean(
                 AppendEntries.class,
                 state.getCurrentTerm(), // term
                 this.raftProperties.AddressToString(this.raftProperties.getHost()), // leaderId
-                (long) 0, // prevLogIndex
-                (long) 0, // prevLogTerm
-                new ArrayList<>(), // entries
-                (long) 0 // leaderCommit
-                );
+                lastEntry.getIndex(), // prevLogIndex
+                lastEntry.getTerm(), // prevLogTerm
+                entries, // entries
+                logState.getCommittedIndex() // leaderCommit
+        );
 
     }
 

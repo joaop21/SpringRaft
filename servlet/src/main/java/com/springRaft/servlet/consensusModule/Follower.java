@@ -5,6 +5,7 @@ import com.springRaft.servlet.communication.outbound.OutboundManager;
 import com.springRaft.servlet.config.RaftProperties;
 import com.springRaft.servlet.persistence.log.LogService;
 import com.springRaft.servlet.persistence.state.StateService;
+import com.springRaft.servlet.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -67,7 +68,7 @@ public class Follower extends RaftStateContext implements RaftState {
     }
 
     @Override
-    public void appendEntriesReply(AppendEntriesReply appendEntriesReply) {
+    public void appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
 
         // If receive AppendEntries replies when in follower state there
         // is nothing to do
@@ -136,8 +137,8 @@ public class Follower extends RaftStateContext implements RaftState {
     }
 
     @Override
-    public Message getNextMessage(String to) {
-        return null;
+    public Pair<Message, Boolean> getNextMessage(String to) {
+        return new Pair<>(null, false);
     }
 
     @Override
@@ -162,28 +163,18 @@ public class Follower extends RaftStateContext implements RaftState {
     /* --------------------------------------------------- */
 
     /**
-     * A method that encapsulates replicated code, and has the function of setting
-     * the reply for the received AppendEntries.
+     * Implementation of the postAppendEntries abstract method in parent class.
+     * This method contains the behaviour to execute after invoking appendEntries method.
      *
      * @param appendEntries The received AppendEntries communication.
-     * @param reply AppendEntriesReply object, to send as response to the leader.
      * */
-    protected void setAppendEntriesReply(AppendEntries appendEntries, AppendEntriesReply reply) {
+    @Override
+    protected void postAppendEntries(AppendEntries appendEntries) {
 
         this.leaderId = appendEntries.getLeaderId();
 
         // remove the scheduled task
         this.transitionManager.cancelScheduledTask(this.scheduledFuture);
-
-        // reply with the current term
-        reply.setTerm(appendEntries.getTerm());
-
-        // check reply's success based on prevLogIndex and prevLogTerm
-        // reply.setSuccess()
-        // ...
-        // ...
-        // this need to be changed
-        reply.setSuccess(true);
 
         // set a new timeout, it's equivalent to transit to a new follower state
         this.setTimeout();

@@ -1,6 +1,7 @@
 package com.springRaft.servlet.consensusModule;
 
 import com.springRaft.servlet.communication.message.*;
+import com.springRaft.servlet.util.Pair;
 import lombok.Getter;
 import lombok.Synchronized;
 import org.springframework.context.annotation.Scope;
@@ -40,8 +41,8 @@ public class ConsensusModule implements RaftState {
 
     @Override
     @Synchronized
-    public void appendEntriesReply(AppendEntriesReply appendEntriesReply) {
-        this.current.appendEntriesReply(appendEntriesReply);
+    public void appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
+        this.current.appendEntriesReply(appendEntriesReply, from);
     }
 
     @Override
@@ -58,7 +59,7 @@ public class ConsensusModule implements RaftState {
 
     @Override
     @Synchronized
-    public Message getNextMessage(String to) {
+    public Pair<Message, Boolean> getNextMessage(String to) {
         return this.current.getNextMessage(to);
     }
 

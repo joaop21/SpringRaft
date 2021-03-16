@@ -40,7 +40,13 @@ public class RESTController implements InboundCommunication {
     )
     public ResponseEntity<AppendEntriesReply> appendEntriesEndpoint(@RequestBody AppendEntries appendEntries) {
 
-        return new ResponseEntity<>(this.appendEntries(appendEntries), HttpStatus.OK);
+        log.info(appendEntries.toString());
+
+        AppendEntriesReply reply = this.appendEntries(appendEntries);
+
+        log.info(reply.toString());
+
+        return new ResponseEntity<>(reply, HttpStatus.OK);
     }
 
     /**
@@ -54,7 +60,13 @@ public class RESTController implements InboundCommunication {
     )
     public ResponseEntity<RequestVoteReply> requestVoteEndpoint(@RequestBody RequestVote requestVote) {
 
-        return new ResponseEntity<>(this.requestVote(requestVote), HttpStatus.OK);
+        log.info(requestVote.toString());
+
+        RequestVoteReply reply = this.requestVote(requestVote);
+
+        log.info(reply.toString());
+
+        return new ResponseEntity<>(reply, HttpStatus.OK);
 
     }
 

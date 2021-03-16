@@ -7,6 +7,7 @@ import com.springRaft.servlet.persistence.log.LogService;
 import com.springRaft.servlet.persistence.log.LogState;
 import com.springRaft.servlet.persistence.state.State;
 import com.springRaft.servlet.persistence.state.StateService;
+import com.springRaft.servlet.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -73,7 +74,7 @@ public class Candidate extends RaftStateContext implements RaftState {
     }
 
     @Override
-    public void appendEntriesReply(AppendEntriesReply appendEntriesReply) {
+    public void appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
 
         // If receive AppendEntries replies when in candidate state there
         // is nothing to do
@@ -147,9 +148,9 @@ public class Candidate extends RaftStateContext implements RaftState {
     }
 
     @Override
-    public Message getNextMessage(String to) {
+    public Pair<Message, Boolean> getNextMessage(String to) {
 
-        return this.requestVoteMessage;
+        return new Pair<>(this.requestVoteMessage, false);
 
     }
 
@@ -205,25 +206,14 @@ public class Candidate extends RaftStateContext implements RaftState {
     /* --------------------------------------------------- */
 
     /**
-     * A method that encapsulates replicated code, and has the function of setting
-     * the reply for the received AppendEntries.
+     * Implementation of the postAppendEntries abstract method in parent class.
+     * This method contains the behaviour to execute after invoking appendEntries method.
      *
      * @param appendEntries The received AppendEntries communication.
-     * @param reply AppendEntriesReply object, to send as response to the leader.
      * */
-    protected void setAppendEntriesReply(AppendEntries appendEntries, AppendEntriesReply reply) {
+    protected void postAppendEntries(AppendEntries appendEntries) {
 
         this.cleanBeforeTransit();
-
-        // reply with the current term
-        reply.setTerm(appendEntries.getTerm());
-
-        // check reply's success based on prevLogIndex and prevLogTerm
-        // reply.setSuccess()
-        // ...
-        // ...
-        // this need to be changed
-        reply.setSuccess(true);
 
         // transit to follower state
         this.transitionManager.setNewFollowerState();
@@ -255,7 +245,7 @@ public class Candidate extends RaftStateContext implements RaftState {
 
         // change message to null and notify peer workers
         this.requestVoteMessage = null;
-        this.outboundManager.newMessage();
+        this.outboundManager.clearMessages();
 
     }
 

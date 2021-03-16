@@ -29,4 +29,9 @@ public class OutboundManager {
             subscriber.newMessage();
     }
 
+    public void clearMessages() {
+        for(MessageSubscriber subscriber : this.subscribers)
+            subscriber.clearMessages();
+    }
+
 }
