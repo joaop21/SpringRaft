@@ -183,20 +183,13 @@ public abstract class RaftStateContext {
             LogState logState = this.logService.getState();
             if (appendEntries.getLeaderCommit() > logState.getCommittedIndex()) {
 
-                if (newEntry.getIndex() <= appendEntries.getLeaderCommit()) {
+                Entry entry = newEntry.getIndex() <= appendEntries.getLeaderCommit()
+                        ? newEntry
+                        : this.logService.getEntryByIndex(appendEntries.getLeaderCommit());
 
-                    logState.setCommittedIndex(newEntry.getIndex());
-                    logState.setCommittedTerm(newEntry.getTerm());
-                    this.logService.saveState(logState);
-
-                } else {
-
-                    long index = appendEntries.getLeaderCommit();
-                    Entry entry = this.logService.getEntryByIndex(index);
-                    logState.setCommittedIndex(entry.getIndex());
-                    logState.setCommittedTerm(entry.getTerm());
-
-                }
+                logState.setCommittedIndex(entry.getIndex());
+                logState.setCommittedTerm(entry.getTerm());
+                this.logService.saveState(logState);
 
             }
 
