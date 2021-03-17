@@ -1,18 +1,17 @@
 package com.springRaft.servlet.communication.outbound;
 
-import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
 @Scope("singleton")
-@AllArgsConstructor
 public class OutboundManager {
 
     /* List of message subscribers */
-    private final List<MessageSubscriber> subscribers;
+    private final List<MessageSubscriber> subscribers = new ArrayList<>();
 
     /* --------------------------------------------------- */
 
