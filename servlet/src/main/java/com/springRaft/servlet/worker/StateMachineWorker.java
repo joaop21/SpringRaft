@@ -32,9 +32,6 @@ public class StateMachineWorker implements Runnable, CommitmentSubscriber {
     /* Dictates whether there are new commitments */
     private boolean newCommits;
 
-    /* Log's current and updated state for lookup optimization */
-    private LogState logState;
-
     /* --------------------------------------------------- */
 
     @Autowired
@@ -43,7 +40,6 @@ public class StateMachineWorker implements Runnable, CommitmentSubscriber {
         this.lock = new ReentrantLock();
         this.newCommitCondition = this.lock.newCondition();
         this.newCommits = false;
-        this.logState = this.logService.getState();
     }
 
     /* --------------------------------------------------- */
@@ -63,9 +59,62 @@ public class StateMachineWorker implements Runnable, CommitmentSubscriber {
 
         log.info("\n\nState Machine Worker working...\n\n");
 
-        // start working
 
+        while (true) {
 
+            this.waitForNewCommits();
+
+            this.applyCommitsToStateMachine();
+
+        }
+
+    }
+
+    /**
+     * Method that waits for new commits.
+     * */
+    private void waitForNewCommits() {
+
+        lock.lock();
+        try {
+
+            while (!this.newCommits)
+                this.newCommitCondition.await();
+
+            this.newCommits = false;
+
+        } catch (InterruptedException interruptedException) {
+
+            log.error("Exception while awaiting on newCommitCondition");
+
+        } finally {
+            lock.unlock();
+        }
+
+    }
+
+    /**
+     * TODO
+     * */
+    private void applyCommitsToStateMachine() {
+
+        LogState logState = this.logService.getState();
+        long entriesToCommit = logState.getCommittedIndex() - logState.getLastApplied();
+
+        for (long index = logState.getCommittedIndex() ; index < entriesToCommit ; index++) {
+
+            String command = this.logService.getEntryByIndex(index).getCommand();
+
+            // apply to state machine
+            // depends on the strategy
+            // independent server or embedded server
+            // ...
+            // ...
+            // ...
+
+            this.logService.incrementLastApplied();
+
+        }
 
     }
 
