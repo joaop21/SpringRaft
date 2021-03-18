@@ -39,8 +39,13 @@ public class StateMachine implements ApplicationRunner {
     public void run(ApplicationArguments args) {
 
         StateMachineWorker worker = this.applicationContext.getBean(StateMachineWorker.class);
+
+        // this should be generic, depending on a raft property
+        // ...
+        // ...
         StateMachineStrategy strategy = this.applicationContext.getBean(IndependentServer.class);
         worker.setStrategy(strategy);
+
         this.taskExecutor.execute(worker);
 
     }

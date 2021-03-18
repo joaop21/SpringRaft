@@ -10,6 +10,7 @@ import com.springRaft.servlet.persistence.log.Entry;
 import com.springRaft.servlet.persistence.log.LogService;
 import com.springRaft.servlet.persistence.log.LogState;
 import com.springRaft.servlet.persistence.state.StateService;
+import com.springRaft.servlet.stateMachine.CommitmentPublisher;
 import lombok.AllArgsConstructor;
 import org.springframework.context.ApplicationContext;
 
@@ -36,6 +37,9 @@ public abstract class RaftStateContext {
 
     /* Publisher of messages */
     protected final OutboundManager outboundManager;
+
+    /* Publisher of new commitments to State Machine */
+    protected final CommitmentPublisher commitmentPublisher;
 
     /* --------------------------------------------------- */
 
@@ -165,6 +169,7 @@ public abstract class RaftStateContext {
 
     /**
      * Method for insert new entries in log and update the committed values in log state.
+     * It also notifies the state machine worker because of a new commit if that's the case.
      *
      * @param appendEntries The received AppendEntries communication.
      * */
@@ -190,6 +195,9 @@ public abstract class RaftStateContext {
                 logState.setCommittedIndex(entry.getIndex());
                 logState.setCommittedTerm(entry.getTerm());
                 this.logService.saveState(logState);
+
+                // notify state machine of a new commit
+                this.commitmentPublisher.newCommit();
 
             }
 
