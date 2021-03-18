@@ -3,6 +3,7 @@ package com.springRaft.servlet.worker;
 import com.springRaft.servlet.persistence.log.LogService;
 import com.springRaft.servlet.persistence.log.LogState;
 import com.springRaft.servlet.stateMachine.CommitmentSubscriber;
+import com.springRaft.servlet.stateMachine.StateMachineStrategy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,9 @@ public class StateMachineWorker implements Runnable, CommitmentSubscriber {
     /* Logger */
     private static final Logger log = LoggerFactory.getLogger(StateMachineWorker.class);
 
+    /* Strategy for applying commands to the State Machine */
+    private StateMachineStrategy strategy;
+
     /* Service to access persisted log repository */
     private final LogService logService;
 
@@ -36,10 +40,17 @@ public class StateMachineWorker implements Runnable, CommitmentSubscriber {
 
     @Autowired
     public StateMachineWorker(LogService logService) {
+        this.strategy = null;
         this.logService = logService;
         this.lock = new ReentrantLock();
         this.newCommitCondition = this.lock.newCondition();
         this.newCommits = false;
+    }
+
+    /* --------------------------------------------------- */
+
+    public void setStrategy(StateMachineStrategy stateMachineStrategy) {
+        this.strategy = stateMachineStrategy;
     }
 
     /* --------------------------------------------------- */
@@ -103,15 +114,13 @@ public class StateMachineWorker implements Runnable, CommitmentSubscriber {
 
         for (long index = logState.getCommittedIndex() ; index < entriesToCommit ; index++) {
 
+            // get command to apply
             String command = this.logService.getEntryByIndex(index).getCommand();
 
-            // apply to state machine
-            // depends on the strategy
-            // independent server or embedded server
-            // ...
-            // ...
-            // ...
+            // apply command depending on the strategy
+            this.strategy.apply(command);
 
+            // increment lastApplied in the Log State
             this.logService.incrementLastApplied();
 
         }
