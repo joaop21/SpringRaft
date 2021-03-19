@@ -233,8 +233,8 @@ public class Leader extends RaftStateContext implements RaftState {
 
 
         return response != null
-                ? this.applicationContext.getBean(RequestReply.class, true, false, null)
-                : this.applicationContext.getBean(RequestReply.class, false, false, null);
+                ? this.applicationContext.getBean(RequestReply.class, response)
+                : this.applicationContext.getBean(RequestReply.class);
 
     }
 

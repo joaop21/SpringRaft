@@ -161,7 +161,7 @@ public class Follower extends RaftStateContext implements RaftState {
     public RequestReply clientRequest(String command) {
 
         // When in follower state, we need to redirect the request to the leader
-        return this.applicationContext.getBean(RequestReply.class, false, true, this.leaderId);
+        return this.applicationContext.getBean(RequestReply.class, this.leaderId);
 
     }
 
