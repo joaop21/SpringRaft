@@ -22,9 +22,11 @@ public class IndependentServer implements StateMachineStrategy {
     /* --------------------------------------------------- */
 
     @Override
-    public void apply(String command) {
+    public Object apply(String command) {
 
         log.info("\n\nApplying: " + command + " to State Machine\n\n");
+
+        return "Applied: " + command + ", to State Machine";
 
     }
 

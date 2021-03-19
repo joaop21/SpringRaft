@@ -4,6 +4,7 @@ import com.springRaft.servlet.persistence.log.LogService;
 import com.springRaft.servlet.persistence.log.LogState;
 import com.springRaft.servlet.stateMachine.CommitmentSubscriber;
 import com.springRaft.servlet.stateMachine.StateMachineStrategy;
+import com.springRaft.servlet.stateMachine.WaitingRequests;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,9 @@ public class StateMachineWorker implements Runnable, CommitmentSubscriber {
     /* Service to access persisted log repository */
     private final LogService logService;
 
+    /* Map that contains the clients waiting requests */
+    protected final WaitingRequests waitingRequests;
+
     /* Mutex for some operations */
     private final Lock lock;
 
@@ -39,9 +43,10 @@ public class StateMachineWorker implements Runnable, CommitmentSubscriber {
     /* --------------------------------------------------- */
 
     @Autowired
-    public StateMachineWorker(LogService logService) {
+    public StateMachineWorker(LogService logService, WaitingRequests waitingRequests) {
         this.strategy = null;
         this.logService = logService;
+        this.waitingRequests = waitingRequests;
         this.lock = new ReentrantLock();
         this.newCommitCondition = this.lock.newCondition();
         this.newCommits = false;
@@ -118,10 +123,13 @@ public class StateMachineWorker implements Runnable, CommitmentSubscriber {
             String command = this.logService.getEntryByIndex(index).getCommand();
 
             // apply command depending on the strategy
-            this.strategy.apply(command);
+            Object response = this.strategy.apply(command);
 
             // increment lastApplied in the Log State
             this.logService.incrementLastApplied();
+
+            // notify client of the response
+            this.waitingRequests.putResponse(index, response);
 
         }
 

@@ -58,4 +58,21 @@ public class WaitingRequests {
 
     }
 
+    /**
+     * Method that puts a response in a waiting room, and removes it from the map,
+     * because the client request is already responded.
+     *
+     * @param index Entry's index that is the key in the map.
+     * @param response Object that represents the response to the client request.
+     * */
+    @Synchronized
+    public void putResponse(Long index, Object response) {
+
+        WaitingRoom room = this.clientRequests.remove(index);
+
+        if (room != null)
+            room.putResponse(response);
+
+    }
+
 }
