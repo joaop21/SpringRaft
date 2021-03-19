@@ -8,6 +8,7 @@ import com.springRaft.servlet.persistence.log.LogState;
 import com.springRaft.servlet.persistence.state.State;
 import com.springRaft.servlet.persistence.state.StateService;
 import com.springRaft.servlet.stateMachine.CommitmentPublisher;
+import com.springRaft.servlet.stateMachine.WaitingRequests;
 import com.springRaft.servlet.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,12 +44,14 @@ public class Candidate extends RaftStateContext implements RaftState {
             RaftProperties raftProperties,
             TransitionManager transitionManager,
             OutboundManager outboundManager,
-            CommitmentPublisher commitmentPublisher
+            CommitmentPublisher commitmentPublisher,
+            WaitingRequests waitingRequests
     ) {
         super(
                 applicationContext, consensusModule,
                 stateService, logService, raftProperties,
-                transitionManager, outboundManager, commitmentPublisher
+                transitionManager, outboundManager,
+                commitmentPublisher, waitingRequests
         );
         this.scheduledFuture = null;
         this.requestVoteMessage = null;
