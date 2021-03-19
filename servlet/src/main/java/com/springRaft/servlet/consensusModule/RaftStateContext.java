@@ -169,7 +169,6 @@ public abstract class RaftStateContext {
 
     /**
      * Method for insert new entries in log and update the committed values in log state.
-     * It also notifies the state machine worker because of a new commit if that's the case.
      *
      * @param appendEntries The received AppendEntries communication.
      * */
@@ -185,21 +184,38 @@ public abstract class RaftStateContext {
             newEntry = this.logService.insertEntry(newEntry);
 
             // update committed entries in LogState
-            LogState logState = this.logService.getState();
-            if (appendEntries.getLeaderCommit() > logState.getCommittedIndex()) {
+            this.updateCommittedEntries(appendEntries, newEntry);
 
-                Entry entry = newEntry.getIndex() <= appendEntries.getLeaderCommit()
-                        ? newEntry
-                        : this.logService.getEntryByIndex(appendEntries.getLeaderCommit());
+        } else {
 
-                logState.setCommittedIndex(entry.getIndex());
-                logState.setCommittedTerm(entry.getTerm());
-                this.logService.saveState(logState);
+            this.updateCommittedEntries(appendEntries, this.logService.getLastEntry());
 
-                // notify state machine of a new commit
-                this.commitmentPublisher.newCommit();
+        }
 
-            }
+    }
+
+    /**
+     * Method that updates the log state in case of leaderCommit > committedIndex.
+     * It also notifies the state machine worker because of a new commit if that's the case.
+     *
+     * @param appendEntries The received AppendEntries communication.
+     * @param lastEntry The last Entry to compare values.
+     * */
+    private void updateCommittedEntries (AppendEntries appendEntries, Entry lastEntry) {
+
+        LogState logState = this.logService.getState();
+        if (appendEntries.getLeaderCommit() > logState.getCommittedIndex()) {
+
+            Entry entry = lastEntry.getIndex() <= appendEntries.getLeaderCommit()
+                    ? lastEntry
+                    : this.logService.getEntryByIndex(appendEntries.getLeaderCommit());
+
+            logState.setCommittedIndex(entry.getIndex());
+            logState.setCommittedTerm(entry.getTerm());
+            this.logService.saveState(logState);
+
+            // notify state machine of a new commit
+            this.commitmentPublisher.newCommit();
 
         }
 

@@ -110,9 +110,9 @@ public class StateMachineWorker implements Runnable, CommitmentSubscriber {
     private void applyCommitsToStateMachine() {
 
         LogState logState = this.logService.getState();
-        long entriesToCommit = logState.getCommittedIndex() - logState.getLastApplied();
+        long indexToStart = logState.getLastApplied() + 1;
 
-        for (long index = logState.getCommittedIndex() ; index < entriesToCommit ; index++) {
+        for (long index = indexToStart ; index <= logState.getCommittedIndex() ; index++) {
 
             // get command to apply
             String command = this.logService.getEntryByIndex(index).getCommand();

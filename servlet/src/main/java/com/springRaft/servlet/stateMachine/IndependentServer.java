@@ -24,7 +24,7 @@ public class IndependentServer implements StateMachineStrategy {
     @Override
     public void apply(String command) {
 
-        log.info("Applying: \"" + command + "\" to State Machine");
+        log.info("\n\nApplying: " + command + " to State Machine\n\n");
 
     }
 
