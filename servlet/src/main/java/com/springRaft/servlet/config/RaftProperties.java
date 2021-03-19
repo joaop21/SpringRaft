@@ -1,6 +1,5 @@
 package com.springRaft.servlet.config;
 
-import com.springRaft.servlet.consensusModule.Candidate;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +28,7 @@ public class RaftProperties {
     /* List of Addresses of cluster */
     private final List<InetSocketAddress> cluster;
 
+    /* Majority of members from a peer set */
     private final Integer quorum;
 
     /* Minimum Timeout to trigger an election */

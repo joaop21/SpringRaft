@@ -12,41 +12,26 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 public class ThreadPools {
 
     /**
-     * Thread Pool for state machine thread
+     * Thread Pool for general purpose workers.
      *
-     * @return TaskExecutor dedicated to state machine threads
+     * @return TaskExecutor general purpose threads.
      * */
-    @Bean(name = "stateMachineTaskExecutor")
-    public TaskExecutor stateMachineTaskExecutor() {
+    @Bean(name = "generalPurposeExecutor")
+    public TaskExecutor generalPurposeExecutor() {
 
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(1);
-        executor.setMaxPoolSize(1);
-        executor.setThreadNamePrefix("FSMTask-");
+        executor.setMaxPoolSize(5);
+        executor.setThreadNamePrefix("GeneralWorker-");
         executor.initialize();
 
         return executor;
     }
 
     /**
-     * Thread Pool for scheduled tasks
+     * Thread Pool for peer workers.
      *
-     * @return ThreadPoolTaskScheduler dedicated to timers
-     * */
-    @Bean(name = "transitionTaskExecutor")
-    public ThreadPoolTaskScheduler transitionTaskExecutor(){
-
-        ThreadPoolTaskScheduler threadPoolTaskScheduler = new ThreadPoolTaskScheduler();
-        threadPoolTaskScheduler.setPoolSize(1);
-        threadPoolTaskScheduler.setThreadNamePrefix("TransitionTask-");
-
-        return threadPoolTaskScheduler;
-    }
-
-    /**
-     * Thread Pool for peer workers
-     *
-     * @return TaskExecutor dedicated to requests
+     * @return TaskExecutor dedicated to PeerWorker runnables.
      * */
     @Bean(name = "peerWorkersExecutor")
     public TaskExecutor peerWorkersTaskExecutor() {
@@ -61,9 +46,9 @@ public class ThreadPools {
     }
 
     /**
-     * Thread Pool for async requests
+     * Thread Pool for async requests.
      *
-     * @return TaskExecutor dedicated to requests
+     * @return TaskExecutor dedicated to requests.
      * */
     @Bean(name = "requestsExecutor")
     public TaskExecutor threadPoolTaskExecutor() {
@@ -76,4 +61,37 @@ public class ThreadPools {
 
         return executor;
     }
+
+    /**
+     * Thread Pool for state machine thread.
+     *
+     * @return TaskExecutor dedicated to StateMachineWorker runnable.
+     * */
+    @Bean(name = "stateMachineTaskExecutor")
+    public TaskExecutor stateMachineTaskExecutor() {
+
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(1);
+        executor.setThreadNamePrefix("FSMTask-");
+        executor.initialize();
+
+        return executor;
+    }
+
+    /**
+     * Thread Pool for scheduled tasks.
+     *
+     * @return ThreadPoolTaskScheduler dedicated to timers.
+     * */
+    @Bean(name = "transitionTaskExecutor")
+    public ThreadPoolTaskScheduler transitionTaskExecutor(){
+
+        ThreadPoolTaskScheduler threadPoolTaskScheduler = new ThreadPoolTaskScheduler();
+        threadPoolTaskScheduler.setPoolSize(1);
+        threadPoolTaskScheduler.setThreadNamePrefix("TransitionTask-");
+
+        return threadPoolTaskScheduler;
+    }
+
 }

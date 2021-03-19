@@ -10,6 +10,7 @@ import com.springRaft.servlet.persistence.log.Entry;
 import com.springRaft.servlet.persistence.log.LogService;
 import com.springRaft.servlet.persistence.log.LogState;
 import com.springRaft.servlet.persistence.state.StateService;
+import com.springRaft.servlet.stateMachine.CommitmentPublisher;
 import lombok.AllArgsConstructor;
 import org.springframework.context.ApplicationContext;
 
@@ -36,6 +37,9 @@ public abstract class RaftStateContext {
 
     /* Publisher of messages */
     protected final OutboundManager outboundManager;
+
+    /* Publisher of new commitments to State Machine */
+    protected final CommitmentPublisher commitmentPublisher;
 
     /* --------------------------------------------------- */
 
@@ -180,25 +184,38 @@ public abstract class RaftStateContext {
             newEntry = this.logService.insertEntry(newEntry);
 
             // update committed entries in LogState
-            LogState logState = this.logService.getState();
-            if (appendEntries.getLeaderCommit() > logState.getCommittedIndex()) {
+            this.updateCommittedEntries(appendEntries, newEntry);
 
-                if (newEntry.getIndex() <= appendEntries.getLeaderCommit()) {
+        } else {
 
-                    logState.setCommittedIndex(newEntry.getIndex());
-                    logState.setCommittedTerm(newEntry.getTerm());
-                    this.logService.saveState(logState);
+            this.updateCommittedEntries(appendEntries, this.logService.getLastEntry());
 
-                } else {
+        }
 
-                    long index = appendEntries.getLeaderCommit();
-                    Entry entry = this.logService.getEntryByIndex(index);
-                    logState.setCommittedIndex(entry.getIndex());
-                    logState.setCommittedTerm(entry.getTerm());
+    }
 
-                }
+    /**
+     * Method that updates the log state in case of leaderCommit > committedIndex.
+     * It also notifies the state machine worker because of a new commit if that's the case.
+     *
+     * @param appendEntries The received AppendEntries communication.
+     * @param lastEntry The last Entry to compare values.
+     * */
+    private void updateCommittedEntries (AppendEntries appendEntries, Entry lastEntry) {
 
-            }
+        LogState logState = this.logService.getState();
+        if (appendEntries.getLeaderCommit() > logState.getCommittedIndex()) {
+
+            Entry entry = lastEntry.getIndex() <= appendEntries.getLeaderCommit()
+                    ? lastEntry
+                    : this.logService.getEntryByIndex(appendEntries.getLeaderCommit());
+
+            logState.setCommittedIndex(entry.getIndex());
+            logState.setCommittedTerm(entry.getTerm());
+            this.logService.saveState(logState);
+
+            // notify state machine of a new commit
+            this.commitmentPublisher.newCommit();
 
         }
 

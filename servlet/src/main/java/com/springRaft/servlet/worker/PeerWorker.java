@@ -250,6 +250,9 @@ public class PeerWorker implements Runnable, MessageSubscriber {
                 // sleep for the remaining time, if any
                 this.waitWhileActiveAndNoRemainingMessages(start);
 
+                // go get the next heartbeat because the committed index may have changed
+                break;
+
             }
 
 

@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
 import java.net.InetSocketAddress;
 
 @Component
-@Order(1)
+@Order(2)
 public class PeerWorkers implements ApplicationRunner {
 
     /* Application Context for getting beans */

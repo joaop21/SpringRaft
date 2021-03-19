@@ -8,6 +8,7 @@ import com.springRaft.servlet.persistence.log.LogService;
 import com.springRaft.servlet.persistence.log.LogState;
 import com.springRaft.servlet.persistence.state.State;
 import com.springRaft.servlet.persistence.state.StateService;
+import com.springRaft.servlet.stateMachine.CommitmentPublisher;
 import com.springRaft.servlet.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,12 +46,13 @@ public class Leader extends RaftStateContext implements RaftState {
             LogService logService,
             RaftProperties raftProperties,
             TransitionManager transitionManager,
-            OutboundManager outboundManager
+            OutboundManager outboundManager,
+            CommitmentPublisher commitmentPublisher
     ) {
         super(
                 applicationContext, consensusModule,
                 stateService, logService, raftProperties,
-                transitionManager, outboundManager
+                transitionManager, outboundManager, commitmentPublisher
         );
 
         this.nextIndex = new HashMap<>();
@@ -85,6 +87,9 @@ public class Leader extends RaftStateContext implements RaftState {
 
                     this.matchIndex.put(from, nextIndex);
                     this.nextIndex.put(from, nextIndex + 1);
+
+                    // check if it is needed to set committed index
+                    this.setCommitIndex(from);
 
                 }
 
@@ -341,6 +346,57 @@ public class Leader extends RaftStateContext implements RaftState {
                 entries, // entries
                 logState.getCommittedIndex() // leaderCommit
         );
+
+    }
+
+    /**
+     * Method that checks whether it is possible to commit an entry,
+     * and if so, commits it in the Log State as well as notifies the StateMachineWorker.
+     *
+     * @param from String that identifies the server that set a new matchIndex, to fetch its value.
+     * */
+    private void setCommitIndex(String from) {
+
+        LogState logState = this.logService.getState();
+        long N = this.matchIndex.get(from);
+        Entry entry = this.logService.getEntryByIndex(N);
+
+        if (
+                N > logState.getCommittedIndex() &&
+                entry.getTerm() == (long) this.stateService.getCurrentTerm() &&
+                this.majorityOfMatchIndexGreaterOrEqualThan(N)
+        ) {
+
+            logState.setCommittedIndex(N);
+            logState.setCommittedTerm(entry.getTerm());
+            this.logService.saveState(logState);
+
+            // notify state machine of a new commit
+            this.commitmentPublisher.newCommit();
+
+        }
+
+
+
+    }
+
+    /**
+     * Method that checks if an index is replicated in the majority of the servers
+     * in the cluster.
+     *
+     * @param N Long that represents the index to check.
+     *
+     * @return boolean that tells if the majority has or has not that index replicated.
+     * */
+    private boolean majorityOfMatchIndexGreaterOrEqualThan (long N) {
+
+        int count = 1; // 1 because of the leader that is not in matchIndex Map
+
+        for (long index : this.matchIndex.values())
+            if (index >= N)
+                count++;
+
+        return count >= this.raftProperties.getQuorum();
 
     }
 

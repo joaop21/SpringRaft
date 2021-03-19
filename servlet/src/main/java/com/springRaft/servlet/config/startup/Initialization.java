@@ -13,7 +13,7 @@ import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Component;
 
 @Component
-@Order(2)
+@Order(3)
 public class Initialization implements ApplicationRunner {
 
     /* Application Context for getting beans */
@@ -31,7 +31,7 @@ public class Initialization implements ApplicationRunner {
     public Initialization(
             ApplicationContext applicationContext,
             ConsensusModule consensusModule,
-            @Qualifier(value = "stateMachineTaskExecutor") TaskExecutor taskExecutor
+            @Qualifier(value = "generalPurposeExecutor") TaskExecutor taskExecutor
     ) {
 
         this.applicationContext = applicationContext;
