@@ -226,18 +226,15 @@ public class Leader extends RaftStateContext implements RaftState {
         // notify PeerWorkers that a new request is available
         this.outboundManager.newMessage();
 
-        // temporary response
-        // ...
-        // ...
-        // ...
-
+        // get response after state machine applied it
         Object response = this.waitingRequests
                 .insertWaitingRequest(entry.getIndex())
                 .getResponse();
 
 
-
-        return this.applicationContext.getBean(RequestReply.class, true, false, null);
+        return response != null
+                ? this.applicationContext.getBean(RequestReply.class, true, false, null)
+                : this.applicationContext.getBean(RequestReply.class, false, false, null);
 
     }
 
