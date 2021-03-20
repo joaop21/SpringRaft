@@ -79,7 +79,7 @@ public class RESTController implements InboundCommunication {
             consumes = "application/json",
             produces = "application/json"
     )
-    public ResponseEntity<Boolean> clientRequestEndpoint(@RequestBody String command) throws URISyntaxException {
+    public ResponseEntity<?> clientRequestEndpoint(@RequestBody String command) throws URISyntaxException {
 
         RequestReply reply = this.clientRequest(command);
 
@@ -92,7 +92,7 @@ public class RESTController implements InboundCommunication {
 
         } else {
 
-            return new ResponseEntity<>(reply.getSuccess(), HttpStatus.CREATED);
+            return new ResponseEntity<>(reply, HttpStatus.CREATED);
 
         }
 

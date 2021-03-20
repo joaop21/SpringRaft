@@ -6,6 +6,8 @@ import org.springframework.stereotype.Component;
 
 @Component
 @Scope("prototype")
+@AllArgsConstructor
+@NoArgsConstructor
 @Getter
 @Setter
 @ToString
@@ -22,28 +24,5 @@ public class RequestReply implements Message {
 
     /* Where to redirect the request */
     private String redirectTo;
-
-    /* --------------------------------------------------- */
-
-    public RequestReply() {
-        this.success = false;
-        this.response = null;
-        this.redirect = false;
-        this.redirectTo = null;
-    }
-
-    public RequestReply(String redirectTo) {
-        this.success = false;
-        this.response = null;
-        this.redirect = true;
-        this.redirectTo = redirectTo;
-    }
-
-    public RequestReply(Object response) {
-        this.success = true;
-        this.response = response;
-        this.redirect = false;
-        this.redirectTo = null;
-    }
 
 }

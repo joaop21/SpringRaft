@@ -10,7 +10,6 @@ import com.springRaft.servlet.persistence.state.State;
 import com.springRaft.servlet.persistence.state.StateService;
 import com.springRaft.servlet.stateMachine.CommitmentPublisher;
 import com.springRaft.servlet.stateMachine.WaitingRequests;
-import com.springRaft.servlet.stateMachine.WaitingRoom;
 import com.springRaft.servlet.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -221,7 +220,7 @@ public class Leader extends RaftStateContext implements RaftState {
 
         // appends the command to its log as a new entry
         Entry entry = this.logService.insertEntry(new Entry(this.stateService.getCurrentTerm(), command));
-        log.info("NEW ENTRY IN LOG: " + entry.toString());
+        log.info("\n\nNEW ENTRY IN LOG: " + entry.toString());
 
         // notify PeerWorkers that a new request is available
         this.outboundManager.newMessage();
@@ -231,10 +230,9 @@ public class Leader extends RaftStateContext implements RaftState {
                 .insertWaitingRequest(entry.getIndex())
                 .getResponse();
 
-
         return response != null
-                ? this.applicationContext.getBean(RequestReply.class, response)
-                : this.applicationContext.getBean(RequestReply.class);
+                ? this.applicationContext.getBean(RequestReply.class, true, response, false, "")
+                : this.applicationContext.getBean(RequestReply.class, false, new Object(), false, "");
 
     }
 
