@@ -220,7 +220,6 @@ public class Leader extends RaftStateContext implements RaftState {
 
         // appends the command to its log as a new entry
         Entry entry = this.logService.insertEntry(new Entry(this.stateService.getCurrentTerm(), command));
-        log.info("\n\nNEW ENTRY IN LOG: " + entry.toString());
 
         // notify PeerWorkers that a new request is available
         this.outboundManager.newMessage();
