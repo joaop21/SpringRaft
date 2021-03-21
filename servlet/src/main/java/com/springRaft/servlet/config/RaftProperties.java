@@ -40,6 +40,12 @@ public class RaftProperties {
     /* Timeout for direct communications */
     private final Duration heartbeat;
 
+    /* Strategy for communication */
+    private final String communicationStrategy;
+
+    /* Strategy for state machine */
+    private final String stateMachineStrategy;
+
     /* --------------------------------------------------- */
 
     public RaftProperties(
@@ -51,7 +57,9 @@ public class RaftProperties {
             @DefaultValue("0") @DurationUnit(ChronoUnit.MILLIS)
                     Duration electionTimeoutMax,
             @DefaultValue("0") @DurationUnit(ChronoUnit.MILLIS)
-                    Duration heartbeat
+                    Duration heartbeat,
+            @DefaultValue("REST") String communicationStrategy,
+            @DefaultValue("INDEPENDENT") String stateMachineStrategy
     ) {
 
         this.electionTimeoutMin = electionTimeoutMin;
@@ -66,6 +74,9 @@ public class RaftProperties {
 
         int clusterSize = this.cluster.size() + 1;
         this.quorum = (clusterSize / 2) + 1;
+
+        this.communicationStrategy = communicationStrategy;
+        this.stateMachineStrategy = stateMachineStrategy;
 
         log.info(this.toString());
 
@@ -107,17 +118,16 @@ public class RaftProperties {
 
         builder.append("\n\n")
                 .append("The Quorum size is ").append(this.quorum)
-                .append(" servers");
-
-        builder.append("\n\n")
-                .append("Election Properties:\n")
+                .append(" servers\n")
+                .append("\nElection Properties:\n")
                 .append("\t Timeout is between [")
                 .append(electionTimeoutMin.toMillis()).append(",")
-                .append(electionTimeoutMax.toMillis()).append("]ms\n");
-
-        builder.append("\n")
+                .append(electionTimeoutMax.toMillis()).append("]ms\n")
+                .append("\n")
                 .append("Heartbeat has ")
                 .append(heartbeat.toMillis()).append("ms of duration\n")
+                .append("\nCommunication strategy is: ").append(communicationStrategy)
+                .append("\nState Machine strategy is: ").append(stateMachineStrategy).append("\n")
                 .append("\n*****************************************");
 
         return builder.toString();

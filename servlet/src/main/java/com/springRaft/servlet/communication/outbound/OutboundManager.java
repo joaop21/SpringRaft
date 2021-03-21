@@ -19,10 +19,6 @@ public class OutboundManager {
         this.subscribers.add(subscriber);
     }
 
-    public void unsubscribe(MessageSubscriber subscriber) {
-        this.subscribers.remove(subscriber);
-    }
-
     public void newMessage() {
         for(MessageSubscriber subscriber : this.subscribers)
             subscriber.newMessage();

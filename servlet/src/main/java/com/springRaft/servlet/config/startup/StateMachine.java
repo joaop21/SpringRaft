@@ -1,8 +1,6 @@
 package com.springRaft.servlet.config.startup;
 
 import com.springRaft.servlet.stateMachine.CommitmentPublisher;
-import com.springRaft.servlet.stateMachine.IndependentServer;
-import com.springRaft.servlet.stateMachine.StateMachineStrategy;
 import com.springRaft.servlet.worker.StateMachineWorker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -40,14 +38,6 @@ public class StateMachine implements ApplicationRunner {
     public void run(ApplicationArguments args) {
 
         StateMachineWorker worker = this.applicationContext.getBean(StateMachineWorker.class);
-
-        // set strategy for command execution in state machine
-        // ...
-        // this should be generic, depending on a raft property
-        // ...
-        // ...
-        StateMachineStrategy strategy = this.applicationContext.getBean(IndependentServer.class);
-        worker.setStrategy(strategy);
 
         // state machine subscribes events from a publisher of commits
         CommitmentPublisher publisher = this.applicationContext.getBean(CommitmentPublisher.class);
