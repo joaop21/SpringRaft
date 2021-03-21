@@ -12,12 +12,15 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.net.InetSocketAddress;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 
 @Component
 @Scope("prototype")
@@ -177,53 +180,20 @@ public class PeerWorker implements Runnable, MessageSubscriber {
     /**
      * TODO
      * */
-    private void handleRequestVote(RequestVote message) {
+    private void handleRequestVote(RequestVote requestVote) {
 
         RequestVoteReply reply;
 
         do {
-            reply = this.sendRequestVote(message);
+
+            reply = (RequestVoteReply) this.sendRPCHandler(() -> this.outbound.requestVote(this.targetServerName, requestVote));
+
         } while (reply == null && this.active && this.remainingMessages == 0);
 
         if (reply != null && this.active) {
             this.consensusModule.requestVoteReply(reply);
             this.clearMessages();
         }
-
-    }
-
-    /**
-     * TODO
-     * */
-    private RequestVoteReply sendRequestVote(RequestVote requestVote) {
-
-        long start = System.currentTimeMillis();
-
-        try {
-
-            return this.outbound.requestVote(this.targetServerName, requestVote);
-
-        } catch (ExecutionException e) {
-            // If target server is not alive
-
-            log.warn("Server " + this.targetServerName + " is not up!!");
-
-            // sleep for the remaining time, if any
-            this.waitWhileActiveAndNoRemainingMessages(start);
-
-        } catch (TimeoutException e) {
-
-            // If the request vote communication exceeded heartbeat timout
-            log.warn("Communication to server " + this.targetServerName + " exceeded heartbeat timeout!!");
-
-        } catch (Exception e) {
-
-            // If another exception occurs
-            log.error("Exception not expected in requestVote method");
-
-        }
-
-        return null;
 
     }
 
@@ -238,7 +208,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
             long start = System.currentTimeMillis();
 
-            reply = this.sendAppendEntries(appendEntries);
+            reply = (AppendEntriesReply) this.sendRPCHandler(() -> this.outbound.appendEntries(this.targetServerName, appendEntries));
 
             if (reply != null && this.active) {
 
@@ -248,7 +218,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
                     break;
 
                 // sleep for the remaining time, if any
-                this.waitWhileActiveAndNoRemainingMessages(start);
+                this.waitWhileCondition(start, () -> this.active && this.remainingMessages == 0);
 
                 // go get the next heartbeat because the committed index may have changed
                 break;
@@ -269,7 +239,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
         do {
 
-            reply = this.sendAppendEntries(appendEntries);
+            reply = (AppendEntriesReply) this.sendRPCHandler(() -> this.outbound.appendEntries(this.targetServerName, appendEntries));
 
             if (reply != null && this.active) {
 
@@ -286,13 +256,13 @@ public class PeerWorker implements Runnable, MessageSubscriber {
     /**
      * TODO
      * */
-    private AppendEntriesReply sendAppendEntries (AppendEntries appendEntries) {
+    private Message sendRPCHandler(Callable<? extends Message> rpc) {
 
         long start = System.currentTimeMillis();
 
         try {
 
-            return this.outbound.appendEntries(this.targetServerName, appendEntries);
+            return rpc.call();
 
         } catch (ExecutionException e) {
             // If target server is not alive
@@ -300,7 +270,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
             log.warn("Server " + this.targetServerName + " is not up!!");
 
             // sleep for the remaining time, if any
-            this.waitWhileActive(start);
+            this.waitWhileCondition(start, () -> this.active);
 
         } catch (TimeoutException e) {
 
@@ -324,8 +294,9 @@ public class PeerWorker implements Runnable, MessageSubscriber {
      *
      * @param startTime Time in milliseconds used to calculate the remaining time
      *                  until the thread has to continue executing.
+     * @param condition Condition to evaluate. If true, thread awaits on condition.
      * */
-    private void waitWhileActiveAndNoRemainingMessages(long startTime) {
+    private void waitWhileCondition(long startTime, BooleanSupplier condition) {
 
         long remaining = this.raftProperties.getHeartbeat().toMillis() - (System.currentTimeMillis() - startTime);
 
@@ -334,38 +305,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
             lock.lock();
             try {
 
-                if(this.active && this.remainingMessages == 0)
-                    this.newMessages.await(remaining, TimeUnit.MILLISECONDS);
-
-            } catch (InterruptedException exception) {
-
-                log.error("Exception while awaiting on waitOnConditionForAnAmountOfTime method");
-
-            } finally {
-                lock.unlock();
-            }
-
-        }
-
-    }
-
-    /**
-     * Method that makes a thread wait on a conditional variable, until something signals the condition
-     * or an amount of time passes without anything signals the condition.
-     *
-     * @param startTime Time in milliseconds used to calculate the remaining time
-     *                  until the thread has to continue executing.
-     * */
-    private void waitWhileActive(long startTime) {
-
-        long remaining = this.raftProperties.getHeartbeat().toMillis() - (System.currentTimeMillis() - startTime);
-
-        if (remaining > 0) {
-
-            lock.lock();
-            try {
-
-                if(this.active)
+                if(condition.getAsBoolean())
                     this.newMessages.await(remaining, TimeUnit.MILLISECONDS);
 
             } catch (InterruptedException exception) {
