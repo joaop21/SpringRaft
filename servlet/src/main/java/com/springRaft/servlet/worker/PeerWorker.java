@@ -19,6 +19,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 
 @Component
 @Scope("prototype")
@@ -216,7 +218,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
                     break;
 
                 // sleep for the remaining time, if any
-                this.waitWhileActiveAndNoRemainingMessages(start);
+                this.waitWhileCondition(start, () -> this.active && this.remainingMessages == 0);
 
                 // go get the next heartbeat because the committed index may have changed
                 break;
@@ -268,7 +270,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
             log.warn("Server " + this.targetServerName + " is not up!!");
 
             // sleep for the remaining time, if any
-            this.waitWhileActive(start);
+            this.waitWhileCondition(start, () -> this.active);
 
         } catch (TimeoutException e) {
 
@@ -292,8 +294,9 @@ public class PeerWorker implements Runnable, MessageSubscriber {
      *
      * @param startTime Time in milliseconds used to calculate the remaining time
      *                  until the thread has to continue executing.
+     * @param condition Condition to evaluate. If true, thread awaits on condition.
      * */
-    private void waitWhileActiveAndNoRemainingMessages(long startTime) {
+    private void waitWhileCondition(long startTime, BooleanSupplier condition) {
 
         long remaining = this.raftProperties.getHeartbeat().toMillis() - (System.currentTimeMillis() - startTime);
 
@@ -302,38 +305,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
             lock.lock();
             try {
 
-                if(this.active && this.remainingMessages == 0)
-                    this.newMessages.await(remaining, TimeUnit.MILLISECONDS);
-
-            } catch (InterruptedException exception) {
-
-                log.error("Exception while awaiting on waitOnConditionForAnAmountOfTime method");
-
-            } finally {
-                lock.unlock();
-            }
-
-        }
-
-    }
-
-    /**
-     * Method that makes a thread wait on a conditional variable, until something signals the condition
-     * or an amount of time passes without anything signals the condition.
-     *
-     * @param startTime Time in milliseconds used to calculate the remaining time
-     *                  until the thread has to continue executing.
-     * */
-    private void waitWhileActive(long startTime) {
-
-        long remaining = this.raftProperties.getHeartbeat().toMillis() - (System.currentTimeMillis() - startTime);
-
-        if (remaining > 0) {
-
-            lock.lock();
-            try {
-
-                if(this.active)
+                if(condition.getAsBoolean())
                     this.newMessages.await(remaining, TimeUnit.MILLISECONDS);
 
             } catch (InterruptedException exception) {
