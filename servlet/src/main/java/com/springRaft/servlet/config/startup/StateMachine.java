@@ -1,8 +1,6 @@
 package com.springRaft.servlet.config.startup;
 
 import com.springRaft.servlet.stateMachine.CommitmentPublisher;
-import com.springRaft.servlet.stateMachine.IndependentServer;
-import com.springRaft.servlet.stateMachine.StateMachineStrategy;
 import com.springRaft.servlet.worker.StateMachineWorker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;

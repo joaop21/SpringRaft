@@ -19,10 +19,6 @@ public class CommitmentPublisher {
         this.subscribers.add(subscriber);
     }
 
-    public void unsubscribe(CommitmentSubscriber subscriber) {
-        this.subscribers.remove(subscriber);
-    }
-
     public void newCommit() {
         for (CommitmentSubscriber subscriber : this.subscribers)
             subscriber.newCommit();

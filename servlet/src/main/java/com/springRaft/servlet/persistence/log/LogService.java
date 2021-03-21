@@ -77,37 +77,10 @@ public class LogService {
     /**
      * TODO
      * */
-    public void incrementCommittedIndex() {
-        LogState logState = this.getState();
-        logState.setCommittedIndex(logState.getCommittedIndex() + 1);
-        this.logStateRepository.save(logState);
-    }
-
-    /**
-     * TODO
-     * */
-    public void incrementCommittedTerm() {
-        LogState logState = this.getState();
-        logState.setCommittedTerm(logState.getCommittedTerm() + 1);
-        this.logStateRepository.save(logState);
-    }
-
-    /**
-     * TODO
-     * */
     public void incrementLastApplied() {
         LogState logState = this.getState();
         logState.setLastApplied(logState.getLastApplied() + 1);
         this.logStateRepository.save(logState);
-    }
-
-    /**
-     * TODO
-     * */
-    public void deleteIndex(Long index) {
-
-        this.entryRepository.deleteById(index);
-
     }
 
     /**
