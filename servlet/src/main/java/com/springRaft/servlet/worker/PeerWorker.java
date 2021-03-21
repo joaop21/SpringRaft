@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 import java.net.InetSocketAddress;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -177,53 +178,20 @@ public class PeerWorker implements Runnable, MessageSubscriber {
     /**
      * TODO
      * */
-    private void handleRequestVote(RequestVote message) {
+    private void handleRequestVote(RequestVote requestVote) {
 
         RequestVoteReply reply;
 
         do {
-            reply = this.sendRequestVote(message);
+
+            reply = (RequestVoteReply) this.sendRPCHandler(() -> this.outbound.requestVote(this.targetServerName, requestVote));
+
         } while (reply == null && this.active && this.remainingMessages == 0);
 
         if (reply != null && this.active) {
             this.consensusModule.requestVoteReply(reply);
             this.clearMessages();
         }
-
-    }
-
-    /**
-     * TODO
-     * */
-    private RequestVoteReply sendRequestVote(RequestVote requestVote) {
-
-        long start = System.currentTimeMillis();
-
-        try {
-
-            return this.outbound.requestVote(this.targetServerName, requestVote);
-
-        } catch (ExecutionException e) {
-            // If target server is not alive
-
-            log.warn("Server " + this.targetServerName + " is not up!!");
-
-            // sleep for the remaining time, if any
-            this.waitWhileActiveAndNoRemainingMessages(start);
-
-        } catch (TimeoutException e) {
-
-            // If the request vote communication exceeded heartbeat timout
-            log.warn("Communication to server " + this.targetServerName + " exceeded heartbeat timeout!!");
-
-        } catch (Exception e) {
-
-            // If another exception occurs
-            log.error("Exception not expected in requestVote method");
-
-        }
-
-        return null;
 
     }
 
@@ -238,7 +206,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
             long start = System.currentTimeMillis();
 
-            reply = this.sendAppendEntries(appendEntries);
+            reply = (AppendEntriesReply) this.sendRPCHandler(() -> this.outbound.appendEntries(this.targetServerName, appendEntries));
 
             if (reply != null && this.active) {
 
@@ -269,7 +237,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
         do {
 
-            reply = this.sendAppendEntries(appendEntries);
+            reply = (AppendEntriesReply) this.sendRPCHandler(() -> this.outbound.appendEntries(this.targetServerName, appendEntries));
 
             if (reply != null && this.active) {
 
@@ -286,13 +254,13 @@ public class PeerWorker implements Runnable, MessageSubscriber {
     /**
      * TODO
      * */
-    private AppendEntriesReply sendAppendEntries (AppendEntries appendEntries) {
+    private Message sendRPCHandler(Callable<? extends Message> rpc) {
 
         long start = System.currentTimeMillis();
 
         try {
 
-            return this.outbound.appendEntries(this.targetServerName, appendEntries);
+            return rpc.call();
 
         } catch (ExecutionException e) {
             // If target server is not alive
