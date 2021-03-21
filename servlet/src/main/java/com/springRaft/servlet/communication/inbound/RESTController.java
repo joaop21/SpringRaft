@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Map;
 
 @RestController
 @RequestMapping("raft")
@@ -92,7 +93,9 @@ public class RESTController implements InboundCommunication {
 
         } else {
 
-            return new ResponseEntity<>(reply, HttpStatus.CREATED);
+            Map<String,?> replyEntity = Map.of("success",reply.getSuccess(), "response", reply.getResponse());
+
+            return new ResponseEntity<>(replyEntity, HttpStatus.CREATED);
 
         }
 
