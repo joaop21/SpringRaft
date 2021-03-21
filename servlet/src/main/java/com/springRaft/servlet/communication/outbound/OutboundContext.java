@@ -4,7 +4,7 @@ import com.springRaft.servlet.communication.message.AppendEntries;
 import com.springRaft.servlet.communication.message.AppendEntriesReply;
 import com.springRaft.servlet.communication.message.RequestVote;
 import com.springRaft.servlet.communication.message.RequestVoteReply;
-import org.springframework.context.ApplicationContext;
+import lombok.NoArgsConstructor;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
@@ -13,17 +13,11 @@ import java.util.concurrent.TimeoutException;
 
 @Service
 @Scope("singleton")
+@NoArgsConstructor
 public class OutboundContext implements OutboundStrategy {
 
     /* Outbound communication Strategy to use */
-    private OutboundStrategy communicationStrategy;
-
-    /* --------------------------------------------------- */
-
-    public OutboundContext(ApplicationContext applicationContext) {
-        // REST is the default strategy for outbound communication
-        this.communicationStrategy = applicationContext.getBean(REST.class);
-    }
+    private OutboundStrategy communicationStrategy = null;
 
     /* --------------------------------------------------- */
 
