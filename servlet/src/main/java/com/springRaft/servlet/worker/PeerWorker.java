@@ -20,7 +20,6 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BooleanSupplier;
-import java.util.function.Predicate;
 
 @Component
 @Scope("prototype")
