@@ -1,6 +1,7 @@
 package com.springRaft.servlet.persistence.log;
 
 import lombok.AllArgsConstructor;
+import lombok.Synchronized;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,6 +65,7 @@ public class LogService {
     /**
      * TODO
      * */
+    @Synchronized
     public Entry insertEntry(Entry entry) {
 
         Long lastIndex = this.getLastEntryIndex();

@@ -13,8 +13,11 @@ import org.springframework.stereotype.Component;
 @ToString
 public class RequestReply implements Message {
 
-    /* Success of the request --- PROBABLY IT SHOULD BE THE RESULT OF THE OPERATION */
+    /* Success of the request */
     private Boolean success;
+
+    /* Result of applying a command to the state machine */
+    private Object response;
 
     /* If this server is not the leader we have to redirect the request */
     private Boolean redirect;

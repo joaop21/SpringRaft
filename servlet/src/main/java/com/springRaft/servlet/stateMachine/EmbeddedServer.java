@@ -8,7 +8,9 @@ import org.springframework.stereotype.Component;
 public class EmbeddedServer implements StateMachineStrategy {
 
     @Override
-    public void apply(String command) {
+    public Object apply(String command) {
+
+        return "Applied: " + command + ", to State Machine";
 
     }
 

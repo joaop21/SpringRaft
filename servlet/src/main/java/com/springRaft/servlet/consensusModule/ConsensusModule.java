@@ -70,7 +70,6 @@ public class ConsensusModule implements RaftState {
     }
 
     @Override
-    @Synchronized
     public RequestReply clientRequest(String command) {
         return this.current.clientRequest(command);
     }

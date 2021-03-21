@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Map;
 
 @RestController
 @RequestMapping("raft")
@@ -79,7 +80,7 @@ public class RESTController implements InboundCommunication {
             consumes = "application/json",
             produces = "application/json"
     )
-    public ResponseEntity<Boolean> clientRequestEndpoint(@RequestBody String command) throws URISyntaxException {
+    public ResponseEntity<?> clientRequestEndpoint(@RequestBody String command) throws URISyntaxException {
 
         RequestReply reply = this.clientRequest(command);
 
@@ -92,7 +93,9 @@ public class RESTController implements InboundCommunication {
 
         } else {
 
-            return new ResponseEntity<>(reply.getSuccess(), HttpStatus.CREATED);
+            Map<String,?> replyEntity = Map.of("success",reply.getSuccess(), "response", reply.getResponse());
+
+            return new ResponseEntity<>(replyEntity, HttpStatus.CREATED);
 
         }
 

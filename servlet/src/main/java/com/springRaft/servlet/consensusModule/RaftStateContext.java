@@ -11,6 +11,7 @@ import com.springRaft.servlet.persistence.log.LogService;
 import com.springRaft.servlet.persistence.log.LogState;
 import com.springRaft.servlet.persistence.state.StateService;
 import com.springRaft.servlet.stateMachine.CommitmentPublisher;
+import com.springRaft.servlet.stateMachine.WaitingRequests;
 import lombok.AllArgsConstructor;
 import org.springframework.context.ApplicationContext;
 
@@ -40,6 +41,9 @@ public abstract class RaftStateContext {
 
     /* Publisher of new commitments to State Machine */
     protected final CommitmentPublisher commitmentPublisher;
+
+    /* Map that contains the clients waiting requests */
+    protected final WaitingRequests waitingRequests;
 
     /* --------------------------------------------------- */
 
