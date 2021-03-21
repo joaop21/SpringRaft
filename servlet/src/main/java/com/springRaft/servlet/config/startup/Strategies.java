@@ -4,6 +4,9 @@ import com.springRaft.servlet.communication.outbound.OutboundContext;
 import com.springRaft.servlet.communication.outbound.OutboundStrategy;
 import com.springRaft.servlet.communication.outbound.REST;
 import com.springRaft.servlet.config.RaftProperties;
+import com.springRaft.servlet.stateMachine.IndependentServer;
+import com.springRaft.servlet.stateMachine.StateMachineStrategy;
+import com.springRaft.servlet.worker.StateMachineWorker;
 import lombok.AllArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -29,15 +32,33 @@ public class Strategies implements ApplicationRunner {
 
         // COMMUNICATION
         OutboundContext context = this.applicationContext.getBean(OutboundContext.class);
-        OutboundStrategy strategy;
+        OutboundStrategy outboundStrategy;
 
         switch (this.raftProperties.getCommunicationStrategy().toUpperCase()) {
 
             case "REST":
 
             default:
-                strategy = applicationContext.getBean(REST.class);
-                context.setCommunicationStrategy(strategy);
+                outboundStrategy = applicationContext.getBean(REST.class);
+                context.setCommunicationStrategy(outboundStrategy);
+                break;
+
+        }
+
+        // STATE MACHINE
+        StateMachineWorker worker = this.applicationContext.getBean(StateMachineWorker.class);
+        StateMachineStrategy stateMachineStrategy;
+
+        switch (this.raftProperties.getStateMachineStrategy().toUpperCase()) {
+
+            case "EMBEDDED":
+                break;
+
+            case "INDEPENDENT":
+
+            default:
+                stateMachineStrategy = this.applicationContext.getBean(IndependentServer.class);
+                worker.setStrategy(stateMachineStrategy);
                 break;
 
         }

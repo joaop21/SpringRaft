@@ -43,6 +43,9 @@ public class RaftProperties {
     /* Strategy for communication */
     private final String communicationStrategy;
 
+    /* Strategy for state machine */
+    private final String stateMachineStrategy;
+
     /* --------------------------------------------------- */
 
     public RaftProperties(
@@ -55,7 +58,8 @@ public class RaftProperties {
                     Duration electionTimeoutMax,
             @DefaultValue("0") @DurationUnit(ChronoUnit.MILLIS)
                     Duration heartbeat,
-            @DefaultValue("REST") String communicationStrategy
+            @DefaultValue("REST") String communicationStrategy,
+            @DefaultValue("INDEPENDENT") String stateMachineStrategy
     ) {
 
         this.electionTimeoutMin = electionTimeoutMin;
@@ -72,6 +76,7 @@ public class RaftProperties {
         this.quorum = (clusterSize / 2) + 1;
 
         this.communicationStrategy = communicationStrategy;
+        this.stateMachineStrategy = stateMachineStrategy;
 
         log.info(this.toString());
 
@@ -121,7 +126,8 @@ public class RaftProperties {
                 .append("\n")
                 .append("Heartbeat has ")
                 .append(heartbeat.toMillis()).append("ms of duration\n")
-                .append("\nCommunication strategy is: ").append(communicationStrategy).append("\n")
+                .append("\nCommunication strategy is: ").append(communicationStrategy)
+                .append("\nState Machine strategy is: ").append(stateMachineStrategy).append("\n")
                 .append("\n*****************************************");
 
         return builder.toString();

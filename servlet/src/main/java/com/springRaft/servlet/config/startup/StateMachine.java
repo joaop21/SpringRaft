@@ -41,14 +41,6 @@ public class StateMachine implements ApplicationRunner {
 
         StateMachineWorker worker = this.applicationContext.getBean(StateMachineWorker.class);
 
-        // set strategy for command execution in state machine
-        // ...
-        // this should be generic, depending on a raft property
-        // ...
-        // ...
-        StateMachineStrategy strategy = this.applicationContext.getBean(IndependentServer.class);
-        worker.setStrategy(strategy);
-
         // state machine subscribes events from a publisher of commits
         CommitmentPublisher publisher = this.applicationContext.getBean(CommitmentPublisher.class);
         publisher.subscribe(worker);
