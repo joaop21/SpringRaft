@@ -70,7 +70,8 @@ public class RaftProperties {
 
         this.cluster = new ArrayList<>();
         for (String hoststring : cluster)
-            this.cluster.add(getAddressFromHostname(hoststring));
+            if (!hoststring.equals(hostname))
+                this.cluster.add(getAddressFromHostname(hoststring));
 
         int clusterSize = this.cluster.size() + 1;
         this.quorum = (clusterSize / 2) + 1;
