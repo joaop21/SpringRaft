@@ -1,0 +1,9 @@
+all:
+  #hosts:
+   # docker:
+    #  ansible_connection: docker
+     # ansible_python_interpreter: python
+  vars:
+    cluster_size: 5
+    docker_image_name: raft-servlet
+    servlet_dir: ../../../servlet

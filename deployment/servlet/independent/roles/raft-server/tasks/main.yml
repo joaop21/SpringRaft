@@ -1,0 +1,20 @@
+- name: Deploy Raft Server
+  docker_container:
+    name: "raft-server-{{ server_number }}"
+    image: "{{ docker_image_name }}"
+    container_default_behavior: compatibility
+    state: present
+    env:
+      RAFT_HOSTNAME: "{{ server_addr }}:8080"
+      RAFT_CLUSTER: "{{ range(1, (cluster_size + 1)) | map('regex_replace', '(.+)', '10.0.0.\\1:8080') | join(',')}}"
+      RAFT_ELECTION-TIMEOUT-MIN: "2000"
+      RAFT_ELECTION-TIMEOUT-MAX: "3000"
+      RAFT_HEARTBEEAT: "1000"
+      RAFT_COMMUNICATION-STRATEGY: "REST"
+      RAFT_STATE-MACHINE-STRATEGY: "INDEPENDENT"
+    networks:
+      #- name: cluster_network
+      #- name: db_net
+    ports:
+      - "{{ 8000 + server_number }}:8080"
+      #- ports for other networks
