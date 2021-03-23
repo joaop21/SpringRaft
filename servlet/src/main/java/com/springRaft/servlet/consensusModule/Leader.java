@@ -17,7 +17,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -262,9 +261,7 @@ public class Leader extends RaftStateContext implements RaftState {
 
         Long defaultNextIndex = this.logService.getLastEntryIndex() + 1;
 
-        for (InetSocketAddress addr : this.raftProperties.getCluster()) {
-
-            String serverName = this.raftProperties.AddressToString(addr);
+        for (String serverName : this.raftProperties.getCluster()) {
 
             this.nextIndex.put(serverName, defaultNextIndex);
             this.matchIndex.put(serverName, (long) 0);
@@ -345,7 +342,7 @@ public class Leader extends RaftStateContext implements RaftState {
         return this.applicationContext.getBean(
                 AppendEntries.class,
                 state.getCurrentTerm(), // term
-                this.raftProperties.AddressToString(this.raftProperties.getHost()), // leaderId
+                this.raftProperties.getHost(), // leaderId
                 lastEntry.getIndex(), // prevLogIndex
                 lastEntry.getTerm(), // prevLogTerm
                 entries, // entries

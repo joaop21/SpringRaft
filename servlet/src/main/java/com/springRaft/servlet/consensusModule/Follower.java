@@ -49,7 +49,7 @@ public class Follower extends RaftStateContext implements RaftState {
                 commitmentPublisher, waitingRequests
         );
         this.scheduledFuture = null;
-        this.leaderId = raftProperties.AddressToString(raftProperties.getHost());
+        this.leaderId = raftProperties.getHost();
     }
 
     /* --------------------------------------------------- */
@@ -151,7 +151,7 @@ public class Follower extends RaftStateContext implements RaftState {
 
         log.info("FOLLOWER");
 
-        this.leaderId = this.raftProperties.AddressToString(this.raftProperties.getHost());
+        this.leaderId = this.raftProperties.getHost();
 
         this.setTimeout();
 
