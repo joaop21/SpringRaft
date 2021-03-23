@@ -8,9 +8,9 @@ import org.springframework.boot.context.properties.ConstructorBinding;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.boot.convert.DurationUnit;
 
-import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 
 @ConfigurationProperties("raft")
@@ -66,7 +66,12 @@ public class RaftProperties {
         this.heartbeat = heartbeat;
 
         this.host = hostname;
-        this.cluster = cluster;
+
+        this.cluster = new ArrayList<>();
+        for (String addr : cluster)
+            if (!addr.equals(hostname))
+                this.cluster.add(addr);
+
 
         int clusterSize = this.cluster.size() + 1;
         this.quorum = (clusterSize / 2) + 1;
@@ -80,14 +85,6 @@ public class RaftProperties {
 
     /* --------------------------------------------------- */
 
-    /**
-     * TODO
-     * */
-    public String AddressToString(InetSocketAddress address) {
-        return address.getHostName() + ":" + address.getPort();
-    }
-
-    /* --------------------------------------------------- */
 
     @Override
     public String toString() {
