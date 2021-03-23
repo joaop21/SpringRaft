@@ -14,8 +14,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.stereotype.Component;
 
-import java.net.InetSocketAddress;
-
 @Component
 @Order(2)
 public class PeerWorkers implements ApplicationRunner {
@@ -62,7 +60,7 @@ public class PeerWorkers implements ApplicationRunner {
         OutboundContext context = this.applicationContext.getBean(OutboundContext.class);
         ConsensusModule module = this.applicationContext.getBean(ConsensusModule.class);
 
-        for(InetSocketAddress addr : this.raftProperties.getCluster()) {
+        for(String addr : this.raftProperties.getCluster()) {
             PeerWorker pw = this.applicationContext.getBean(PeerWorker.class, context, module, raftProperties, addr);
             this.outboundManager.subscribe(pw);
             this.taskExecutor.execute(pw);

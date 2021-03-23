@@ -1,0 +1,7 @@
+- name: Create Raft Server Containers
+  include_role:
+    name: raft-server
+  vars:
+    server_number: "{{ item }}"
+  loop: "{{ range(1, (cluster_size + 1)) | list }}"
+

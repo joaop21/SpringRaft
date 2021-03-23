@@ -1,0 +1,33 @@
+- name: Deploy Raft Server
+  docker_container:
+    name: "raft-server-{{ server_number }}"
+    image: "{{ docker_image_name }}"
+    container_default_behavior: compatibility
+    env:
+      RAFT_HOSTNAME: "raft-server-{{ server_number }}:8080"
+      RAFT_CLUSTER: "{{ range(1, (cluster_size + 1)) | map('regex_replace', '(.+)', 'raft-server-\\1:8080') | join(',') }}"
+      RAFT_ELECTION-TIMEOUT-MIN: "2000"
+      RAFT_ELECTION-TIMEOUT-MAX: "3000"
+      RAFT_HEARTBEEAT: "1000"
+      RAFT_COMMUNICATION-STRATEGY: "REST"
+      RAFT_STATE-MACHINE-STRATEGY: "INDEPENDENT"
+    network_mode: "{{ net_name }}"
+    networks_cli_compatible: yes
+    networks:
+      - name: "{{ net_name }}"
+    exposed_ports: "8080"
+    ports:
+      - "{{ 8000 + server_number }}:8080"
+      #- "10.0.0.{{ 1 + server_number }}:8080:8080"
+      #- "{{ lookup('dig', 'raft-server-' + (server_number | string)) }}:8080:8080"
+      #- "raft-server-{{ server_number }}:8080:8080"
+      #- "8080:8080"
+
+#- name: Publish Internal Network Port
+  #debug:
+    #msg: "{{ lookup('community.general.dig', 'raft-server-' + (server_number | string), 'qtype=A') }}:8080:8080"
+    #msg: "{{ lookup('community.general.dig', 'raft-server-1') }}:8080:8080"
+  #docker_container:
+   # name: "raft-server-{{ server_number }}"
+    #ports:
+     # - "{{ lookup('dig', 'raft-server-' + (server_number | string)) }}:8080:8080"
