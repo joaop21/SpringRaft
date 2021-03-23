@@ -10,6 +10,12 @@
         container_default_behavior: compatibility
       loop: "{{ range(1, (cluster_size + 1))|list }}"
 
+    - name: Delete Raft Cluster Internal Network
+      docker_network:
+        name: raft_cluster_net
+        state: absent
+        force: yes
+
     - name: Delete docker image
       docker_image:
         name: "{{ docker_image_name }}"

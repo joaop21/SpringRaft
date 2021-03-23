@@ -1,3 +1,8 @@
+- name: Remove older target folder
+  file:
+    path: "{{ servlet_dir }}/target/"
+    state: absent
+
 - name: Build targets with Maven - Package, Build, Test
   shell:
     cmd: mvn --batch-mode --update-snapshots verify
@@ -20,9 +25,4 @@
 - name: Remove Dockerfile from servlet folder
   file:
     path: "{{ servlet_dir }}/Dockerfile"
-    state: absent
-
-- name: Remove target folder
-  file:
-    path: "{{ servlet_dir }}/target/"
     state: absent

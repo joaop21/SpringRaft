@@ -5,8 +5,20 @@
   roles:
     - raft-servlet-image
 
+- name: Define Cluster Internal Network
+  hosts: localhost
+  gather_facts: no
+  roles:
+    - { role: raft-network,
+        net_name: raft_cluster_net,
+        subnet: "{{ raft_cluster_internal_subnet }}"
+      }
+
 - name: Deploy Raft Cluster
   hosts: localhost
   gather_facts: no
   roles:
-    - raft-cluster
+    - { role: raft-cluster, 
+        net_name: raft_cluster_net,
+        subnet: "{{ raft_cluster_internal_subnet }}",
+      }
