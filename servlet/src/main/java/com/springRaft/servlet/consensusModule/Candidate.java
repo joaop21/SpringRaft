@@ -171,7 +171,7 @@ public class Candidate extends RaftStateContext implements RaftState {
         this.stateService.incrementCurrentTerm();
 
         // vote for myself
-        String host = this.raftProperties.AddressToString(this.raftProperties.getHost());
+        String host = this.raftProperties.getHost();
         State state = this.stateService.setVotedFor(host);
         log.info(state.toString());
         this.votesGranted++;
@@ -183,7 +183,7 @@ public class Candidate extends RaftStateContext implements RaftState {
                 this.applicationContext.getBean(
                         RequestVote.class,
                         state.getCurrentTerm(),
-                        this.raftProperties.AddressToString(this.raftProperties.getHost()),
+                        this.raftProperties.getHost(),
                         logState.getCommittedIndex(),
                         logState.getCommittedTerm()
                         );

@@ -1,0 +1,28 @@
+- name: Remove older target folder
+  file:
+    path: "{{ servlet_dir }}/target/"
+    state: absent
+
+- name: Build targets with Maven - Package, Build, Test
+  shell:
+    cmd: mvn --batch-mode --update-snapshots verify
+    chdir: "{{ servlet_dir }}"
+
+- name: Copy Dockerfile to servlet folder
+  copy:
+    src: ./Dockerfile
+    dest: "{{ servlet_dir }}/Dockerfile"
+    
+- name: Build Raft Server Docker Image
+  docker_image:
+    build:
+      path: "{{ servlet_dir }}"
+      pull: no
+    name: "{{ docker_image_name }}"
+    tag: latest
+    source: build
+    
+- name: Remove Dockerfile from servlet folder
+  file:
+    path: "{{ servlet_dir }}/Dockerfile"
+    state: absent

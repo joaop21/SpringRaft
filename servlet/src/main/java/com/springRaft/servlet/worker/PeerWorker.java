@@ -11,7 +11,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import java.net.InetSocketAddress;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -20,7 +19,6 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BooleanSupplier;
-import java.util.function.Predicate;
 
 @Component
 @Scope("prototype")
@@ -60,12 +58,12 @@ public class PeerWorker implements Runnable, MessageSubscriber {
             OutboundContext outbound,
             ConsensusModule consensusModule,
             RaftProperties raftProperties,
-            InetSocketAddress targetServer
+            String targetServerName
     ) {
         this.outbound = outbound;
         this.consensusModule = consensusModule;
         this.raftProperties = raftProperties;
-        this.targetServerName = targetServer.getHostName() + ":" + targetServer.getPort();
+        this.targetServerName = targetServerName;
         this.lock = new ReentrantLock();
         this.newMessages = lock.newCondition();
         this.remainingMessages = 0;
