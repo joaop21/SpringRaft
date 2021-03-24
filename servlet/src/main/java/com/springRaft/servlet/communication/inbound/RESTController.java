@@ -13,12 +13,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Map;
 
 @RestController
-@RequestMapping("raft")
 @AllArgsConstructor
 public class RESTController implements InboundCommunication {
 
@@ -34,7 +33,7 @@ public class RESTController implements InboundCommunication {
      * TODO
      * */
     @RequestMapping(
-            value = "/appendEntries",
+            value = "/raft/appendEntries",
             method = RequestMethod.POST,
             consumes = "application/json",
             produces = "application/json"
@@ -54,7 +53,7 @@ public class RESTController implements InboundCommunication {
      * TODO
      * */
     @RequestMapping(
-            value = "/requestVote",
+            value = "/raft/requestVote",
             method = RequestMethod.POST,
             consumes = "application/json",
             produces = "application/json"
@@ -74,28 +73,23 @@ public class RESTController implements InboundCommunication {
     /**
      * TODO
      * */
-    @RequestMapping(
-            value = "/request",
-            method = RequestMethod.POST,
-            consumes = "application/json",
-            produces = "application/json"
-    )
-    public ResponseEntity<?> clientRequestEndpoint(@RequestBody String command) throws URISyntaxException {
+    @RequestMapping(value = "/**/{[^\\.]*}")
+    public ResponseEntity<?> clientRequestEndpoint(@RequestBody(required = false) String body, HttpServletRequest request) throws URISyntaxException {
+
+        String command = request.getMethod() + ";;;" + request.getRequestURI() + ";;;" + body;
 
         RequestReply reply = this.clientRequest(command);
 
         if (reply.getRedirect()) {
 
-            URI leaderURL = new URI("http:/" + reply.getRedirectTo() + "/raft/request");
+            URI leaderURL = new URI("http:/" + reply.getRedirectTo() + request.getRequestURI());
             HttpHeaders httpHeaders = new HttpHeaders();
             httpHeaders.setLocation(leaderURL);
             return new ResponseEntity<>(httpHeaders, HttpStatus.TEMPORARY_REDIRECT);
 
         } else {
 
-            Map<String,?> replyEntity = Map.of("success",reply.getSuccess(), "response", reply.getResponse());
-
-            return new ResponseEntity<>(replyEntity, HttpStatus.CREATED);
+            return (ResponseEntity<?>) reply.getResponse();
 
         }
 
