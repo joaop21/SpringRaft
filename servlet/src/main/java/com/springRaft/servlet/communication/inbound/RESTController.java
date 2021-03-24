@@ -83,7 +83,7 @@ public class RESTController implements InboundCommunication {
 
         if (reply.getRedirect()) {
 
-            URI leaderURL = new URI("http:/" + reply.getRedirectTo() + "/raft/request");
+            URI leaderURL = new URI("http:/" + reply.getRedirectTo() + request.getRequestURI());
             HttpHeaders httpHeaders = new HttpHeaders();
             httpHeaders.setLocation(leaderURL);
             return new ResponseEntity<>(httpHeaders, HttpStatus.TEMPORARY_REDIRECT);
