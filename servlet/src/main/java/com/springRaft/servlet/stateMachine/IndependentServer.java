@@ -8,9 +8,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.net.URISyntaxException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 @Component
 @Scope("singleton")
@@ -28,19 +28,16 @@ public class IndependentServer implements StateMachineStrategy {
     @Override
     public Object apply(String command) {
 
-        String[] tokens = command.split(";;;");
-        String HTTPMethod = tokens[0];
-        String endpoint = tokens[1];
-
-        List<String> body = new ArrayList<>(Arrays.asList(tokens).subList(2, tokens.length));
-        String json = String.join(";;;", body);
-
-        log.info("\n\nInvoking: " + HTTPMethod + " on " + endpoint + " with " + json + "\n\n");
-
         // invoke in outbound
+        try {
 
-        return "Applied: " + HTTPMethod + " on " + endpoint + " with " + json +", to State Machine";
+            return this.outbound.request(command);
 
+        } catch (InterruptedException | ExecutionException | TimeoutException | URISyntaxException interruptedException) {
+            interruptedException.printStackTrace();
+        }
+
+        return null;
     }
 
     /* --------------------------------------------------- */

@@ -5,10 +5,12 @@ import com.springRaft.servlet.communication.message.AppendEntriesReply;
 import com.springRaft.servlet.communication.message.RequestVote;
 import com.springRaft.servlet.communication.message.RequestVoteReply;
 
+import java.net.URISyntaxException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
 public interface OutboundStrategy {
     AppendEntriesReply appendEntries(String to, AppendEntries message) throws InterruptedException, ExecutionException, TimeoutException;
     RequestVoteReply requestVote(String to, RequestVote message) throws InterruptedException, ExecutionException, TimeoutException;
+    Object request(String command) throws InterruptedException, ExecutionException, TimeoutException, URISyntaxException;
 }

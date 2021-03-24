@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
+import java.net.URISyntaxException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
@@ -35,6 +36,11 @@ public class OutboundContext implements OutboundStrategy {
     @Override
     public RequestVoteReply requestVote(String to, RequestVote message) throws InterruptedException, ExecutionException, TimeoutException {
         return this.communicationStrategy.requestVote(to, message);
+    }
+
+    @Override
+    public Object request(String command) throws InterruptedException, ExecutionException, TimeoutException, URISyntaxException {
+        return this.communicationStrategy.request(command);
     }
 
 }
