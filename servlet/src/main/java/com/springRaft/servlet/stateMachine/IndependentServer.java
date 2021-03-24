@@ -8,6 +8,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 @Component
 @Scope("singleton")
 @AllArgsConstructor
@@ -24,10 +28,21 @@ public class IndependentServer implements StateMachineStrategy {
     @Override
     public Object apply(String command) {
 
-        log.info("\n\nApplying: " + command + " to State Machine\n\n");
+        String[] tokens = command.split(";;;");
+        String HTTPMethod = tokens[0];
+        String endpoint = tokens[1];
 
-        return "Applied: " + command + ", to State Machine";
+        List<String> body = new ArrayList<>(Arrays.asList(tokens).subList(2, tokens.length));
+        String json = String.join(";;;", body);
+
+        log.info("\n\nInvoking: " + HTTPMethod + " on " + endpoint + " with " + json + "\n\n");
+
+        // invoke in outbound
+
+        return "Applied: " + HTTPMethod + " on " + endpoint + " with " + json +", to State Machine";
 
     }
+
+    /* --------------------------------------------------- */
 
 }

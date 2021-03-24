@@ -75,7 +75,7 @@ public class RESTController implements InboundCommunication {
      * TODO
      * */
     @RequestMapping(value = "/**/{[^\\.]*}")
-    public ResponseEntity<?> clientRequestEndpoint(@RequestBody String body, HttpServletRequest request) throws URISyntaxException {
+    public ResponseEntity<?> clientRequestEndpoint(@RequestBody(required = false) String body, HttpServletRequest request) throws URISyntaxException {
 
         String command = request.getMethod() + ";;;" + request.getRequestURI() + ";;;" + body;
 
