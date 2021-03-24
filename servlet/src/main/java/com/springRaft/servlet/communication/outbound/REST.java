@@ -64,7 +64,7 @@ public class REST implements OutboundStrategy {
 
         String[] tokens = command.split(";;;");
         HttpMethod HTTPMethod = HttpMethod.valueOf(tokens[0]);
-        URI endpoint = new URI("http://" + tokens[1]);
+        URI endpoint = new URI("http://" + this.raftProperties.getApplicationServer() + tokens[1]);
         String body = String.join(";;;", Arrays.asList(tokens).subList(2, tokens.length));
 
         RequestEntity<?> request =

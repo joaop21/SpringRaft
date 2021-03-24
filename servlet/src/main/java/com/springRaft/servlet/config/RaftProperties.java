@@ -45,6 +45,9 @@ public class RaftProperties {
     /* Strategy for state machine */
     private final String stateMachineStrategy;
 
+    /* Application Server address */
+    private final String applicationServer;
+
     /* --------------------------------------------------- */
 
     public RaftProperties(
@@ -58,7 +61,8 @@ public class RaftProperties {
             @DefaultValue("0") @DurationUnit(ChronoUnit.MILLIS)
                     Duration heartbeat,
             @DefaultValue("REST") String communicationStrategy,
-            @DefaultValue("INDEPENDENT") String stateMachineStrategy
+            @DefaultValue("INDEPENDENT") String stateMachineStrategy,
+            @DefaultValue("localhost:9002") String applicationServer
     ) {
 
         this.electionTimeoutMin = electionTimeoutMin;
@@ -78,6 +82,8 @@ public class RaftProperties {
 
         this.communicationStrategy = communicationStrategy;
         this.stateMachineStrategy = stateMachineStrategy;
+
+        this.applicationServer = applicationServer;
 
         log.info(this.toString());
 
@@ -109,6 +115,7 @@ public class RaftProperties {
                 .append(heartbeat.toMillis()).append("ms of duration\n")
                 .append("\nCommunication strategy is: ").append(communicationStrategy)
                 .append("\nState Machine strategy is: ").append(stateMachineStrategy).append("\n")
+                .append("\nApplication Server is: ").append(applicationServer).append("\n")
                 .append("\n*****************************************");
 
         return builder.toString();
