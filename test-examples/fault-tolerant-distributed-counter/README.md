@@ -21,6 +21,6 @@ Using application servers apart from the Raft cluster requires deploying twice a
     1. `mvn spring-boot:run -Dspring-boot.run.arguments="--server.address=localhost --server.port=8002 --raft.hostname=localhost:8001 --raft.cluster=localhost:8001,localhost:8002,localhost:8003 --raft.election-timeout-min=2000 --raft.election-timeout-max=3000 --raft.heartbeat=1000 --raft.application-server=localhost:10002"`
     1. `mvn spring-boot:run -Dspring-boot.run.arguments="--server.address=localhost --server.port=8003 --raft.hostname=localhost:8001 --raft.cluster=localhost:8001,localhost:8002,localhost:8003 --raft.election-timeout-min=2000 --raft.election-timeout-max=3000 --raft.heartbeat=1000 --raft.application-server=localhost:10003"`
 
-After this, simply make requests to any server in the Raft cluster as if the request were directed to the application server.
+After this, simply make requests to any server in the Raft cluster as if the request were directed to the application server. Find more about this configuration [here](https://github.com/joaop21/SpringRaft/wiki/Test-Examples#FTDC-Independent).
 
 ### Embedded
