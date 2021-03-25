@@ -6,7 +6,9 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.task.TaskExecutor;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.RequestEntity;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
@@ -115,7 +117,14 @@ public class REST implements OutboundStrategy {
             throws ExecutionException, InterruptedException
     {
         return CompletableFuture
-                .supplyAsync(() -> restTemplate.exchange(requestEntity, Object.class), this.taskExecutor)
+                .supplyAsync(() -> {
+                    try {
+                        return restTemplate.exchange(requestEntity, Object.class);
+                    } catch (HttpClientErrorException e) {
+                        return new ResponseEntity<>(e.getResponseBodyAsString(), e.getStatusCode());
+                    }
+
+                }, this.taskExecutor)
                 .get();
     }
 
