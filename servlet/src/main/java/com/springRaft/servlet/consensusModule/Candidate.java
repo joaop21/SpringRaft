@@ -81,8 +81,17 @@ public class Candidate extends RaftStateContext implements RaftState {
     @Override
     public void appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
 
-        // If receive AppendEntries replies when in candidate state there
-        // is nothing to do
+        if (appendEntriesReply.getTerm() > this.stateService.getCurrentTerm()) {
+
+            // update term
+            this.stateService.setState(appendEntriesReply.getTerm(), null);
+
+            this.cleanBeforeTransit();
+
+            // transit to follower state
+            this.transitionManager.setNewFollowerState();
+
+        }
 
     }
 
@@ -133,18 +142,20 @@ public class Candidate extends RaftStateContext implements RaftState {
             // transit to follower state
             this.transitionManager.setNewFollowerState();
 
-        }
+        } else {
 
-        if (requestVoteReply.getVoteGranted()) {
+            if (requestVoteReply.getVoteGranted()) {
 
-            this.votesGranted++;
+                this.votesGranted++;
 
-            if (this.votesGranted >= this.raftProperties.getQuorum()) {
+                if (this.votesGranted >= this.raftProperties.getQuorum()) {
 
-                this.cleanBeforeTransit();
+                    this.cleanBeforeTransit();
 
-                // transit to leader state
-                this.transitionManager.setNewLeaderState();
+                    // transit to leader state
+                    this.transitionManager.setNewLeaderState();
+
+                }
 
             }
 

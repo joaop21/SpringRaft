@@ -75,8 +75,19 @@ public class Follower extends RaftStateContext implements RaftState {
     @Override
     public void appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
 
-        // If receive AppendEntries replies when in follower state there
-        // is nothing to do
+        // if term is greater than mine, I should update it and transit to new follower
+        if (appendEntriesReply.getTerm() > this.stateService.getCurrentTerm()) {
+
+            // update term
+            this.stateService.setState(appendEntriesReply.getTerm(), null);
+
+            // begin new follower state and delete the existing task
+            this.transitionManager.cancelScheduledTask(this.scheduledFuture);
+
+            // set a new timeout, it's equivalent to transit to a new follower state
+            this.setTimeout();
+
+        }
 
     }
 
