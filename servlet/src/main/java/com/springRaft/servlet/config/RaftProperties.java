@@ -13,7 +13,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
-@ConfigurationProperties("raft")
+@ConfigurationProperties(prefix = "raft")
 @ConstructorBinding
 @Getter
 public class RaftProperties {
