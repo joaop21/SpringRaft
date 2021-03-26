@@ -15,10 +15,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("raft")
 @AllArgsConstructor
-public class RESTController implements InboundCommunication {
+public class RaftController implements InboundCommunication {
 
     /* Logger */
-    private static final Logger log = LoggerFactory.getLogger(RESTController.class);
+    private static final Logger log = LoggerFactory.getLogger(RaftController.class);
 
     /* Module that has the consensus functions to invoke */
     private final ConsensusModule consensusModule;

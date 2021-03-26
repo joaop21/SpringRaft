@@ -19,7 +19,7 @@ import java.net.URISyntaxException;
 @AllArgsConstructor
 public class IndependentController {
 
-    private final RESTController restController;
+    private final RaftController raftController;
 
     /* --------------------------------------------------- */
 
@@ -31,7 +31,7 @@ public class IndependentController {
 
         String command = request.getMethod() + ";;;" + request.getRequestURI() + ";;;" + body;
 
-        RequestReply reply = this.restController.clientRequest(command);
+        RequestReply reply = this.raftController.clientRequest(command);
 
         if (reply.getRedirect()) {
 
