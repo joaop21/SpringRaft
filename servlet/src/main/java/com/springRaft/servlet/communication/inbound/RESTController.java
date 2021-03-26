@@ -5,7 +5,6 @@ import com.springRaft.servlet.consensusModule.ConsensusModule;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,11 +12,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpServletRequest;
-import java.net.URI;
-import java.net.URISyntaxException;
-
 @RestController
+@RequestMapping("raft")
 @AllArgsConstructor
 public class RESTController implements InboundCommunication {
 
@@ -33,7 +29,7 @@ public class RESTController implements InboundCommunication {
      * TODO
      * */
     @RequestMapping(
-            value = "/raft/appendEntries",
+            value = "/appendEntries",
             method = RequestMethod.POST,
             consumes = "application/json",
             produces = "application/json"
@@ -53,7 +49,7 @@ public class RESTController implements InboundCommunication {
      * TODO
      * */
     @RequestMapping(
-            value = "/raft/requestVote",
+            value = "/requestVote",
             method = RequestMethod.POST,
             consumes = "application/json",
             produces = "application/json"
@@ -67,31 +63,6 @@ public class RESTController implements InboundCommunication {
         log.info(reply.toString());
 
         return new ResponseEntity<>(reply, HttpStatus.OK);
-
-    }
-
-    /**
-     * TODO
-     * */
-    @RequestMapping(value = "/**/{[^\\.]*}")
-    public ResponseEntity<?> clientRequestEndpoint(@RequestBody(required = false) String body, HttpServletRequest request) throws URISyntaxException {
-
-        String command = request.getMethod() + ";;;" + request.getRequestURI() + ";;;" + body;
-
-        RequestReply reply = this.clientRequest(command);
-
-        if (reply.getRedirect()) {
-
-            URI leaderURL = new URI("http:/" + reply.getRedirectTo() + request.getRequestURI());
-            HttpHeaders httpHeaders = new HttpHeaders();
-            httpHeaders.setLocation(leaderURL);
-            return new ResponseEntity<>(httpHeaders, HttpStatus.TEMPORARY_REDIRECT);
-
-        } else {
-
-            return (ResponseEntity<?>) reply.getResponse();
-
-        }
 
     }
 
