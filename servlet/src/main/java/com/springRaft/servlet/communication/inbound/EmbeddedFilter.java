@@ -44,7 +44,11 @@ public class EmbeddedFilter extends OncePerRequestFilter {
         if (!new AntPathMatcher().match(REQUEST_PREFIX + "/**", request.getServletPath())) {
 
             changedURI = REQUEST_PREFIX + request.getRequestURI();
-            changedURL = new StringBuffer(request.getRequestURL().toString().replaceFirst(request.getRequestURI(), REQUEST_PREFIX + request.getRequestURI()));
+            changedURL = new StringBuffer(
+                    request.getRequestURL()
+                            .toString()
+                            .replaceFirst(request.getRequestURI(), REQUEST_PREFIX + request.getRequestURI())
+                    );
 
         } else {
 
@@ -69,7 +73,13 @@ public class EmbeddedFilter extends OncePerRequestFilter {
     /* --------------------------------------------------- */
 
     /**
-     * TODO
+     * Method for creating an HttpServletRequestWrapper that changes the location of a resource.
+     *
+     * @param request HttpServletRequest to wrap.
+     * @param uri String that represents the endpoint of a resource.
+     * @param url StringBuffer that contains the full location of a resource.
+     *
+     * @return HttpServletRequestWrapper which represents the new Object to pass to the next filter.
      * */
     private HttpServletRequestWrapper createHttpServletRequestWrapper(HttpServletRequest request, String uri, StringBuffer url) {
 
