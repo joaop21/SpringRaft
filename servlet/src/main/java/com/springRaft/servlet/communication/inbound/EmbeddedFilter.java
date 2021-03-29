@@ -57,8 +57,6 @@ public class EmbeddedFilter extends OncePerRequestFilter {
 
         }
 
-        log.info("\n\nChanged URI: {}\nChanged URL: {}\n\n", changedURI, changedURL.toString());
-
         filterChain.doFilter(this.createHttpServletRequestWrapper(request, changedURI, changedURL), response);
 
     }

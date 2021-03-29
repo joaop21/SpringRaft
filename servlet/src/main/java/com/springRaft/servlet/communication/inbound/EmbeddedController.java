@@ -11,9 +11,10 @@ import javax.servlet.http.HttpServletRequest;
 import java.net.URISyntaxException;
 
 @RestController
-@ConditionalOnProperty(name = "raft.state-machine-strategy", havingValue = "INDEPENDENT")
+@RequestMapping("raft")
+@ConditionalOnProperty(name = "raft.state-machine-strategy", havingValue = "EMBEDDED")
 @AllArgsConstructor
-public class IndependentController {
+public class EmbeddedController {
 
     /* Main controller that communicates with consensus module */
     private final RaftController raftController;
