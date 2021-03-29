@@ -1,7 +1,5 @@
 package com.springRaft.servlet.communication.inbound;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
@@ -19,9 +17,6 @@ import java.util.Arrays;
 @Component
 @ConditionalOnProperty(name = "raft.state-machine-strategy", havingValue = "EMBEDDED")
 public class EmbeddedFilter extends OncePerRequestFilter {
-
-    /* Logger */
-    private static final Logger log = LoggerFactory.getLogger(EmbeddedFilter.class);
 
     /* Requests prefix */
     private static final String REQUEST_PREFIX = "/raft";
