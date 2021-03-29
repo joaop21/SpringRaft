@@ -4,8 +4,6 @@ import com.springRaft.servlet.communication.message.*;
 import com.springRaft.servlet.config.RaftProperties;
 import com.springRaft.servlet.consensusModule.ConsensusModule;
 import lombok.AllArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,9 +20,6 @@ import java.net.URISyntaxException;
 @RequestMapping("raft")
 @AllArgsConstructor
 public class RaftController implements InboundCommunication {
-
-    /* Logger */
-    private static final Logger log = LoggerFactory.getLogger(RaftController.class);
 
     /* Module that has the consensus functions to invoke */
     private final ConsensusModule consensusModule;
@@ -45,13 +40,8 @@ public class RaftController implements InboundCommunication {
     )
     public ResponseEntity<AppendEntriesReply> appendEntriesEndpoint(@RequestBody AppendEntries appendEntries) {
 
-        log.info(appendEntries.toString());
+        return new ResponseEntity<>(this.appendEntries(appendEntries), HttpStatus.OK);
 
-        AppendEntriesReply reply = this.appendEntries(appendEntries);
-
-        log.info(reply.toString());
-
-        return new ResponseEntity<>(reply, HttpStatus.OK);
     }
 
     /**
@@ -65,13 +55,7 @@ public class RaftController implements InboundCommunication {
     )
     public ResponseEntity<RequestVoteReply> requestVoteEndpoint(@RequestBody RequestVote requestVote) {
 
-        log.info(requestVote.toString());
-
-        RequestVoteReply reply = this.requestVote(requestVote);
-
-        log.info(reply.toString());
-
-        return new ResponseEntity<>(reply, HttpStatus.OK);
+        return new ResponseEntity<>(this.requestVote(requestVote), HttpStatus.OK);
 
     }
 
