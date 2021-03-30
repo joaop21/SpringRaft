@@ -39,7 +39,7 @@ After this, simply make requests to any server as if the request were directed t
 
 * Get the value of a counter with the ID 1:
     ```http
-    GET /raft/counter/1 HTTP/1.1
+    GET /counter/1 HTTP/1.1
     Host: localhost:8002
     Accept: */*
     ```
@@ -53,7 +53,7 @@ After this, simply make requests to any server as if the request were directed t
         ```
 * Increment the value of the counter with ID 1:
     ```http
-    POST /raft/counter/increment/1 HTTP/1.1
+    POST /counter/increment/1 HTTP/1.1
     Host: localhost:8002
     Accept: */*
     ```
@@ -71,3 +71,4 @@ After this, simply make requests to any server as if the request were directed t
     "value": 15
     }
     ```
+* Decrement is the same as increment but the endpoint changes from `/increment` to `/decrement`.
