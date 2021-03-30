@@ -8,6 +8,16 @@ SpringRaft is a dissertation project, which consists in the Raft's consensus alg
 
 The final purpose of this project is the comparison of the 2 stacks, when applied in this case.
 
+If you want to know more about this project visit the [wiki](https://github.com/joaop21/SpringRaft/wiki).
+
 ## Repo Structure
 
+Raft implementation using Spring **Servlet** Stack is under `servlet/`.
+
+Raft implementation using Spring **Reactive** Stack is under `servlet/`.
+
 Examples and tests built before and after the Raft implementation, are under `test-examples/`.
+
+Deployment of the independent configurations of both implementations is under `deployment/`.
+
+Workflows for testing the Pull Requests are under `.github/workflows/`.
