@@ -43,8 +43,8 @@ After this, simply make requests to any server as if the request were directed t
     Host: localhost:8002
     Accept: */*
     ```
-    * The response is 404 (Not Found) if the counter with that ID doesn't exist;
-    * The response is 200 (OK) if the counter exists with a body like:
+    * The response is **404 (Not Found)** if the counter with that ID doesn't exist;
+    * The response is **200 (OK)** if the counter exists with a body like:
         ```json
         {
         "id": 1,
@@ -57,14 +57,14 @@ After this, simply make requests to any server as if the request were directed t
     Host: localhost:8002
     Accept: */*
     ```
-    * The response is 201 (Created) if the counter with that ID does not exist, and the response body is:
+    * The response is **201 (Created)** if the counter with that ID does not exist, and the response body is:
     ```json
     {
     "id": 1,
     "value": 1
     }
     ```
-    * The response is 200 (OK) if the counter already exists, and the response body is, for example:
+    * The response is **200 (OK)** if the counter already exists, and the response body is, for example:
     ```json
     {
     "id": 1,
