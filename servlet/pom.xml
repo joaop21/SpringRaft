@@ -82,7 +82,7 @@
 	<!-- Publish packages on github -->
 	<distributionManagement>
 		<repository>
-			<id>github-SpringRaft</id>
+			<id>github</id>
 			<name>GitHub joaop21 Apache Maven Packages</name>
 			<url>https://maven.pkg.github.com/joaop21/SpringRaft</url>
 		</repository>
