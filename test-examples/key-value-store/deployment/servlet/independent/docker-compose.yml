@@ -5,6 +5,7 @@ services:
   raft1:
     image: spring-raft:servlet-0.0.2
     environment:
+      - SERVER_ADDRESS=raft1
       - RAFT_HOSTNAME=raft1:8080
     env_file:
       - raft-properties.env
@@ -14,6 +15,7 @@ services:
   raft2:
     image: spring-raft:servlet-0.0.2
     environment:
+      - SERVER_ADDRESS=raft2
       - RAFT_HOSTNAME=raft2:8080
     env_file:
       - raft-properties.env
@@ -23,6 +25,7 @@ services:
   raft3:
     image: spring-raft:servlet-0.0.2
     environment:
+      - SERVER_ADDRESS=raft3
       - RAFT_HOSTNAME=raft3:8080
     env_file:
       - raft-properties.env
