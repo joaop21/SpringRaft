@@ -3,31 +3,28 @@ version: '3'
 services:
 
   raft1:
-    image: spring-raft:servlet-0.0.2
+    image: spring-raft:servlet-0.0.3
     environment:
-      - SERVER_ADDRESS=raft1
       - RAFT_HOSTNAME=raft1:8080
     env_file:
       - raft-properties.env
     ports:
-      - "8001:8080"
+      - "50001:8080"
 
   raft2:
-    image: spring-raft:servlet-0.0.2
+    image: spring-raft:servlet-0.0.3
     environment:
-      - SERVER_ADDRESS=raft2
       - RAFT_HOSTNAME=raft2:8080
     env_file:
       - raft-properties.env
     ports:
-      - "8002:8080"
+      - "50002:8080"
 
   raft3:
-    image: spring-raft:servlet-0.0.2
+    image: spring-raft:servlet-0.0.3
     environment:
-      - SERVER_ADDRESS=raft3
       - RAFT_HOSTNAME=raft3:8080
     env_file:
       - raft-properties.env
     ports:
-      - "8003:8080"
+      - "50003:8080"
