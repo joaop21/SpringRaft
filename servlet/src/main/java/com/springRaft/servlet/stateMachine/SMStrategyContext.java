@@ -8,7 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
 
 @AllArgsConstructor
 public class SMStrategyContext {
@@ -34,7 +33,7 @@ public class SMStrategyContext {
 
             try {
 
-                reply = this.outbound.request(command);
+                reply = this.outbound.request(command, this.raftProperties.getApplicationServer());
 
             } catch (ExecutionException e) {
                 // If target server is not alive
@@ -44,11 +43,6 @@ public class SMStrategyContext {
                 // sleep for the remaining time, if any
                 // based on heartbeat
                 this.sleepForSomeTime(start);
-
-            } catch (TimeoutException e) {
-
-                // If the communication exceeded heartbeat timout
-                log.warn("Communication to Application Server exceeded heartbeat timeout!!");
 
             } catch (Exception e) {
 
