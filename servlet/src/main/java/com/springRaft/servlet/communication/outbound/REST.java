@@ -48,7 +48,7 @@ public class REST implements OutboundStrategy {
             throws InterruptedException, ExecutionException, TimeoutException
     {
 
-        return (AppendEntriesReply) sendToServer(to, "/appendEntries", message, AppendEntriesReply.class);
+        return (AppendEntriesReply) sendPostToServer(to, "/appendEntries", message, AppendEntriesReply.class);
 
     }
 
@@ -57,16 +57,16 @@ public class REST implements OutboundStrategy {
             throws InterruptedException, ExecutionException, TimeoutException
     {
 
-        return (RequestVoteReply) sendToServer(to, "/requestVote", message, RequestVoteReply.class);
+        return (RequestVoteReply) sendPostToServer(to, "/requestVote", message, RequestVoteReply.class);
 
     }
 
     @Override
-    public Object request(String command) throws InterruptedException, ExecutionException, TimeoutException, URISyntaxException {
+    public Object request(String command, String location) throws InterruptedException, ExecutionException, TimeoutException, URISyntaxException {
 
         String[] tokens = command.split(";;;");
         HttpMethod HTTPMethod = HttpMethod.valueOf(tokens[0]);
-        URI endpoint = new URI("http://" + this.raftProperties.getApplicationServer() + tokens[1]);
+        URI endpoint = new URI("http://" + location + tokens[1]);
         String body = String.join(";;;", Arrays.asList(tokens).subList(2, tokens.length));
 
         RequestEntity<?> request =
@@ -74,13 +74,14 @@ public class REST implements OutboundStrategy {
                 ? new RequestEntity<>(HTTPMethod, endpoint)
                 : new RequestEntity<>(body, HTTPMethod, endpoint);
 
-        return applyStateMachineCommand(request);
+        return sendRequestToServer(request);
     }
 
     /* --------------------------------------------------- */
 
     /**
-     * Method that invokes an HTTP request in a specific server, in a specific route, with a JSON message.
+     * Method that invokes an HTTP POST request in a specific server, in a specific route, with a JSON message.
+     * Used mostly in Raft algorithm communications.
      *
      * @param to String that represents the server.
      * @param route String that represents the endpoint to invoke the HTTP request.
@@ -89,7 +90,7 @@ public class REST implements OutboundStrategy {
      *
      * @return Message which is the return object as the response.
      * */
-    private Message sendToServer(String to, String route, Message message, Class<? extends Message> type)
+    private Message sendPostToServer(String to, String route, Message message, Class<? extends Message> type)
             throws InterruptedException, ExecutionException, TimeoutException
     {
 
@@ -107,13 +108,13 @@ public class REST implements OutboundStrategy {
     }
 
     /**
-     * Method that invokes an HTTP request in the Application Server, applying the command in the state machine.
+     * Method that invokes an HTTP request in a specific server embedded in the requestEntity.
      *
      * @param requestEntity Request sent to server.
      *
      * @return Object which is the response to the request.
      * */
-    private Object applyStateMachineCommand(RequestEntity<?> requestEntity)
+    private Object sendRequestToServer(RequestEntity<?> requestEntity)
             throws ExecutionException, InterruptedException
     {
         return CompletableFuture

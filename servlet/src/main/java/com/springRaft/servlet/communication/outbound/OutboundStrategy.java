@@ -10,7 +10,20 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
 public interface OutboundStrategy {
+
+    /**
+     * TODO
+     * */
     AppendEntriesReply appendEntries(String to, AppendEntries message) throws InterruptedException, ExecutionException, TimeoutException;
+
+    /**
+     * TODO
+     * */
     RequestVoteReply requestVote(String to, RequestVote message) throws InterruptedException, ExecutionException, TimeoutException;
-    Object request(String command) throws InterruptedException, ExecutionException, TimeoutException, URISyntaxException;
+
+    /**
+     * TODO
+     * */
+    Object request(String command, String location) throws InterruptedException, ExecutionException, TimeoutException, URISyntaxException;
+
 }

@@ -34,7 +34,7 @@ public class SMStrategyContext {
 
             try {
 
-                reply = this.outbound.request(command);
+                reply = this.outbound.request(command, this.raftProperties.getApplicationServer());
 
             } catch (ExecutionException e) {
                 // If target server is not alive
