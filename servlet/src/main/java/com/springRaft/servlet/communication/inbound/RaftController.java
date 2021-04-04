@@ -1,6 +1,7 @@
 package com.springRaft.servlet.communication.inbound;
 
 import com.springRaft.servlet.communication.message.*;
+import com.springRaft.servlet.communication.outbound.OutboundContext;
 import com.springRaft.servlet.config.RaftProperties;
 import com.springRaft.servlet.consensusModule.ConsensusModule;
 import lombok.AllArgsConstructor;
@@ -13,8 +14,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
-import java.net.URI;
-import java.net.URISyntaxException;
 
 @RestController
 @RequestMapping("raft")
@@ -26,6 +25,9 @@ public class RaftController implements InboundCommunication {
 
     /* Raft properties that need to be accessed */
     private final RaftProperties raftProperties;
+
+    /* Outbound context for communication to other servers */
+    protected final OutboundContext outbound;
 
     /* --------------------------------------------------- */
 
@@ -84,30 +86,34 @@ public class RaftController implements InboundCommunication {
 
     /* --------------------------------------------------- */
 
-    public ResponseEntity<?> clientRequestHandling(HttpServletRequest request, String command) throws URISyntaxException {
+    public ResponseEntity<?> clientRequestHandling(HttpServletRequest request, String command) {
 
         RequestReply reply = this.clientRequest(command);
 
-        if (reply.getRedirect()) {
+        try {
 
-            URI leaderURL = new URI("http://" + reply.getRedirectTo() + request.getRequestURI());
-            HttpHeaders httpHeaders = new HttpHeaders();
-            httpHeaders.setLocation(leaderURL);
-            return new ResponseEntity<>(httpHeaders, HttpStatus.TEMPORARY_REDIRECT);
+            if (reply.getRedirect()) {
 
-        } else {
+                /*
+                URI leaderURL = new URI("http://" + reply.getRedirectTo() + request.getRequestURI());
+                HttpHeaders httpHeaders = new HttpHeaders();
+                httpHeaders.setLocation(leaderURL);
+                return new ResponseEntity<>(httpHeaders, HttpStatus.TEMPORARY_REDIRECT);
+                */
 
-            try {
+                return (ResponseEntity<?>) this.outbound.request(command, reply.getRedirectTo());
+
+            } else {
 
                 return (ResponseEntity<?>) reply.getResponse();
 
-            } catch (Exception e) {
-
-                HttpHeaders httpHeaders = new HttpHeaders();
-                httpHeaders.set(HttpHeaders.RETRY_AFTER, Long.toString(this.raftProperties.getHeartbeat().toMillis()/1000));
-                return new ResponseEntity<>(httpHeaders, HttpStatus.SERVICE_UNAVAILABLE);
-
             }
+
+        } catch (Exception e) {
+
+            HttpHeaders httpHeaders = new HttpHeaders();
+            httpHeaders.set(HttpHeaders.RETRY_AFTER, Long.toString(this.raftProperties.getHeartbeat().toMillis() / 1000));
+            return new ResponseEntity<>(httpHeaders, HttpStatus.SERVICE_UNAVAILABLE);
 
         }
 

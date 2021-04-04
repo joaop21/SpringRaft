@@ -39,7 +39,7 @@ public class OutboundContext implements OutboundStrategy {
     }
 
     @Override
-    public Object request(String command, String location) throws InterruptedException, ExecutionException, TimeoutException, URISyntaxException {
+    public Object request(String command, String location) throws InterruptedException, ExecutionException, URISyntaxException {
         return this.communicationStrategy.request(command, location);
     }
 

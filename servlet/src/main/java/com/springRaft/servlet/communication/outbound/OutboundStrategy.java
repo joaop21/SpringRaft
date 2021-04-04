@@ -24,6 +24,6 @@ public interface OutboundStrategy {
     /**
      * TODO
      * */
-    Object request(String command, String location) throws InterruptedException, ExecutionException, TimeoutException, URISyntaxException;
+    Object request(String command, String location) throws InterruptedException, ExecutionException, URISyntaxException;
 
 }
