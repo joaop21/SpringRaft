@@ -1,8 +1,8 @@
-from locust import task, between
+from locust import task, TaskSet
 from locust.contrib.fasthttp import FastHttpUser
 import uuid
 
-class KeyValueClient(FastHttpUser):
+class APICalls(TaskSet):
 
   @task
   def work(self):
@@ -13,3 +13,18 @@ class KeyValueClient(FastHttpUser):
       self.client.get("/keys/"+key)
 
     self.client.delete("/keys/"+key)
+
+
+class KeyValueClient1(FastHttpUser):
+  host = 'http://localhost:50001/v2'
+  tasks = [APICalls]
+
+
+class KeyValueClient2(FastHttpUser):
+  host = 'http://localhost:50002/v2'
+  tasks = [APICalls]
+
+
+class KeyValueClient3(FastHttpUser):
+  host = 'http://localhost:50003/v2'
+  tasks = [APICalls]
