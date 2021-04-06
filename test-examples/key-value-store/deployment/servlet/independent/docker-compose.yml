@@ -2,8 +2,21 @@ version: '3'
 
 services:
 
+  key-value-storage1:
+    image: key-value-store:independent-0.0.1
+    container_name: key-value-storage1
+
+  key-value-storage2:
+    image: key-value-store:independent-0.0.1
+    container_name: key-value-storage2
+
+  key-value-storage3:
+    image: key-value-store:independent-0.0.1
+    container_name: key-value-storage3
+
   raft1:
     image: spring-raft:servlet-0.0.3
+    container_name: raft1
     environment:
       - RAFT_HOSTNAME=raft1:8080
       - RAFT_APPLICATION-SERVER=key-value-storage1:8080
@@ -14,13 +27,9 @@ services:
     depends_on:
       - "key-value-storage1"
 
-  key-value-storage1:
-    image: key-value-store:independent-0.0.1
-    ports:
-      - "51001:8080"
-
   raft2:
     image: spring-raft:servlet-0.0.3
+    container_name: raft2
     environment:
       - RAFT_HOSTNAME=raft2:8080
       - RAFT_APPLICATION-SERVER=key-value-storage2:8080
@@ -31,13 +40,9 @@ services:
     depends_on:
       - "key-value-storage2"
 
-  key-value-storage2:
-    image: key-value-store:independent-0.0.1
-    ports:
-      - "51002:8080"
-
   raft3:
     image: spring-raft:servlet-0.0.3
+    container_name: raft3
     environment:
       - RAFT_HOSTNAME=raft3:8080
       - RAFT_APPLICATION-SERVER=key-value-storage3:8080
@@ -47,8 +52,3 @@ services:
       - "50003:8080"
     depends_on:
       - "key-value-storage3"
-
-  key-value-storage3:
-    image: key-value-store:independent-0.0.1
-    ports:
-      - "51003:8080"
