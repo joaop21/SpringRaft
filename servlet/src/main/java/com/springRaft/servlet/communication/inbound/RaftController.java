@@ -89,7 +89,11 @@ public class RaftController implements InboundCommunication {
 
         } else {
 
-            return (ResponseEntity<?>) reply.getResponse();
+            // System.out.println("\n\n" + reply.toString() + "\n" + reply.getResponse().toString() + "\n\n");
+
+            return reply.getSuccess()
+                    ? (ResponseEntity<?>) reply.getResponse()
+                    : new ResponseEntity<>(HttpStatus.NO_CONTENT);
 
         }
 
