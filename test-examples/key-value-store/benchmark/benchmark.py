@@ -16,15 +16,15 @@ class APICalls(TaskSet):
 
 
 class KeyValueClient1(FastHttpUser):
-  host = 'http://localhost:8001/v2'
+  host = 'http://localhost:50001/v2'
   tasks = [APICalls]
 
 
 class KeyValueClient2(FastHttpUser):
-  host = 'http://localhost:8002/v2'
+  host = 'http://localhost:50002/v2'
   tasks = [APICalls]
 
 
 class KeyValueClient3(FastHttpUser):
-  host = 'http://localhost:8003/v2'
+  host = 'http://localhost:50003/v2'
   tasks = [APICalls]

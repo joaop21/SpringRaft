@@ -2,6 +2,9 @@ version: '3'
 
 services:
 
+  #####################################################
+  # Application containers
+  
   key-value-storage1:
     image: key-value-store:independent-0.0.1
     container_name: key-value-storage1
@@ -13,6 +16,9 @@ services:
   key-value-storage3:
     image: key-value-store:independent-0.0.1
     container_name: key-value-storage3
+
+  #####################################################
+  # Cluster containers
 
   raft1:
     image: spring-raft:servlet-0.0.3
