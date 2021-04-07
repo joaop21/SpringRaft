@@ -54,6 +54,8 @@ public class IndependentController {
 
         } catch (Exception e) {
 
+            e.printStackTrace();
+
             HttpHeaders httpHeaders = new HttpHeaders();
             httpHeaders.set(HttpHeaders.RETRY_AFTER, Long.toString(this.raftProperties.getHeartbeat().toMillis() / 1000));
             return new ResponseEntity<>(httpHeaders, HttpStatus.SERVICE_UNAVAILABLE);

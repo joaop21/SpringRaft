@@ -273,7 +273,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
         } catch (TimeoutException e) {
 
             // If the communication exceeded heartbeat timeout
-            log.warn("Communication to server " + this.targetServerName + " exceeded heartbeat timeout!!");
+            // log.warn("Communication to server " + this.targetServerName + " exceeded heartbeat timeout!!");
 
         } catch (Exception e) {
 
