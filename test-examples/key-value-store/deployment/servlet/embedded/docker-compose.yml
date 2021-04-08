@@ -1,0 +1,39 @@
+version: '3'
+
+services:
+
+  #####################################################
+  # Application containers
+  
+  key-value-storage1:
+    image: key-value-store:embedded-0.0.1
+    container_name: key-value-storage1
+    environment:
+      - RAFT_HOSTNAME=key-value-storage1:8080
+      - RAFT_APPLICATION-SERVER=key-value-storage1:8080
+    env_file:
+      - raft-properties.env
+    ports:
+      - "50001:8080"
+
+  key-value-storage2:
+    image: key-value-store:embedded-0.0.1
+    container_name: key-value-storage2
+    environment:
+      - RAFT_HOSTNAME=key-value-storage2:8080
+      - RAFT_APPLICATION-SERVER=key-value-storage2:8080
+    env_file:
+      - raft-properties.env
+    ports:
+      - "50002:8080"
+
+  key-value-storage3:
+    image: key-value-store:embedded-0.0.1
+    container_name: key-value-storage3
+    environment:
+      - RAFT_HOSTNAME=key-value-storage3:8080
+      - RAFT_APPLICATION-SERVER=key-value-storage3:8080
+    env_file:
+      - raft-properties.env
+    ports:
+      - "50003:8080"

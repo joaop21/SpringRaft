@@ -73,9 +73,6 @@ public class StateMachineWorker implements Runnable, CommitmentSubscriber {
     @Override
     public void run() {
 
-        log.info("\n\nState Machine Worker working...\n\n");
-
-
         while (true) {
 
             this.waitForNewCommits();

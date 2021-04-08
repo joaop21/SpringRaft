@@ -236,8 +236,13 @@ public class Leader extends RaftStateContext implements RaftState {
     @Override
     public RequestReply clientRequest(String command) {
 
-        // appends the command to its log as a new entry
-        Entry entry = this.logService.insertEntry(new Entry(this.stateService.getCurrentTerm(), command));
+        Entry entry;
+        try {
+            // appends the command to its log as a new entry
+            entry = this.logService.insertEntry(new Entry(this.stateService.getCurrentTerm(), command));
+        } catch (Exception exception) {
+            return clientRequest(command);
+        }
 
         // notify PeerWorkers that a new request is available
         this.outboundManager.newMessage();
