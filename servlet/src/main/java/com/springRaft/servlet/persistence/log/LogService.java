@@ -5,6 +5,8 @@ import lombok.Synchronized;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @Transactional
 @AllArgsConstructor
@@ -71,6 +73,16 @@ public class LogService {
         Long lastIndex = this.getLastEntryIndex();
         entry.setIndex(lastIndex + 1);
         return this.entryRepository.save(entry);
+
+    }
+
+    /**
+     * TODO
+     * */
+    @Synchronized
+    public List<Entry> saveAllEntries(List<Entry> entries) {
+
+        return this.entryRepository.saveAll(entries);
 
     }
 
