@@ -209,7 +209,10 @@ public class Leader extends RaftStateContext implements RaftState {
             // if there is an entry, and the logs are matching,
             // send that entry
 
-            return new Pair<>(this.createAppendEntries(entry, new ArrayList<>(List.of(entry))), false);
+            List<Entry> entries = this.logService.getEntryBetweenIndex(nextIndex, nextIndex + 10);
+            this.nextIndex.put(to, nextIndex + entries.size());
+
+            return new Pair<>(this.createAppendEntries(entry, entries), false);
 
         } else {
             // if there is an entry, but the logs are not matching,
