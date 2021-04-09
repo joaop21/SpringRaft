@@ -65,6 +65,20 @@ public class LogService {
     }
 
     /**
+     * Method that gets the entries between two indexes.
+     *
+     * @param minIndex Index to begin the search.
+     * @param maxIndex Index to stop the search.
+     *
+     * @return List of the Entries found.
+     * */
+    public List<Entry> getEntryBetweenIndex(Long minIndex, Long maxIndex) {
+
+        return this.entryRepository.getNextEntries(minIndex, maxIndex);
+
+    }
+
+    /**
      * TODO
      * */
     @Synchronized
