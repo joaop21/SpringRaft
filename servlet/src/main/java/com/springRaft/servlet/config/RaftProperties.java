@@ -48,6 +48,9 @@ public class RaftProperties {
     /* Application Server address */
     private final String applicationServer;
 
+    /* Maximum of entries that a communication can carry */
+    private final Integer entriesPerCommunication;
+
     /* --------------------------------------------------- */
 
     public RaftProperties(
@@ -62,7 +65,8 @@ public class RaftProperties {
                     Duration heartbeat,
             @DefaultValue("REST") String communicationStrategy,
             @DefaultValue("INDEPENDENT") String stateMachineStrategy,
-            @DefaultValue("localhost:9002") String applicationServer
+            @DefaultValue("localhost:9002") String applicationServer,
+            @DefaultValue("10") int entriesPerCommunication
     ) {
 
         this.electionTimeoutMin = electionTimeoutMin;
@@ -84,6 +88,8 @@ public class RaftProperties {
         this.stateMachineStrategy = stateMachineStrategy;
 
         this.applicationServer = applicationServer;
+
+        this.entriesPerCommunication = entriesPerCommunication;
 
         log.info(this.toString());
 
@@ -113,7 +119,9 @@ public class RaftProperties {
                 .append("\n")
                 .append("Heartbeat has ")
                 .append(heartbeat.toMillis()).append("ms of duration\n")
-                .append("\nCommunication strategy is: ").append(communicationStrategy)
+                .append("\nCommunication:\n")
+                .append("\tStrategy: ").append(communicationStrategy).append("\n")
+                .append("\tEntries per Communication: ").append(entriesPerCommunication).append("\n")
                 .append("\nState Machine strategy is: ").append(stateMachineStrategy).append("\n")
                 .append("\nApplication Server is: ").append(applicationServer).append("\n")
                 .append("\n*****************************************");

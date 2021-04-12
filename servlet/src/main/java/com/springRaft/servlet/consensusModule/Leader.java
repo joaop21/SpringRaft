@@ -206,7 +206,7 @@ public class Leader extends RaftStateContext implements RaftState {
             // if there is an entry, and the logs are matching,
             // send that entry
 
-            List<Entry> entries = this.logService.getEntryBetweenIndex(nextIndex, nextIndex + 1000);
+            List<Entry> entries = this.logService.getEntryBetweenIndex(nextIndex, nextIndex + this.raftProperties.getEntriesPerCommunication());
             entries.sort(Comparator.comparing(Entry::getIndex));
 
             this.nextIndex.put(to, nextIndex + entries.size());
