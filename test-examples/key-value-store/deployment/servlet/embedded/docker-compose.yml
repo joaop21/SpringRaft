@@ -6,7 +6,7 @@ services:
   # Application containers
   
   key-value-storage1:
-    image: key-value-store:embedded-0.0.1
+    image: key-value-store:embedded-0.0.2
     container_name: key-value-storage1
     environment:
       - RAFT_HOSTNAME=key-value-storage1:8080
@@ -17,7 +17,7 @@ services:
       - "50001:8080"
 
   key-value-storage2:
-    image: key-value-store:embedded-0.0.1
+    image: key-value-store:embedded-0.0.2
     container_name: key-value-storage2
     environment:
       - RAFT_HOSTNAME=key-value-storage2:8080
@@ -28,7 +28,7 @@ services:
       - "50002:8080"
 
   key-value-storage3:
-    image: key-value-store:embedded-0.0.1
+    image: key-value-store:embedded-0.0.2
     container_name: key-value-storage3
     environment:
       - RAFT_HOSTNAME=key-value-storage3:8080
