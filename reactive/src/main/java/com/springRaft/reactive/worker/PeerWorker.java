@@ -19,10 +19,20 @@ public class PeerWorker implements Runnable {
     @Override
     public void run() {
 
-        Flux.range(0,10)
-                .map(i -> i+5)
-                .filter(i -> i%2 == 0)
-                .subscribe(i -> log.info(String.valueOf(i)));
+        while (true) {
+
+            Flux.range(0,10)
+                    .map(i -> i+5)
+                    .filter(i -> i%2 == 0)
+                    .subscribe(i -> log.info(String.valueOf(i)));
+
+            try {
+                Thread.sleep(2000);
+            } catch (InterruptedException interruptedException) {
+                interruptedException.printStackTrace();
+            }
+
+        }
 
     }
 

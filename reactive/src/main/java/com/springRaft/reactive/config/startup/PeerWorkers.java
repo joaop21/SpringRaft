@@ -8,7 +8,10 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
+
+import java.time.Duration;
 
 @Component
 @Order(2)
@@ -44,9 +47,13 @@ public class PeerWorkers implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
 
-        PeerWorker worker = this.applicationContext.getBean(PeerWorker.class);
-
-        this.scheduler.schedule(worker);
+        Flux.range(0, 2)
+                .delayElements(Duration.ofSeconds(1))
+                .doOnNext(i -> {
+                    PeerWorker worker = this.applicationContext.getBean(PeerWorker.class);
+                    this.scheduler.schedule(worker);
+                })
+                .subscribe();
 
     }
 
