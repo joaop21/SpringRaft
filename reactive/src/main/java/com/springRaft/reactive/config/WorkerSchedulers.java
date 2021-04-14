@@ -1,0 +1,57 @@
+package com.springRaft.reactive.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
+
+
+@Configuration
+public class WorkerSchedulers {
+
+    /**
+     * Scheduler for general purpose workers.
+     *
+     * @return Scheduler for general purpose threads.
+     * */
+    @Bean(name = "generalPurposeScheduler")
+    public Scheduler generalPurposeScheduler() {
+
+        return Schedulers.newBoundedElastic(5, 5, "GeneralScheduler");
+
+    }
+
+    /**
+     * Scheduler for peer workers.
+     *
+     * @return Scheduler dedicated to PeerWorker workers.
+     * */
+    @Bean(name = "peerWorkersScheduler")
+    public Scheduler peerWorkersScheduler() {
+
+        return Schedulers.newBoundedElastic(20, 5, "PeerWorker");
+    }
+
+    /**
+     * Scheduler for async requests.
+     *
+     * @return TaskExecutor dedicated to requests.
+     * */
+    @Bean(name = "requestsScheduler")
+    public Scheduler threadPoolScheduler() {
+
+        return Schedulers.newBoundedElastic(100, Integer.MAX_VALUE, "RequestTask");
+    }
+
+    /**
+     * Scheduler for state machine thread.
+     *
+     * @return Scheduler dedicated to StateMachineWorker runnable.
+     * */
+    @Bean(name = "stateMachineScheduler")
+    public Scheduler stateMachineScheduler() {
+
+        return Schedulers.newBoundedElastic(1, 1, "FSMTask");
+    }
+
+}
