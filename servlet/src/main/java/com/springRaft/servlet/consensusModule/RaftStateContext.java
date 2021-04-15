@@ -15,6 +15,9 @@ import com.springRaft.servlet.stateMachine.WaitingRequests;
 import lombok.AllArgsConstructor;
 import org.springframework.context.ApplicationContext;
 
+import java.util.Comparator;
+import java.util.List;
+
 @AllArgsConstructor
 public abstract class RaftStateContext {
 
@@ -183,12 +186,12 @@ public abstract class RaftStateContext {
             // delete all the following conflict entries
             this.logService.deleteIndexesGreaterThan(appendEntries.getPrevLogIndex());
 
-            // insert new entry
-            Entry newEntry = new Entry(appendEntries.getEntries().get(0).getTerm(), appendEntries.getEntries().get(0).getCommand());
-            newEntry = this.logService.insertEntry(newEntry);
+            // insert entries
+            List<Entry> entries = this.logService.saveAllEntries(appendEntries.getEntries());
+            entries.sort(Comparator.comparing(Entry::getIndex).reversed());
 
             // update committed entries in LogState
-            this.updateCommittedEntries(appendEntries, newEntry);
+            this.updateCommittedEntries(appendEntries, entries.get(0));
 
         } else {
 

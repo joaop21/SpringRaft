@@ -47,7 +47,7 @@ public class SMStrategyContext {
             } catch (Exception e) {
 
                 // If another exception occurs
-                log.error("Exception not expected in IndependentServer apply method");
+                log.error("Exception not expected in StateMachineStrategyContext apply method");
 
             }
 

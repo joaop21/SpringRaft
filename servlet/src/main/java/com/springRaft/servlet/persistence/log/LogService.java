@@ -2,10 +2,14 @@ package com.springRaft.servlet.persistence.log;
 
 import lombok.AllArgsConstructor;
 import lombok.Synchronized;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
+@Scope("singleton")
 @Transactional
 @AllArgsConstructor
 public class LogService {
@@ -63,6 +67,20 @@ public class LogService {
     }
 
     /**
+     * Method that gets the entries between two indexes.
+     *
+     * @param minIndex Index to begin the search.
+     * @param maxIndex Index to stop the search.
+     *
+     * @return List of the Entries found.
+     * */
+    public List<Entry> getEntryBetweenIndex(Long minIndex, Long maxIndex) {
+
+        return this.entryRepository.getNextEntries(minIndex, maxIndex);
+
+    }
+
+    /**
      * TODO
      * */
     @Synchronized
@@ -71,6 +89,16 @@ public class LogService {
         Long lastIndex = this.getLastEntryIndex();
         entry.setIndex(lastIndex + 1);
         return this.entryRepository.save(entry);
+
+    }
+
+    /**
+     * TODO
+     * */
+    @Synchronized
+    public List<Entry> saveAllEntries(List<Entry> entries) {
+
+        return this.entryRepository.saveAll(entries);
 
     }
 

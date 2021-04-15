@@ -17,10 +17,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @Scope("singleton")
@@ -90,9 +87,6 @@ public class Leader extends RaftStateContext implements RaftState {
                     this.matchIndex.put(from, nextIndex);
                     this.nextIndex.put(from, nextIndex + 1);
 
-                    // check if it is needed to set committed index
-                    this.setCommitIndex(from);
-
                 }
 
             } else {
@@ -100,6 +94,9 @@ public class Leader extends RaftStateContext implements RaftState {
                 this.matchIndex.put(from, nextIndex - 1);
 
             }
+
+            // check if it is needed to set committed index
+            this.setCommitIndex(from);
 
         } else {
 
@@ -209,7 +206,12 @@ public class Leader extends RaftStateContext implements RaftState {
             // if there is an entry, and the logs are matching,
             // send that entry
 
-            return new Pair<>(this.createAppendEntries(entry, new ArrayList<>(List.of(entry))), false);
+            List<Entry> entries = this.logService.getEntryBetweenIndex(nextIndex, nextIndex + this.raftProperties.getEntriesPerCommunication());
+            entries.sort(Comparator.comparing(Entry::getIndex));
+
+            this.nextIndex.put(to, nextIndex + entries.size());
+
+            return new Pair<>(this.createAppendEntries(entries.get(0), entries), false);
 
         } else {
             // if there is an entry, but the logs are not matching,
@@ -387,18 +389,24 @@ public class Leader extends RaftStateContext implements RaftState {
         long N = this.matchIndex.get(from);
         Entry entry = this.logService.getEntryByIndex(N);
 
-        if (
-                N > logState.getCommittedIndex() &&
-                entry.getTerm() == (long) this.stateService.getCurrentTerm() &&
-                this.majorityOfMatchIndexGreaterOrEqualThan(N)
-        ) {
+        try {
+            if (
+                    N > logState.getCommittedIndex() &&
+                    entry.getTerm() == (long) this.stateService.getCurrentTerm() &&
+                    this.majorityOfMatchIndexGreaterOrEqualThan(N)
+            ) {
 
-            logState.setCommittedIndex(N);
-            logState.setCommittedTerm(entry.getTerm());
-            this.logService.saveState(logState);
+                logState.setCommittedIndex(N);
+                logState.setCommittedTerm(entry.getTerm());
+                this.logService.saveState(logState);
 
-            // notify state machine of a new commit
-            this.commitmentPublisher.newCommit();
+                // notify state machine of a new commit
+                this.commitmentPublisher.newCommit();
+
+            }
+        } catch (NullPointerException e) {
+
+            log.info("\n\nEntry: " + entry + "\nIndex: " + N + "\n");
 
         }
 

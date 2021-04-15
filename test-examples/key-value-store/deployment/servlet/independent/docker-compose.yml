@@ -21,7 +21,7 @@ services:
   # Cluster containers
 
   raft1:
-    image: spring-raft:servlet-0.0.3
+    image: spring-raft:servlet-0.0.4
     container_name: raft1
     environment:
       - RAFT_HOSTNAME=raft1:8080
@@ -34,7 +34,7 @@ services:
       - "key-value-storage1"
 
   raft2:
-    image: spring-raft:servlet-0.0.3
+    image: spring-raft:servlet-0.0.4
     container_name: raft2
     environment:
       - RAFT_HOSTNAME=raft2:8080
@@ -47,7 +47,7 @@ services:
       - "key-value-storage2"
 
   raft3:
-    image: spring-raft:servlet-0.0.3
+    image: spring-raft:servlet-0.0.4
     container_name: raft3
     environment:
       - RAFT_HOSTNAME=raft3:8080
