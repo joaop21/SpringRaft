@@ -55,7 +55,7 @@ public class ThreadPools {
 
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(10);
-        executor.setMaxPoolSize(100);
+        executor.setMaxPoolSize(2000);
         executor.setThreadNamePrefix("RequestTask-");
         executor.initialize();
 

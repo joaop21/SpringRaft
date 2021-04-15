@@ -389,18 +389,24 @@ public class Leader extends RaftStateContext implements RaftState {
         long N = this.matchIndex.get(from);
         Entry entry = this.logService.getEntryByIndex(N);
 
-        if (
-                N > logState.getCommittedIndex() &&
-                entry.getTerm() == (long) this.stateService.getCurrentTerm() &&
-                this.majorityOfMatchIndexGreaterOrEqualThan(N)
-        ) {
+        try {
+            if (
+                    N > logState.getCommittedIndex() &&
+                    entry.getTerm() == (long) this.stateService.getCurrentTerm() &&
+                    this.majorityOfMatchIndexGreaterOrEqualThan(N)
+            ) {
 
-            logState.setCommittedIndex(N);
-            logState.setCommittedTerm(entry.getTerm());
-            this.logService.saveState(logState);
+                logState.setCommittedIndex(N);
+                logState.setCommittedTerm(entry.getTerm());
+                this.logService.saveState(logState);
 
-            // notify state machine of a new commit
-            this.commitmentPublisher.newCommit();
+                // notify state machine of a new commit
+                this.commitmentPublisher.newCommit();
+
+            }
+        } catch (NullPointerException e) {
+
+            log.info("\n\nEntry: " + entry + "\nIndex: " + N + "\n");
 
         }
 

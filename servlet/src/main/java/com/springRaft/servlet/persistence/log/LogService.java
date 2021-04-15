@@ -2,12 +2,14 @@ package com.springRaft.servlet.persistence.log;
 
 import lombok.AllArgsConstructor;
 import lombok.Synchronized;
+import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 @Service
+@Scope("singleton")
 @Transactional
 @AllArgsConstructor
 public class LogService {

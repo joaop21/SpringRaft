@@ -1,5 +1,6 @@
 package com.springRaft.servlet.worker;
 
+import com.springRaft.servlet.persistence.log.Entry;
 import com.springRaft.servlet.persistence.log.LogService;
 import com.springRaft.servlet.persistence.log.LogState;
 import com.springRaft.servlet.stateMachine.CommitmentSubscriber;
@@ -117,7 +118,13 @@ public class StateMachineWorker implements Runnable, CommitmentSubscriber {
         for (long index = indexToStart ; index <= logState.getCommittedIndex() ; index++) {
 
             // get command to apply
-            String command = this.logService.getEntryByIndex(index).getCommand();
+            Entry entry = this.logService.getEntryByIndex(index);
+            if (entry == null) {
+                // notify client of the response
+                this.waitingRequests.putResponse(index, null);
+                continue;
+            }
+            String command = entry.getCommand();
 
             // apply command depending on the strategy
             Object response = this.strategy.apply(command);
