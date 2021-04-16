@@ -17,7 +17,7 @@ public class Follower implements RaftState {
     @Override
     public void start() {
 
-        log.info("\n\nFOLLOWER\n");
+        log.info("FOLLOWER");
 
     }
 
