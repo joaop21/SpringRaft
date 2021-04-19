@@ -1,6 +1,7 @@
 package com.springRaft.reactive.consensusModule;
 
 import lombok.Getter;
+import lombok.Synchronized;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
@@ -31,6 +32,7 @@ public class ConsensusModule implements RaftState {
     /* --------------------------------------------------- */
 
     @Override
+    @Synchronized
     public void start() {
         this.current.start();
     }

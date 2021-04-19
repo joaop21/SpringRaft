@@ -10,20 +10,17 @@ import reactor.core.Disposable;
 
 @Service
 @Scope("singleton")
-public class Follower extends RaftStateContext implements RaftState {
+public class Candidate extends RaftStateContext implements RaftState {
 
     /* Logger */
-    private static final Logger log = LoggerFactory.getLogger(Follower.class);
+    private static final Logger log = LoggerFactory.getLogger(Candidate.class);
 
     /* Scheduled Runnable for state transition*/
     private Disposable scheduledTransition;
 
-    /* Leader's ID so requests can be redirected */
-    private String leaderId;
-
     /* --------------------------------------------------- */
 
-    public Follower(
+    public Candidate(
             ApplicationContext applicationContext,
             ConsensusModule consensusModule,
             RaftProperties raftProperties,
@@ -31,7 +28,6 @@ public class Follower extends RaftStateContext implements RaftState {
     ) {
         super(applicationContext, consensusModule, raftProperties, transitionManager);
         this.scheduledTransition = null;
-        this.leaderId = raftProperties.getHost();
     }
 
     /* --------------------------------------------------- */
@@ -39,9 +35,7 @@ public class Follower extends RaftStateContext implements RaftState {
     @Override
     public void start() {
 
-        log.info("FOLLOWER");
-
-        this.leaderId = this.raftProperties.getHost();
+        log.info("CANDIDATE");
 
         this.setTimeout();
 
@@ -57,5 +51,4 @@ public class Follower extends RaftStateContext implements RaftState {
         this.scheduledTransition = this.transitionManager.setElectionTimeout().subscribe();
 
     }
-
 }

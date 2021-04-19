@@ -56,7 +56,7 @@ public class TransitionManager {
                                 StateTransition.class,
                                 applicationContext,
                                 consensusModule,
-                                Follower.class)
+                                Candidate.class)
                 );
 
     }
