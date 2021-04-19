@@ -30,6 +30,7 @@ public class WorkerSchedulers {
     public Scheduler peerWorkersScheduler() {
 
         return Schedulers.newBoundedElastic(20, 5, "PeerWorker");
+
     }
 
     /**
@@ -41,6 +42,7 @@ public class WorkerSchedulers {
     public Scheduler threadPoolScheduler() {
 
         return Schedulers.newBoundedElastic(100, Integer.MAX_VALUE, "RequestTask");
+
     }
 
     /**
@@ -52,6 +54,19 @@ public class WorkerSchedulers {
     public Scheduler stateMachineScheduler() {
 
         return Schedulers.newBoundedElastic(1, 1, "FSMTask");
+
+    }
+
+    /**
+     * Scheduler for scheduled tasks.
+     *
+     * @return Scheduler dedicated to timers.
+     * */
+    @Bean(name = "transitionTaskScheduler")
+    public Scheduler transitionTaskScheduler(){
+
+        return Schedulers.newBoundedElastic(1, 1, "TransitionTask");
+
     }
 
 }
