@@ -18,7 +18,7 @@ public class PeerWorker implements Runnable {
 
     @Override
     public void run() {
-
+        /*
         while (true) {
 
             Flux.range(0,10)
@@ -33,7 +33,7 @@ public class PeerWorker implements Runnable {
             }
 
         }
-
+    */
     }
 
 }
