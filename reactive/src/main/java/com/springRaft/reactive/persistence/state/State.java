@@ -2,6 +2,7 @@ package com.springRaft.reactive.persistence.state;
 
 import lombok.*;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.domain.Persistable;
 
 @Data
 @NoArgsConstructor
@@ -9,7 +10,7 @@ import org.springframework.data.annotation.Id;
 @Getter
 @Setter
 @ToString
-public class State {
+public class State implements Persistable<Long> {
 
     /* Id of the object */
     @Id
@@ -21,4 +22,10 @@ public class State {
     /* Who the vote was for in the current term */
     private String votedFor;
 
+    /* --------------------------------------------------- */
+
+    @Override
+    public boolean isNew() {
+        return id != null;
+    }
 }
