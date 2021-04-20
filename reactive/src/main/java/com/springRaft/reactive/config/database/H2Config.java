@@ -16,7 +16,7 @@ public class H2Config {
      * Connection Factory for accessing database
      * */
     @Bean
-    ConnectionFactoryInitializer initializer(ConnectionFactory connectionFactory) {
+    public ConnectionFactoryInitializer initializer(ConnectionFactory connectionFactory) {
 
         ConnectionFactoryInitializer initializer = new ConnectionFactoryInitializer();
         initializer.setConnectionFactory(connectionFactory);
