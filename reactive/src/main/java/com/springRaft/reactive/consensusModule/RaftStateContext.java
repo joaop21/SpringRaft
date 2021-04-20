@@ -1,6 +1,7 @@
 package com.springRaft.reactive.consensusModule;
 
 import com.springRaft.reactive.config.RaftProperties;
+import com.springRaft.reactive.persistence.state.StateService;
 import lombok.AllArgsConstructor;
 import org.springframework.context.ApplicationContext;
 
@@ -14,7 +15,7 @@ public abstract class RaftStateContext {
     protected final ConsensusModule consensusModule;
 
     /* Service to access persisted state repository */
-    // ...
+    protected final StateService stateService;
 
     /* Service to access persisted log repository */
     // ...
