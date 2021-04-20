@@ -13,7 +13,12 @@ import org.springframework.r2dbc.connection.init.ResourceDatabasePopulator;
 public class H2Config {
 
     /**
-     * Connection Factory for accessing database
+     * Bean for a Connection Factory Initializer in order to open connection to the database and
+     * make the first changes in the database.
+     *
+     * @param connectionFactory Factory of connections injected in this initializer.
+     *
+     * @return ConnectionFactoryInitializer for the framework to initialize the database access.
      * */
     @Bean
     public ConnectionFactoryInitializer initializer(ConnectionFactory connectionFactory) {
