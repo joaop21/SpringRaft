@@ -1,6 +1,8 @@
 package com.springRaft.reactive.consensusModule;
 
+import com.springRaft.reactive.communication.outbound.OutboundManager;
 import com.springRaft.reactive.config.RaftProperties;
+import com.springRaft.reactive.persistence.log.LogService;
 import com.springRaft.reactive.persistence.state.StateService;
 import lombok.AllArgsConstructor;
 import org.springframework.context.ApplicationContext;
@@ -18,7 +20,7 @@ public abstract class RaftStateContext {
     protected final StateService stateService;
 
     /* Service to access persisted log repository */
-    // ...
+    protected final LogService logService;
 
     /* Raft properties that need to be accessed */
     protected final RaftProperties raftProperties;
@@ -27,7 +29,7 @@ public abstract class RaftStateContext {
     protected final TransitionManager transitionManager;
 
     /* Publisher of messages */
-    // ...
+    protected final OutboundManager outboundManager;
 
     /* Publisher of new commitments to State Machine */
     // ...
