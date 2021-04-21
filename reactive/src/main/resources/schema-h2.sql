@@ -4,3 +4,11 @@ CREATE TABLE IF NOT EXISTS state (
     voted_for VARCHAR(255),
     PRIMARY KEY (id)
 );
+
+CREATE TABLE IF NOT EXISTS log_state (
+    id BIGINT(255),
+    committed_index BIGINT(255),
+    committed_term BIGINT(255),
+    last_applied BIGINT(255),
+    PRIMARY KEY (id)
+);

@@ -13,6 +13,7 @@ import reactor.core.publisher.Mono;
 @AllArgsConstructor
 public class StateService {
 
+    /* Logger */
     private static final Logger log = LoggerFactory.getLogger(StateService.class);
 
     /* Repository for State operations */
