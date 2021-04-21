@@ -1,6 +1,7 @@
 package com.springRaft.reactive.consensusModule;
 
 import com.springRaft.reactive.config.RaftProperties;
+import com.springRaft.reactive.persistence.state.StateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -23,10 +24,11 @@ public class Candidate extends RaftStateContext implements RaftState {
     public Candidate(
             ApplicationContext applicationContext,
             ConsensusModule consensusModule,
+            StateService stateService,
             RaftProperties raftProperties,
             TransitionManager transitionManager
     ) {
-        super(applicationContext, consensusModule, raftProperties, transitionManager);
+        super(applicationContext, consensusModule, stateService, raftProperties, transitionManager);
         this.scheduledTransition = null;
     }
 
@@ -37,8 +39,13 @@ public class Candidate extends RaftStateContext implements RaftState {
 
         log.info("CANDIDATE");
 
-        this.setTimeout();
+        // persist new state
+        this.stateService.newCandidateState()
+                .doOnSuccess(state -> log.info(state.toString()))
+                .subscribe();
 
+        // set a candidate timeout
+        this.setTimeout();
     }
 
     /* --------------------------------------------------- */

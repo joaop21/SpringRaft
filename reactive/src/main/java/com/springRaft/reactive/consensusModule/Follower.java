@@ -1,6 +1,7 @@
 package com.springRaft.reactive.consensusModule;
 
 import com.springRaft.reactive.config.RaftProperties;
+import com.springRaft.reactive.persistence.state.StateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -26,10 +27,11 @@ public class Follower extends RaftStateContext implements RaftState {
     public Follower(
             ApplicationContext applicationContext,
             ConsensusModule consensusModule,
+            StateService stateService,
             RaftProperties raftProperties,
             TransitionManager transitionManager
     ) {
-        super(applicationContext, consensusModule, raftProperties, transitionManager);
+        super(applicationContext, consensusModule, stateService, raftProperties, transitionManager);
         this.scheduledTransition = null;
         this.leaderId = raftProperties.getHost();
     }

@@ -14,7 +14,7 @@ public class ConstructorBeans {
      * */
     @Bean(name = "InitialState")
     public State newState() {
-        return new State((long) 1,(long) 1,null);
+        return new State((long) 1,(long) 1,null, true);
     }
 
 }

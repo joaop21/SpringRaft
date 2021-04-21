@@ -1,5 +1,6 @@
 package com.springRaft.reactive.persistence.state;
 
+import com.springRaft.reactive.config.RaftProperties;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +17,9 @@ public class StateService {
 
     /* Repository for State operations */
     private final StateRepository repository;
+
+    /* Raft properties that need to be accessed */
+    protected final RaftProperties raftProperties;
 
     /* --------------------------------------------------- */
 
@@ -37,6 +41,23 @@ public class StateService {
     public Mono<State> saveState(State state) {
         return this.repository.save(state)
                 .doOnError(error -> log.error("\nError on saveState method: \n" + error));
+    }
+
+    /* --------------------------------------------------- */
+
+    /**
+     * Method for persist the new state after transit to candidate state.
+     *
+     * @return Mono<State> New state after transit to candidate state.
+     * */
+    public Mono<State> newCandidateState() {
+        return this.getState()
+                .flatMap(state -> {
+                    state.setCurrentTerm(state.getCurrentTerm() + 1);
+                    state.setVotedFor(this.raftProperties.getHost());
+                    state.setNew(false);
+                    return this.saveState(state);
+                });
     }
 
 }
