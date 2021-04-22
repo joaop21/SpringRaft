@@ -15,7 +15,7 @@ public class REST implements OutboundStrategy {
     @Override
     public Mono<RequestVoteReply> requestVote(String to, RequestVote message) {
 
-        return (Mono<RequestVoteReply>) sendPostToServer(to, "/requestVote", message, RequestVoteReply.class);
+        return (Mono<RequestVoteReply>) sendPostToServer(to, "requestVote", message, RequestVoteReply.class);
 
     }
 
@@ -35,7 +35,7 @@ public class REST implements OutboundStrategy {
     private Mono<? extends Message> sendPostToServer(String to, String route, Message message, Class<? extends Message> type) {
         return WebClient.create("http://" + to)
                 .post()
-                .uri("/raft{route}", route)
+                .uri("/raft/{route}", route)
                 .bodyValue(message)
                 .retrieve()
                 .bodyToMono(type);

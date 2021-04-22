@@ -1,5 +1,9 @@
 package com.springRaft.reactive.config.startup;
 
+import com.springRaft.reactive.communication.outbound.OutboundContext;
+import com.springRaft.reactive.communication.outbound.OutboundManager;
+import com.springRaft.reactive.config.RaftProperties;
+import com.springRaft.reactive.consensusModule.ConsensusModule;
 import com.springRaft.reactive.worker.PeerWorker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -23,17 +27,26 @@ public class PeerWorkers implements ApplicationRunner {
     /* Scheduler for submit workers to execution */
     private final Scheduler scheduler;
 
+    /* Raft properties that need to be accessed */
+    private final RaftProperties raftProperties;
+
+    /* Publisher of messages */
+    private final OutboundManager outboundManager;
+
     /* --------------------------------------------------- */
 
     @Autowired
     public PeerWorkers(
             ApplicationContext applicationContext,
-            @Qualifier(value = "peerWorkersScheduler") Scheduler scheduler
+            @Qualifier(value = "peerWorkersScheduler") Scheduler scheduler,
+            RaftProperties raftProperties,
+            OutboundManager outboundManager
     ) {
 
         this.applicationContext = applicationContext;
         this.scheduler = scheduler;
-
+        this.raftProperties = raftProperties;
+        this.outboundManager = outboundManager;
     }
 
     /* --------------------------------------------------- */
@@ -47,10 +60,19 @@ public class PeerWorkers implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
 
-        Flux.range(0, 2)
-                .delayElements(Duration.ofSeconds(1))
-                .doOnNext(i -> {
-                    PeerWorker worker = this.applicationContext.getBean(PeerWorker.class);
+        OutboundContext context = this.applicationContext.getBean(OutboundContext.class);
+        ConsensusModule module = this.applicationContext.getBean(ConsensusModule.class);
+
+        Flux.fromIterable(this.raftProperties.getCluster())
+                .doOnNext(server -> {
+                    PeerWorker worker = this.applicationContext.getBean(
+                            PeerWorker.class,
+                            context,
+                            module,
+                            this.raftProperties,
+                            server
+                    );
+                    this.outboundManager.subscribe(worker);
                     this.scheduler.schedule(worker);
                 })
                 .subscribe();
