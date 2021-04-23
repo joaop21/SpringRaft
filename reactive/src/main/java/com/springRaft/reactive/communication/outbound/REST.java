@@ -3,12 +3,33 @@ package com.springRaft.reactive.communication.outbound;
 import com.springRaft.reactive.communication.message.Message;
 import com.springRaft.reactive.communication.message.RequestVote;
 import com.springRaft.reactive.communication.message.RequestVoteReply;
+import com.springRaft.reactive.config.RaftProperties;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+
+import java.time.Duration;
 
 @Service
 public class REST implements OutboundStrategy {
+
+    /* Scheduler for submit workers to execution */
+    private final Scheduler scheduler;
+
+    /* Raft properties that need to be accessed */
+    private final RaftProperties raftProperties;
+
+    /* --------------------------------------------------- */
+
+    public REST(
+            @Qualifier(value = "requestsScheduler") Scheduler scheduler,
+            RaftProperties raftProperties
+    ) {
+        this.scheduler = scheduler;
+        this.raftProperties = raftProperties;
+    }
 
     /* --------------------------------------------------- */
 
@@ -38,7 +59,8 @@ public class REST implements OutboundStrategy {
                 .uri("/raft/{route}", route)
                 .bodyValue(message)
                 .retrieve()
-                .bodyToMono(type);
+                .bodyToMono(type)
+                .timeout(this.raftProperties.getHeartbeat());
     }
 
 }
