@@ -2,6 +2,7 @@ package com.springRaft.reactive.worker;
 
 import com.springRaft.reactive.communication.message.Message;
 import com.springRaft.reactive.communication.message.RequestVote;
+import com.springRaft.reactive.communication.message.RequestVoteReply;
 import com.springRaft.reactive.communication.outbound.MessageSubscriber;
 import com.springRaft.reactive.communication.outbound.OutboundContext;
 import com.springRaft.reactive.config.RaftProperties;
@@ -153,9 +154,19 @@ public class PeerWorker implements Runnable, MessageSubscriber {
      * */
     private void handleRequestVote(RequestVote requestVote) {
 
-        this.sendRPCHandler(this.outbound.requestVote(this.targetServerName, requestVote))
-                .doOnNext(message -> log.info(message.toString()))
-                .block();
+        RequestVoteReply reply;
+
+        do {
+
+            reply = (RequestVoteReply) this.sendRPCHandler(this.outbound.requestVote(this.targetServerName, requestVote))
+                    .block();
+
+        } while (reply == null && this.active && this.remainingMessages == 0);
+
+        if (reply != null && this.active) {
+            //this.consensusModule.requestVoteReply(reply);
+            this.clearMessages();
+        }
 
     }
 
