@@ -8,6 +8,7 @@ import com.springRaft.reactive.persistence.log.LogService;
 import com.springRaft.reactive.persistence.log.LogState;
 import com.springRaft.reactive.persistence.state.State;
 import com.springRaft.reactive.persistence.state.StateService;
+import com.springRaft.reactive.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -52,6 +53,13 @@ public class Candidate extends RaftStateContext implements RaftState {
     }
 
     /* --------------------------------------------------- */
+
+    @Override
+    public Mono<Pair<Message, Boolean>> getNextMessage(String to) {
+
+        return Mono.defer(() -> Mono.just(new Pair<>(this.requestVoteMessage, false)));
+
+    }
 
     @Override
     public void start() {

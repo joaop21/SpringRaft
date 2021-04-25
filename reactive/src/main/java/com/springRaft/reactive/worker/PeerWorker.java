@@ -7,6 +7,7 @@ import com.springRaft.reactive.communication.outbound.MessageSubscriber;
 import com.springRaft.reactive.communication.outbound.OutboundContext;
 import com.springRaft.reactive.config.RaftProperties;
 import com.springRaft.reactive.consensusModule.ConsensusModule;
+import com.springRaft.reactive.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
@@ -115,10 +116,15 @@ public class PeerWorker implements Runnable, MessageSubscriber {
             this.waitForNewMessages();
 
             // get next message
+            this.consensusModule.getNextMessage(this.targetServerName)
+                    .doOnNext(pair -> {
 
-            // send message
+                        // send message
+                        if (pair.getFirst() != null)
+                            this.send(pair.getFirst(), pair.getSecond());
 
-            this.handleRequestVote(new RequestVote((long) 0, "myserver", (long) 0, (long) 0));
+                    })
+                    .block();
 
         }
 
@@ -146,6 +152,36 @@ public class PeerWorker implements Runnable, MessageSubscriber {
         } finally {
             lock.unlock();
         }
+
+    }
+
+    /**
+     * Depending on the message class, it decides which method to invoke.
+     *
+     * @param message Message to send.
+     * @param heartbeat Boolean that signals if a message is an heartbeat.
+     * */
+    private void send(Message message, Boolean heartbeat) {
+
+        if(message instanceof RequestVote) {
+
+            this.handleRequestVote((RequestVote) message);
+
+        } /*else if (message instanceof AppendEntries) {
+
+            if (heartbeat) {
+                // if it is an heartbeat
+
+                this.handleHeartbeat((AppendEntries) message);
+
+            } else {
+                // if it has an Entry to add to the log or it is an AppendEntries to find a match index
+
+                this.handleNormalAppendEntries((AppendEntries) message);
+
+            }
+
+        }*/
 
     }
 

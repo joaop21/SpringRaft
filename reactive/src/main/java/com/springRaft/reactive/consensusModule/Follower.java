@@ -1,15 +1,18 @@
 package com.springRaft.reactive.consensusModule;
 
+import com.springRaft.reactive.communication.message.Message;
 import com.springRaft.reactive.communication.outbound.OutboundManager;
 import com.springRaft.reactive.config.RaftProperties;
 import com.springRaft.reactive.persistence.log.LogService;
 import com.springRaft.reactive.persistence.state.StateService;
+import com.springRaft.reactive.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 import reactor.core.Disposable;
+import reactor.core.publisher.Mono;
 
 @Service
 @Scope("singleton")
@@ -45,6 +48,13 @@ public class Follower extends RaftStateContext implements RaftState {
     }
 
     /* --------------------------------------------------- */
+
+    @Override
+    public Mono<Pair<Message, Boolean>> getNextMessage(String to) {
+
+        return Mono.defer(() -> Mono.just(new Pair<>(null, false)));
+
+    }
 
     @Override
     public void start() {
