@@ -43,6 +43,11 @@ public class TransitionManager {
 
     /* --------------------------------------------------- */
 
+    /**
+     * Creates a scheduled timeout, based on raft properties.
+     *
+     * @return Mono<Long> Mono with a delay in milliseconds.
+     * */
     public Mono<Long> setElectionTimeout() {
 
         Long timeout = this.getRandomLongBetweenRange(
@@ -58,6 +63,20 @@ public class TransitionManager {
                                 consensusModule,
                                 Candidate.class)
                 );
+
+    }
+
+    /**
+     * Method for creating a new follower state transition which takes place on transition scheduler.
+     * */
+    public void setNewFollowerState() {
+
+        Mono.defer(() -> Mono.just(
+                applicationContext
+                        .getBean(StateTransition.class, applicationContext, consensusModule, Follower.class))
+        )
+                .publishOn(this.scheduler)
+                .subscribe();
 
     }
 

@@ -61,4 +61,58 @@ public class StateService {
                 });
     }
 
+    /**
+     * Method for getting the current state's term from persistence mechanism.
+     *
+     * @return Mono<Long> A mono with state's current term.
+     * */
+    public Mono<Long> getCurrentTerm() {
+        return this.getState()
+                .map(State::getCurrentTerm);
+    }
+
+    /**
+     * Method for getting the current state's voted for from persistence mechanism.
+     *
+     * @return Mono<String> A mono with state's current votedFor.
+     * */
+    public Mono<String> getVotedFor() {
+        return this.getState()
+                .map(State::getVotedFor);
+    }
+
+    /**
+     * Method that sets and saves the new voted for.
+     *
+     * @param votedFor is the voted server name in the new term.
+     *
+     * @return Mono<State> A mono with the new persisted state.
+     * */
+    public Mono<State> setVotedFor(String votedFor) {
+        return this.getState()
+                .flatMap(state -> {
+                    state.setVotedFor(votedFor);
+                    state.setNew(false);
+                    return this.saveState(state);
+                });
+    }
+
+    /**
+     * Method that sets and saves the new state.
+     *
+     * @param term is the new state's term.
+     * @param votedFor is the voted server name in the new term.
+     *
+     * @return Mono<State> A mono with the new persisted state.
+     * */
+    public Mono<State> setState(Long term, String votedFor) {
+        return this.getState()
+                .flatMap(state -> {
+                    state.setCurrentTerm(term);
+                    state.setVotedFor(votedFor);
+                    state.setNew(false);
+                    return this.saveState(state);
+                });
+    }
+
 }

@@ -2,6 +2,7 @@ package com.springRaft.reactive.consensusModule;
 
 import com.springRaft.reactive.communication.message.Message;
 import com.springRaft.reactive.communication.message.RequestVote;
+import com.springRaft.reactive.communication.message.RequestVoteReply;
 import com.springRaft.reactive.communication.outbound.OutboundManager;
 import com.springRaft.reactive.config.RaftProperties;
 import com.springRaft.reactive.persistence.log.LogService;
@@ -16,6 +17,8 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
+import reactor.util.function.Tuple2;
 
 @Service
 @Scope("singleton")
@@ -53,6 +56,64 @@ public class Candidate extends RaftStateContext implements RaftState {
     }
 
     /* --------------------------------------------------- */
+
+    @Override
+    public Mono<RequestVoteReply> requestVote(RequestVote requestVote) {
+
+        // get a reply object
+        Mono<RequestVoteReply> replyMono = Mono.defer(
+                () -> Mono.just(this.applicationContext.getBean(RequestVoteReply.class))
+        );
+
+        // get the current term
+        Mono<Long> currentTermMono = this.stateService.getCurrentTerm();
+
+        return Mono.zip(replyMono, currentTermMono)
+                .flatMap(tuple -> {
+
+                    RequestVoteReply reply = tuple.getT1();
+                    long currentTerm = tuple.getT2();
+
+                    if(requestVote.getTerm() <= currentTerm) {
+
+                        // revoke request
+                        reply.setTerm(currentTerm);
+                        reply.setVoteGranted(false);
+
+                    } else if (requestVote.getTerm() > currentTerm) {
+
+                        reply.setTerm(requestVote.getTerm());
+
+                        // update term
+                        Mono<State> stateMono = this.stateService.setState(requestVote.getTerm(), null);
+
+                        // check if candidate's log is at least as up-to-date as mine
+                        Mono<RequestVoteReply> requestVoteReplyMonoMono = this.checkLog(requestVote, reply);
+
+                        // transit to follower state
+                        return Mono.zip(stateMono, requestVoteReplyMonoMono)
+                                .map(Tuple2::getT2)
+                                .doOnTerminate(() -> {
+
+                                    this.cleanBeforeTransit();
+
+                                    // transit to follower state
+                                    this.transitionManager.setNewFollowerState();
+
+                                });
+
+                    }
+
+                    return Mono.just(reply);
+
+                });
+
+    }
+
+    @Override
+    public void requestVoteReply(RequestVoteReply requestVoteReply) {
+
+    }
 
     @Override
     public Mono<Pair<Message, Boolean>> getNextMessage(String to) {
@@ -112,4 +173,19 @@ public class Candidate extends RaftStateContext implements RaftState {
         this.scheduledTransition = this.transitionManager.setElectionTimeout().subscribe();
 
     }
+
+    /**
+     * Clean volatile candidate state before transit to another state.
+     * */
+    private void cleanBeforeTransit() {
+
+        // delete the existing scheduled task
+        this.scheduledTransition.dispose();
+
+        // change message to null and notify peer workers
+        this.requestVoteMessage = null;
+        this.outboundManager.clearMessages();
+
+    }
+
 }

@@ -7,7 +7,6 @@ import com.springRaft.reactive.communication.outbound.MessageSubscriber;
 import com.springRaft.reactive.communication.outbound.OutboundContext;
 import com.springRaft.reactive.config.RaftProperties;
 import com.springRaft.reactive.consensusModule.ConsensusModule;
-import com.springRaft.reactive.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
@@ -235,7 +234,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
                     } else {
 
                         // If another exception occurs
-                        log.error("Exception not expected in appendEntries method\nError: " + error);
+                        log.error("Exception not expected in sendRPCHandler method\nError: " + error);
 
                     }
 

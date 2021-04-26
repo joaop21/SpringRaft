@@ -51,7 +51,7 @@ public class RaftController implements InboundCommunication {
 
     @Override
     public Mono<RequestVoteReply> requestVote(RequestVote requestVote) {
-        return Mono.defer(() -> Mono.just(new RequestVoteReply((long) 5, false)));
+        return this.consensusModule.requestVote(requestVote);
     }
 
 }

@@ -1,6 +1,8 @@
 package com.springRaft.reactive.consensusModule;
 
 import com.springRaft.reactive.communication.message.Message;
+import com.springRaft.reactive.communication.message.RequestVote;
+import com.springRaft.reactive.communication.message.RequestVoteReply;
 import com.springRaft.reactive.communication.outbound.OutboundManager;
 import com.springRaft.reactive.config.RaftProperties;
 import com.springRaft.reactive.persistence.log.LogService;
@@ -48,6 +50,16 @@ public class Follower extends RaftStateContext implements RaftState {
     }
 
     /* --------------------------------------------------- */
+
+    @Override
+    public Mono<RequestVoteReply> requestVote(RequestVote requestVote) {
+        return null;
+    }
+
+    @Override
+    public void requestVoteReply(RequestVoteReply requestVoteReply) {
+
+    }
 
     @Override
     public Mono<Pair<Message, Boolean>> getNextMessage(String to) {
