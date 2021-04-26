@@ -85,14 +85,8 @@ public class Candidate extends RaftStateContext implements RaftState {
                         reply.setTerm(requestVote.getTerm());
 
                         // update term
-                        Mono<State> stateMono = this.stateService.setState(requestVote.getTerm(), null);
-
-                        // check if candidate's log is at least as up-to-date as mine
-                        Mono<RequestVoteReply> requestVoteReplyMonoMono = this.checkLog(requestVote, reply);
-
-                        // transit to follower state
-                        return Mono.zip(stateMono, requestVoteReplyMonoMono)
-                                .map(Tuple2::getT2)
+                        return this.stateService.setState(requestVote.getTerm(), null)
+                                .flatMap(state -> this.checkLog(requestVote, reply))
                                 .doOnTerminate(() -> {
 
                                     this.cleanBeforeTransit();
@@ -102,9 +96,10 @@ public class Candidate extends RaftStateContext implements RaftState {
 
                                 });
 
+
                     }
 
-                    return Mono.just(reply);
+                    return Mono.defer(() -> Mono.just(reply));
 
                 });
 

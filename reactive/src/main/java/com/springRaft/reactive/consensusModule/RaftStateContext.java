@@ -5,14 +5,20 @@ import com.springRaft.reactive.communication.message.RequestVoteReply;
 import com.springRaft.reactive.communication.outbound.OutboundManager;
 import com.springRaft.reactive.config.RaftProperties;
 import com.springRaft.reactive.persistence.log.LogService;
-import com.springRaft.reactive.persistence.log.LogState;
 import com.springRaft.reactive.persistence.state.StateService;
 import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import reactor.core.publisher.Mono;
 
 @AllArgsConstructor
 public abstract class RaftStateContext {
+
+    /* Logger */
+    private static final Logger log = LoggerFactory.getLogger(RaftStateContext.class);
+
+
 
     /* Application Context for getting beans */
     protected final ApplicationContext applicationContext;
@@ -79,7 +85,7 @@ public abstract class RaftStateContext {
 
                     }
 
-                    return Mono.just(reply);
+                    return Mono.defer(() -> Mono.just(reply));
 
                 });
 
@@ -91,20 +97,22 @@ public abstract class RaftStateContext {
     private Mono<RequestVoteReply> setVote(RequestVote requestVote, RequestVoteReply reply) {
 
         return this.stateService.getVotedFor()
-                .map(votedFor -> {
+                .flatMap(votedFor -> {
 
-                    if (votedFor == null || votedFor.equals(requestVote.getCandidateId())) {
+                    if (votedFor.equals("") || votedFor.equals(requestVote.getCandidateId())) {
 
-                        this.stateService.setVotedFor(requestVote.getCandidateId()).subscribe();
-                        reply.setVoteGranted(true);
+                        return this.stateService.setVotedFor(requestVote.getCandidateId())
+                                .map(state -> {
+                                    reply.setVoteGranted(true);
+                                    return reply;
+                                });
 
                     } else {
 
                         reply.setVoteGranted(false);
+                        return Mono.defer(() -> Mono.just(reply));
 
                     }
-
-                    return reply;
 
                 });
 

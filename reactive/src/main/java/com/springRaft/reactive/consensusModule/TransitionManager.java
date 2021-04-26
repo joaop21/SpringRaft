@@ -50,19 +50,20 @@ public class TransitionManager {
      * */
     public Mono<Long> setElectionTimeout() {
 
-        Long timeout = this.getRandomLongBetweenRange(
+        return this.getRandomLongBetweenRange(
                 this.raftProperties.getElectionTimeoutMin().toMillis(),
                 this.raftProperties.getElectionTimeoutMax().toMillis()
-        ).block();
-
-        return Mono.delay(Duration.ofMillis(timeout), this.scheduler)
-                .doOnTerminate(
-                        this.applicationContext.getBean(
-                                StateTransition.class,
-                                applicationContext,
-                                consensusModule,
-                                Candidate.class)
-                );
+        )
+                .flatMap(timeout ->
+                        Mono.delay(Duration.ofMillis(timeout), this.scheduler)
+                            .doOnTerminate(
+                                    this.applicationContext.getBean(
+                                            StateTransition.class,
+                                            applicationContext,
+                                            consensusModule,
+                                            Candidate.class)
+                            )
+                    );
 
     }
 
@@ -75,7 +76,7 @@ public class TransitionManager {
                 applicationContext
                         .getBean(StateTransition.class, applicationContext, consensusModule, Follower.class))
         )
-                .publishOn(this.scheduler)
+                .doOnNext(this.scheduler::schedule)
                 .subscribe();
 
     }

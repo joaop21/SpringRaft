@@ -40,7 +40,7 @@ public class RaftController implements InboundCommunication {
 
         //log.info("\nREQUEST: " + requestVote.toString() + "\n" + "RESPONSE: " + reply);
 
-        log.info("\nREQUEST: " + requestVote.toString());
+        // log.info("\nREQUEST: " + requestVote.toString());
 
         return this.requestVote(requestVote)
                 .map(ResponseEntity::ok);

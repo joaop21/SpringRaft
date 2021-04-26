@@ -78,7 +78,11 @@ public class StateService {
      * */
     public Mono<String> getVotedFor() {
         return this.getState()
-                .map(State::getVotedFor);
+                .map(state ->
+                    state.getVotedFor() == null
+                            ? ""
+                            : state.getVotedFor()
+                );
     }
 
     /**
