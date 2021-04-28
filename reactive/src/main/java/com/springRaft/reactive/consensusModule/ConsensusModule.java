@@ -46,8 +46,8 @@ public class ConsensusModule implements RaftState {
 
     @Override
     @Synchronized
-    public void requestVoteReply(RequestVoteReply requestVoteReply) {
-        this.current.requestVoteReply(requestVoteReply);
+    public Mono<Void> requestVoteReply(RequestVoteReply requestVoteReply) {
+        return this.current.requestVoteReply(requestVoteReply);
     }
 
     @Override

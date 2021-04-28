@@ -21,8 +21,9 @@ public interface RaftState {
      * Method for handling RequestVote replies.
      *
      * @param requestVoteReply RequestVoteReply object sent from other servers.
+     * @return
      */
-    void requestVoteReply(RequestVoteReply requestVoteReply);
+    Mono<Void> requestVoteReply(RequestVoteReply requestVoteReply);
 
     /**
      * Method for getting the next message for a specific server.

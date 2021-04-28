@@ -107,7 +107,9 @@ public class Follower extends RaftStateContext implements RaftState {
     }
 
     @Override
-    public void requestVoteReply(RequestVoteReply requestVoteReply) {
+    public Mono<Void> requestVoteReply(RequestVoteReply requestVoteReply) {
+
+        return null;
 
     }
 
