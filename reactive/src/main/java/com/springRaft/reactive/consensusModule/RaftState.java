@@ -36,7 +36,9 @@ public interface RaftState {
 
     /**
      * Method for doing the work that it's required on startup.
+     *
+     * @return A Mono to be subscribed.
      * */
-    void start();
+    Mono<Void> start();
 
 }

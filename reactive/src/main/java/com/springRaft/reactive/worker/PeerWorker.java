@@ -75,31 +75,29 @@ public class PeerWorker implements Runnable, MessageSubscriber {
     /* --------------------------------------------------- */
 
     @Override
-    public void newMessage() {
-
-        lock.lock();
-        try {
-            this.active = true;
-            this.remainingMessages++;
-            this.newMessages.signal();
-        } finally {
-            lock.unlock();
-        }
-
+    public Mono<Void> newMessage() {
+        return Mono.defer(() -> {
+                    lock.lock();
+                    this.active = true;
+                    this.remainingMessages++;
+                    this.newMessages.signal();
+                    return Mono.empty();
+                })
+                .doFinally(signal -> lock.unlock())
+                .then();
     }
 
     @Override
-    public void clearMessages() {
-
-        lock.lock();
-        try {
-            this.active = false;
-            this.remainingMessages = 0;
-            this.newMessages.signal();
-        } finally {
-            lock.unlock();
-        }
-
+    public Mono<Void> clearMessages() {
+        return Mono.defer(() -> {
+                    lock.lock();
+                    this.active = false;
+                    this.remainingMessages = 0;
+                    this.newMessages.signal();
+                    return Mono.empty();
+                })
+                .doFinally(signal -> lock.unlock())
+                .then();
     }
 
     /* --------------------------------------------------- */
@@ -200,7 +198,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
         if (reply != null && this.active) {
             //this.consensusModule.requestVoteReply(reply);
-            this.clearMessages();
+            this.clearMessages().block();
         }
 
     }

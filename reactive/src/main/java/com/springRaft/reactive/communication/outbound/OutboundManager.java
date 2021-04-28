@@ -3,6 +3,7 @@ package com.springRaft.reactive.communication.outbound;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,16 +24,16 @@ public class OutboundManager implements MessageSubscriber {
     /* --------------------------------------------------- */
 
     @Override
-    public void newMessage() {
-        Flux.fromIterable(this.subscribers)
-                .doOnNext(MessageSubscriber::newMessage)
-                .subscribe();
+    public Mono<Void> newMessage() {
+        return Flux.fromIterable(this.subscribers)
+                .flatMap(MessageSubscriber::newMessage)
+                .then();
     }
 
     @Override
-    public void clearMessages() {
-        Flux.fromIterable(this.subscribers)
-                .doOnNext(MessageSubscriber::clearMessages)
-                .subscribe();
+    public Mono<Void> clearMessages() {
+        return Flux.fromIterable(this.subscribers)
+                .flatMap(MessageSubscriber::clearMessages)
+                .then();
     }
 }

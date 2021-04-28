@@ -6,7 +6,6 @@ import com.springRaft.reactive.communication.message.RequestVoteReply;
 import com.springRaft.reactive.communication.outbound.OutboundManager;
 import com.springRaft.reactive.config.RaftProperties;
 import com.springRaft.reactive.persistence.log.LogService;
-import com.springRaft.reactive.persistence.state.State;
 import com.springRaft.reactive.persistence.state.StateService;
 import com.springRaft.reactive.util.Pair;
 import org.slf4j.Logger;
@@ -16,7 +15,7 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
-import reactor.util.function.Tuple2;
+import reactor.core.scheduler.Schedulers;
 
 @Service
 @Scope("singleton")
@@ -120,13 +119,18 @@ public class Follower extends RaftStateContext implements RaftState {
     }
 
     @Override
-    public void start() {
+    public Mono<Void> start() {
 
-        log.info("FOLLOWER");
+        return this.transitionManager.setElectionTimeout()
+                .doFirst(() -> {
 
-        this.leaderId = this.raftProperties.getHost();
+                    log.info("FOLLOWER");
 
-        this.setTimeout();
+                    this.leaderId = this.raftProperties.getHost();
+
+                })
+                .doOnNext(task -> this.scheduledTransition = task)
+                .then();
 
     }
 
@@ -137,7 +141,10 @@ public class Follower extends RaftStateContext implements RaftState {
      * */
     private void setTimeout() {
 
-        this.scheduledTransition = this.transitionManager.setElectionTimeout().subscribe();
+        this.transitionManager.setElectionTimeout()
+                .doOnNext(task -> this.scheduledTransition = task)
+                .subscribeOn(Schedulers.single())
+                .subscribe();
 
     }
 

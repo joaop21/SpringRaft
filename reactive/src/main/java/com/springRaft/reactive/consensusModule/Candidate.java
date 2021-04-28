@@ -18,7 +18,6 @@ import org.springframework.stereotype.Service;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
-import reactor.util.function.Tuple2;
 
 @Service
 @Scope("singleton")
@@ -89,7 +88,7 @@ public class Candidate extends RaftStateContext implements RaftState {
                                 .flatMap(state -> this.checkLog(requestVote, reply))
                                 .doOnTerminate(() -> {
 
-                                    this.cleanBeforeTransit();
+                                    this.cleanBeforeTransit().subscribe();
 
                                     // transit to follower state
                                     this.transitionManager.setNewFollowerState();
@@ -118,25 +117,27 @@ public class Candidate extends RaftStateContext implements RaftState {
     }
 
     @Override
-    public void start() {
-
-        log.info("CANDIDATE");
-
-        // set votes granted to none
-        this.votesGranted = 0;
+    public Mono<Void> start() {
 
         // persist new state
         Mono<State> newStateMono = this.stateService.newCandidateState();
         Mono<LogState> logStateMono = this.logService.getState();
 
-        Mono.zip(newStateMono, logStateMono)
-                .doOnNext(tuple -> {
+        return Mono.zip(newStateMono, logStateMono)
+                .doFirst(() -> {
+
+                    log.info("CANDIDATE");
+
+                    // set votes granted to none
+                    this.votesGranted = 0;
+
+                })
+                .flatMap(tuple -> {
 
                     State state = tuple.getT1();
                     LogState logState = tuple.getT2();
 
                     log.info(state.toString());
-                    log.info(logState.toString());
 
                     this.votesGranted++;
 
@@ -150,11 +151,10 @@ public class Candidate extends RaftStateContext implements RaftState {
                             );
 
                     // issue RequestVote RPCs in parallel to each of the other servers in the cluster
-                    this.outboundManager.newMessage();
+                    return this.outboundManager.newMessage();
 
                 })
-                .doAfterTerminate(this::setTimeout)
-                .subscribe();
+                .doOnTerminate(this::setTimeout);
 
     }
 
@@ -165,21 +165,30 @@ public class Candidate extends RaftStateContext implements RaftState {
      * */
     private void setTimeout() {
 
-        this.scheduledTransition = this.transitionManager.setElectionTimeout().subscribe();
+        this.transitionManager.setElectionTimeout()
+                .doOnNext(task -> this.scheduledTransition = task)
+                .subscribeOn(Schedulers.single())
+                .subscribe();
 
     }
 
     /**
      * Clean volatile candidate state before transit to another state.
+     *
+     * @return Mono<Void> The result it's not important, but something is returned so it can be subscribed.
      * */
-    private void cleanBeforeTransit() {
+    private Mono<Void> cleanBeforeTransit() {
 
-        // delete the existing scheduled task
-        this.scheduledTransition.dispose();
+        return Mono.defer(() -> {
 
-        // change message to null and notify peer workers
-        this.requestVoteMessage = null;
-        this.outboundManager.clearMessages();
+            // delete the existing scheduled task
+            this.scheduledTransition.dispose();
+
+            // change message to null and notify peer workers
+            this.requestVoteMessage = null;
+            return this.outboundManager.clearMessages();
+
+        });
 
     }
 
