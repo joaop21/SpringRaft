@@ -1,6 +1,5 @@
 package com.springRaft.reactive.persistence.log;
 
-import com.springRaft.reactive.persistence.state.StateService;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +16,9 @@ public class LogService {
 
     /* Logger */
     private static final Logger log = LoggerFactory.getLogger(LogService.class);
+
+    /* Repository for Entry operations */
+    private final EntryRepository entryRepository;
 
     /* Repository for Entry operations */
     private final LogStateRepository logStateRepository;
