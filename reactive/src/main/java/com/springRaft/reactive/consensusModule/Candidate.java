@@ -107,7 +107,47 @@ public class Candidate extends RaftStateContext implements RaftState {
     @Override
     public Mono<Void> requestVoteReply(RequestVoteReply requestVoteReply) {
 
-        return null;
+        return this.stateService.getCurrentTerm()
+                .flatMap(currentTerm -> {
+
+                    if (requestVoteReply.getTerm() > currentTerm) {
+
+                        // update term
+                        return this.stateService.setState(requestVoteReply.getTerm(), null)
+                                .doOnTerminate(() -> {
+
+                                    this.cleanBeforeTransit().subscribe();
+
+                                    // transit to follower state
+                                    this.transitionManager.setNewFollowerState();
+
+                                });
+
+                    } else {
+
+                        if (requestVoteReply.getVoteGranted()) {
+
+                            this.votesGranted++;
+
+                            if (this.votesGranted >= this.raftProperties.getQuorum()) {
+
+                                // transit to leader state
+                                return this.cleanBeforeTransit()
+                                        .doOnTerminate(
+                                                // transit to leader state
+                                                this.transitionManager::setNewLeaderState
+                                        );
+
+                            }
+
+                        }
+
+                        return Mono.empty();
+
+                    }
+
+                })
+                .then();
 
     }
 

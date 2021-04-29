@@ -83,6 +83,19 @@ public class TransitionManager {
 
     }
 
+    /**
+     * Method for creating a new leader state transition which takes place on transition scheduler.
+     * */
+    public void setNewLeaderState() {
+
+        Mono.defer(() -> Mono.just(
+                applicationContext.getBean(StateTransition.class, applicationContext, consensusModule, Leader.class)
+        ))
+                .doOnNext(this.scheduler::schedule)
+                .subscribe();
+
+    }
+
     /* --------------------------------------------------- */
 
     /**

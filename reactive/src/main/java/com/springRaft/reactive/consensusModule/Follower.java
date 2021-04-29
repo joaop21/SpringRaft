@@ -109,7 +109,24 @@ public class Follower extends RaftStateContext implements RaftState {
     @Override
     public Mono<Void> requestVoteReply(RequestVoteReply requestVoteReply) {
 
-        return null;
+        return this.stateService.getCurrentTerm()
+                // if term is greater than mine, I should update it and transit to new follower
+                .filter(currentTerm -> requestVoteReply.getTerm() > currentTerm)
+                .flatMap(currentTerm ->
+
+                    // update term
+                    this.stateService.setState(requestVoteReply.getTerm(), null)
+                            .doOnTerminate(() -> {
+
+                                // delete the existing scheduled task
+                                this.scheduledTransition.dispose();
+
+                                // set a new timeout, it's equivalent to transit to a new follower state
+                                this.setTimeout();
+
+                            })
+                )
+                .then();
 
     }
 

@@ -197,8 +197,9 @@ public class PeerWorker implements Runnable, MessageSubscriber {
         } while (reply == null && this.active && this.remainingMessages == 0);
 
         if (reply != null && this.active) {
-            //this.consensusModule.requestVoteReply(reply);
-            this.clearMessages().block();
+            this.consensusModule.requestVoteReply(reply)
+                    .flatMap(result -> this.clearMessages())
+                    .block();
         }
 
     }
