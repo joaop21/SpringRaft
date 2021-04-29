@@ -75,11 +75,16 @@ public class Candidate extends RaftStateContext implements RaftState {
 
                     if(requestVote.getTerm() <= currentTerm) {
 
-                        // revoke request
-                        reply.setTerm(currentTerm);
-                        reply.setVoteGranted(false);
+                        return Mono.defer(() -> {
 
-                    } else if (requestVote.getTerm() > currentTerm) {
+                            // revoke request
+                            reply.setTerm(currentTerm);
+                            reply.setVoteGranted(false);
+
+                            return Mono.just(reply);
+                        });
+
+                    } else {
 
                         reply.setTerm(requestVote.getTerm());
 
@@ -97,8 +102,6 @@ public class Candidate extends RaftStateContext implements RaftState {
 
 
                     }
-
-                    return Mono.defer(() -> Mono.just(reply));
 
                 });
 

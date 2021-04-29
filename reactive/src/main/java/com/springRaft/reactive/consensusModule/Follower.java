@@ -69,7 +69,7 @@ public class Follower extends RaftStateContext implements RaftState {
                     RequestVoteReply reply = tuple.getT1();
                     long currentTerm = tuple.getT2();
 
-                    if(requestVote.getTerm() <= currentTerm) {
+                    if(requestVote.getTerm() < currentTerm) {
 
                         // revoke request
                         reply.setTerm(currentTerm);
