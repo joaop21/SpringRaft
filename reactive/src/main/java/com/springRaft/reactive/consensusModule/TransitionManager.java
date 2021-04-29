@@ -5,12 +5,13 @@ import com.springRaft.reactive.worker.StateTransition;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
+import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
-import java.time.Duration;
 import java.util.OptionalLong;
 import java.util.Random;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class TransitionManager {
@@ -43,21 +44,55 @@ public class TransitionManager {
 
     /* --------------------------------------------------- */
 
-    public Mono<Long> setElectionTimeout() {
+    /**
+     * Creates a scheduled timeout, based on raft properties.
+     *
+     * @return Mono<Disposable> Mono with a disposable task, so it can be disposed later.
+     * */
+    public Mono<Disposable> setElectionTimeout() {
 
-        Long timeout = this.getRandomLongBetweenRange(
+        Mono<Long> timeoutMono = this.getRandomLongBetweenRange(
                 this.raftProperties.getElectionTimeoutMin().toMillis(),
                 this.raftProperties.getElectionTimeoutMax().toMillis()
-        ).block();
+        );
 
-        return Mono.delay(Duration.ofMillis(timeout), this.scheduler)
-                .doOnTerminate(
-                        this.applicationContext.getBean(
-                                StateTransition.class,
-                                applicationContext,
-                                consensusModule,
-                                Candidate.class)
+        Mono<StateTransition> transitionMono = Mono.defer(() ->
+                Mono.just(this.applicationContext.getBean(StateTransition.class, applicationContext, consensusModule, Candidate.class))
+        );
+
+        return Mono.zip(timeoutMono, transitionMono)
+                .flatMap(tuple ->
+                        Mono.defer(() -> Mono.just(
+                                this.scheduler.schedule(tuple.getT2(), tuple.getT1(), TimeUnit.MILLISECONDS)
+                        ))
                 );
+
+    }
+
+    /**
+     * Method for creating a new follower state transition which takes place on transition scheduler.
+     * */
+    public void setNewFollowerState() {
+
+        Mono.defer(() -> Mono.just(
+                applicationContext
+                        .getBean(StateTransition.class, applicationContext, consensusModule, Follower.class))
+        )
+                .doOnNext(this.scheduler::schedule)
+                .subscribe();
+
+    }
+
+    /**
+     * Method for creating a new leader state transition which takes place on transition scheduler.
+     * */
+    public void setNewLeaderState() {
+
+        Mono.defer(() -> Mono.just(
+                applicationContext.getBean(StateTransition.class, applicationContext, consensusModule, Leader.class)
+        ))
+                .doOnNext(this.scheduler::schedule)
+                .subscribe();
 
     }
 
