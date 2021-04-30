@@ -1,9 +1,6 @@
 package com.springRaft.reactive.worker;
 
-import com.springRaft.reactive.communication.message.AppendEntries;
-import com.springRaft.reactive.communication.message.Message;
-import com.springRaft.reactive.communication.message.RequestVote;
-import com.springRaft.reactive.communication.message.RequestVoteReply;
+import com.springRaft.reactive.communication.message.*;
 import com.springRaft.reactive.communication.outbound.MessageSubscriber;
 import com.springRaft.reactive.communication.outbound.OutboundContext;
 import com.springRaft.reactive.config.RaftProperties;
@@ -209,11 +206,30 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
     private void handleHeartbeat(AppendEntries appendEntries) {
 
-        RequestVoteReply reply;
+        AppendEntriesReply reply;
 
         do {
 
+            long start = System.currentTimeMillis();
 
+            reply = (AppendEntriesReply) this.sendRPCHandler(this.outbound.appendEntries(this.targetServerName, appendEntries))
+                    .block();
+
+            if (reply != null && this.active) {
+
+                this.consensusModule.appendEntriesReply(reply, this.targetServerName)
+                        .block();
+
+                if (!reply.getSuccess())
+                    break;
+
+                // sleep for the remaining time, if any
+                this.waitWhileCondition(start, () -> this.active && this.remainingMessages == 0);
+
+                // go get the next heartbeat because the committed index may have changed
+                break;
+
+            }
 
         } while (this.active && this.remainingMessages == 0);
 

@@ -29,7 +29,31 @@ public class RaftController implements InboundCommunication {
     /* --------------------------------------------------- */
 
     /**
-     * TODO
+     * Method that handles all the POST calls on "/raft/appendEntries" endpoint.
+     *
+     * @param appendEntries Object that represents an appendEntries message.
+     *
+     * @return Mono<ResponseEntity<AppendEntries>> A response entity which includes the reply
+     * to the appendEntries communication.
+     * */
+    @RequestMapping(
+            value = "/appendEntries",
+            method = RequestMethod.POST,
+            consumes = "application/json",
+            produces = "application/json"
+    )
+    public Mono<ResponseEntity<AppendEntriesReply>> appendEntriesEndpoint(@RequestBody AppendEntries appendEntries) {
+        return this.appendEntries(appendEntries)
+                .map(ResponseEntity::ok);
+    }
+
+    /**
+     * Method that handles all the POST calls on "/raft/requestVote" endpoint.
+     *
+     * @param requestVote Object that represents a requestVote message.
+     *
+     * @return Mono<ResponseEntity<RequestVoteReply>> A response entity which includes the reply
+     * to the requestVote communication.
      * */
     @RequestMapping(
             value = "/requestVote",
