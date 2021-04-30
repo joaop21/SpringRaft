@@ -1,11 +1,15 @@
 package com.springRaft.reactive.consensusModule;
 
+import com.springRaft.reactive.communication.message.AppendEntries;
 import com.springRaft.reactive.communication.message.Message;
 import com.springRaft.reactive.communication.message.RequestVote;
 import com.springRaft.reactive.communication.message.RequestVoteReply;
 import com.springRaft.reactive.communication.outbound.OutboundManager;
 import com.springRaft.reactive.config.RaftProperties;
+import com.springRaft.reactive.persistence.log.Entry;
 import com.springRaft.reactive.persistence.log.LogService;
+import com.springRaft.reactive.persistence.log.LogState;
+import com.springRaft.reactive.persistence.state.State;
 import com.springRaft.reactive.persistence.state.StateService;
 import com.springRaft.reactive.util.Pair;
 import org.slf4j.Logger;
@@ -16,7 +20,9 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -142,7 +148,47 @@ public class Leader extends RaftStateContext implements RaftState {
 
     @Override
     public Mono<Pair<Message, Boolean>> getNextMessage(String to) {
-        return null;
+
+        return Mono.defer(() ->
+                Mono.just(new Pair<>(this.nextIndex.get(to), this.matchIndex.get(to)))
+        )
+                .flatMap(pair -> {
+
+                    // get next index for specific "to" server
+                    Long nextIndex = pair.getFirst();
+                    Long matchIndex = pair.getSecond();
+
+                    return this.logService.getEntryByIndex(nextIndex)
+                            .switchIfEmpty(
+                                    Mono.defer(() ->
+                                        Mono.just(new Entry(null, null, null, false))
+                                    )
+                            )
+                            .flatMap(entry -> {
+
+                                if (entry.getIndex() == null && matchIndex == (nextIndex - 1)) {
+                                    // if there is no entry in log then send heartbeat
+
+                                    return this.heartbeatAppendEntries()
+                                            .map(message -> new Pair<>(message, true));
+
+                                } else if(entry.getIndex() == null) {
+                                    // if there is no entry and the logs are not matching
+
+                                    return this.heartbeatAppendEntries()
+                                            .map(message -> new Pair<>(message, false));
+
+                                } else {
+
+                                    return this.heartbeatAppendEntries()
+                                            .map(message -> new Pair<>(message, true));
+
+                                }
+
+                            });
+
+                });
+
     }
 
     @Override
@@ -181,7 +227,7 @@ public class Leader extends RaftStateContext implements RaftState {
 
                     // this.nextIndex.put(serverName, defaultNextIndex);
 
-                    this.nextIndex.put(serverName, (long) 0);
+                    this.nextIndex.put(serverName, (long) 1);
                     this.matchIndex.put(serverName, (long) 0);
 
                 })
@@ -196,6 +242,52 @@ public class Leader extends RaftStateContext implements RaftState {
 
         this.nextIndex = new HashMap<>();
         this.matchIndex = new HashMap<>();
+
+    }
+
+    /**
+     * Method that creates an AppendEntries with no entries that represents an heartbeat.
+     *
+     * @return AppendEntries Message to pass to an up-to-date follower.
+     * */
+    private Mono<AppendEntries> heartbeatAppendEntries() {
+
+        Mono<State> stateMono = this.stateService.getState();
+        Mono<LogState> logStateMono = this.logService.getState();
+        Mono<Entry> lastEntryMono = this.logService.getLastEntry();
+
+        return Mono.zip(stateMono, logStateMono, lastEntryMono)
+                .flatMap(tuple ->
+                        this.createAppendEntries(tuple.getT1(), tuple.getT2(), tuple.getT3(), new ArrayList<>())
+                );
+
+    }
+
+    /**
+     * Method that creates an AppendEntries with the new entry.
+     *
+     * @param state State for getting current term.
+     * @param logState Log state for getting the committed index.
+     * @param lastEntry Last Entry in the log for getting its index and term.
+     * @param entries Entries to send in the AppendEntries.
+     *
+     * @return AppendEntries Message to pass to another server.
+     * */
+    private Mono<AppendEntries> createAppendEntries(State state, LogState logState, Entry lastEntry, List<Entry> entries) {
+
+        return Mono.defer(() ->
+                Mono.just(
+                    this.applicationContext.getBean(
+                        AppendEntries.class,
+                        state.getCurrentTerm(), // term
+                        this.raftProperties.getHost(), // leaderId
+                        lastEntry.getIndex(), // prevLogIndex
+                        lastEntry.getTerm(), // prevLogTerm
+                        entries, // entries
+                        logState.getCommittedIndex() // leaderCommit
+                    )
+                )
+        );
 
     }
 

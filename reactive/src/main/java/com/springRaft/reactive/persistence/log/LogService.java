@@ -45,4 +45,29 @@ public class LogService {
                 .doOnError(error -> log.error("\nError on saveState method: \n" + error));
     }
 
+    /* --------------------------------------------------- */
+
+    /**
+     * Method for getting an entry with a specific index.
+     *
+     * @param index Long which is the index of the entry in the log.
+     *
+     * @return Mono<Entry> Entry found in that specific index.
+     * */
+    public Mono<Entry> getEntryByIndex(Long index) {
+        return this.entryRepository.findById(index);
+    }
+
+    /**
+     * Method that gets the last entry in the log.
+     *
+     * @return Mono<Entry> Last entry in the log.
+     * */
+    public Mono<Entry> getLastEntry() {
+        return this.entryRepository.findLastEntry()
+                .switchIfEmpty(
+                        Mono.just(new Entry((long) 0, (long) 0, null, false))
+                );
+    }
+
 }
