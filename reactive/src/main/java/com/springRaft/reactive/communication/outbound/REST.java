@@ -1,16 +1,12 @@
 package com.springRaft.reactive.communication.outbound;
 
-import com.springRaft.reactive.communication.message.Message;
-import com.springRaft.reactive.communication.message.RequestVote;
-import com.springRaft.reactive.communication.message.RequestVoteReply;
+import com.springRaft.reactive.communication.message.*;
 import com.springRaft.reactive.config.RaftProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
-
-import java.time.Duration;
 
 @Service
 public class REST implements OutboundStrategy {
@@ -32,6 +28,11 @@ public class REST implements OutboundStrategy {
     }
 
     /* --------------------------------------------------- */
+
+    @Override
+    public Mono<AppendEntriesReply> appendEntries(String to, AppendEntries message) {
+        return (Mono<AppendEntriesReply>) sendPostToServer(to, "appendEntries", message, AppendEntriesReply.class);
+    }
 
     @Override
     public Mono<RequestVoteReply> requestVote(String to, RequestVote message) {

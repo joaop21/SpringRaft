@@ -1,5 +1,7 @@
 package com.springRaft.reactive.communication.inbound;
 
+import com.springRaft.reactive.communication.message.AppendEntries;
+import com.springRaft.reactive.communication.message.AppendEntriesReply;
 import com.springRaft.reactive.communication.message.RequestVote;
 import com.springRaft.reactive.communication.message.RequestVoteReply;
 import com.springRaft.reactive.consensusModule.ConsensusModule;
@@ -47,6 +49,11 @@ public class RaftController implements InboundCommunication {
     }
 
     /* --------------------------------------------------- */
+
+    @Override
+    public Mono<AppendEntriesReply> appendEntries(AppendEntries appendEntries) {
+        return null;
+    }
 
     @Override
     public Mono<RequestVoteReply> requestVote(RequestVote requestVote) {

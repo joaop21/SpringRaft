@@ -1,9 +1,6 @@
 package com.springRaft.reactive.consensusModule;
 
-import com.springRaft.reactive.communication.message.AppendEntries;
-import com.springRaft.reactive.communication.message.Message;
-import com.springRaft.reactive.communication.message.RequestVote;
-import com.springRaft.reactive.communication.message.RequestVoteReply;
+import com.springRaft.reactive.communication.message.*;
 import com.springRaft.reactive.communication.outbound.OutboundManager;
 import com.springRaft.reactive.config.RaftProperties;
 import com.springRaft.reactive.persistence.log.Entry;
@@ -62,6 +59,16 @@ public class Leader extends RaftStateContext implements RaftState {
     }
 
     /* --------------------------------------------------- */
+
+    @Override
+    public Mono<AppendEntriesReply> appendEntries(AppendEntries appendEntries) {
+        return null;
+    }
+
+    @Override
+    public Mono<Void> appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
+        return null;
+    }
 
     @Override
     public Mono<RequestVoteReply> requestVote(RequestVote requestVote) {

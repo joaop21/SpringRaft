@@ -1,5 +1,6 @@
 package com.springRaft.reactive.worker;
 
+import com.springRaft.reactive.communication.message.AppendEntries;
 import com.springRaft.reactive.communication.message.Message;
 import com.springRaft.reactive.communication.message.RequestVote;
 import com.springRaft.reactive.communication.message.RequestVoteReply;
@@ -164,26 +165,28 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
             this.handleRequestVote((RequestVote) message);
 
-        } /*else if (message instanceof AppendEntries) {
+        } else if (message instanceof AppendEntries) {
 
             if (heartbeat) {
                 // if it is an heartbeat
 
                 this.handleHeartbeat((AppendEntries) message);
 
-            } else {
+            } /*else {
                 // if it has an Entry to add to the log or it is an AppendEntries to find a match index
 
                 this.handleNormalAppendEntries((AppendEntries) message);
 
-            }
+            }*/
 
-        }*/
+        }
 
     }
 
     /**
-     * TODO
+     * Method that handles the requestVoteRPC communication.
+     *
+     * @param requestVote Message to send to the target server.
      * */
     private void handleRequestVote(RequestVote requestVote) {
 
@@ -201,6 +204,18 @@ public class PeerWorker implements Runnable, MessageSubscriber {
                     .flatMap(result -> this.clearMessages())
                     .block();
         }
+
+    }
+
+    private void handleHeartbeat(AppendEntries appendEntries) {
+
+        RequestVoteReply reply;
+
+        do {
+
+
+
+        } while (this.active && this.remainingMessages == 0);
 
     }
 
