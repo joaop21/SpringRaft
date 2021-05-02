@@ -62,7 +62,7 @@ public class Leader extends RaftStateContext implements RaftState {
 
     @Override
     public Mono<AppendEntriesReply> appendEntries(AppendEntries appendEntries) {
-        return null;
+        return super.appendEntries(appendEntries);
     }
 
     @Override
@@ -209,6 +209,25 @@ public class Leader extends RaftStateContext implements RaftState {
                     this.outboundManager.newMessage().subscribe();
 
                 });
+
+    }
+
+    /* --------------------------------------------------- */
+
+    @Override
+    protected Mono<Void> postAppendEntries(AppendEntries appendEntries) {
+
+        // deactivate PeerWorker
+        return this.outboundManager.clearMessages()
+                .doFirst(() -> {
+
+                    this.cleanVolatileState();
+
+                    // transit to follower state
+                    this.transitionManager.setNewFollowerState();
+
+                });
+
 
     }
 

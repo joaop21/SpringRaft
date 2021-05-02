@@ -52,7 +52,7 @@ public class Follower extends RaftStateContext implements RaftState {
 
     @Override
     public Mono<AppendEntriesReply> appendEntries(AppendEntries appendEntries) {
-        return null;
+        return super.appendEntries(appendEntries);
     }
 
     @Override
@@ -158,6 +158,27 @@ public class Follower extends RaftStateContext implements RaftState {
                 })
                 .doOnNext(task -> this.scheduledTransition = task)
                 .then();
+
+    }
+
+    /* --------------------------------------------------- */
+
+    @Override
+    protected Mono<Void> postAppendEntries(AppendEntries appendEntries) {
+
+        return Mono.defer(() -> {
+
+            this.leaderId = appendEntries.getLeaderId();
+
+            // delete the existing scheduled task
+            this.scheduledTransition.dispose();
+
+            // set a new timeout, it's equivalent to transit to a new follower state
+            this.setTimeout();
+
+            return Mono.empty();
+
+        });
 
     }
 

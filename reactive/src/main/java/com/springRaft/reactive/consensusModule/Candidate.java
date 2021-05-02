@@ -56,7 +56,7 @@ public class Candidate extends RaftStateContext implements RaftState {
 
     @Override
     public Mono<AppendEntriesReply> appendEntries(AppendEntries appendEntries) {
-        return null;
+        return super.appendEntries(appendEntries);
     }
 
     @Override
@@ -208,6 +208,16 @@ public class Candidate extends RaftStateContext implements RaftState {
 
                 })
                 .doOnTerminate(this::setTimeout);
+
+    }
+
+    /* --------------------------------------------------- */
+
+    @Override
+    protected Mono<Void> postAppendEntries(AppendEntries appendEntries) {
+
+        // transit to follower state
+        return this.cleanBeforeTransit().doOnTerminate(this.transitionManager::setNewFollowerState);
 
     }
 

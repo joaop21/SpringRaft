@@ -76,7 +76,7 @@ public class RaftController implements InboundCommunication {
 
     @Override
     public Mono<AppendEntriesReply> appendEntries(AppendEntries appendEntries) {
-        return null;
+        return this.consensusModule.appendEntries(appendEntries);
     }
 
     @Override
