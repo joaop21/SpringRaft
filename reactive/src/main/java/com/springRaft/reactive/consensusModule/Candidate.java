@@ -61,7 +61,31 @@ public class Candidate extends RaftStateContext implements RaftState {
 
     @Override
     public Mono<Void> appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
-        return null;
+
+        return this.stateService.getCurrentTerm()
+                .flatMap(currentTerm -> {
+
+                    if (appendEntriesReply.getTerm() > currentTerm) {
+
+                        return this.stateService.setState(appendEntriesReply.getTerm(), null)
+                                .doOnTerminate(() -> {
+
+                                    this.cleanBeforeTransit().subscribe();
+
+                                    // transit to follower state
+                                    this.transitionManager.setNewFollowerState();
+
+                                })
+                                .then();
+
+                    } else {
+
+                        return Mono.empty();
+
+                    }
+
+                });
+
     }
 
     @Override

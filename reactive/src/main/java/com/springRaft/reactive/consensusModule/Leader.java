@@ -67,7 +67,51 @@ public class Leader extends RaftStateContext implements RaftState {
 
     @Override
     public Mono<Void> appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
-        return null;
+
+        if (appendEntriesReply.getSuccess()) {
+
+            return Mono.empty();
+
+        } else {
+
+            return this.stateService.getCurrentTerm()
+                    .flatMap(currentTerm -> {
+
+                        // if term is greater than mine, I should update it and transit to new follower
+                        if (appendEntriesReply.getTerm() > currentTerm) {
+
+                            return this.stateService.setState(appendEntriesReply.getTerm(), null)
+                                    .doOnTerminate(() -> {
+
+                                        // clean leader's state
+                                        this.cleanVolatileState();
+
+                                        // transit to follower state
+                                        this.transitionManager.setNewFollowerState();
+
+                                        // deactivate PeerWorker
+                                        this.outboundManager.clearMessages().subscribe();
+
+                                    })
+                                    .then();
+
+                        } else {
+
+                            return Mono.defer(() -> {
+
+                                this.nextIndex.put(from, this.nextIndex.get(from) - 1);
+                                this.matchIndex.put(from, (long) 0);
+
+                                return Mono.empty();
+
+                            });
+
+                        }
+
+                    });
+
+        }
+
     }
 
     @Override

@@ -57,7 +57,32 @@ public class Follower extends RaftStateContext implements RaftState {
 
     @Override
     public Mono<Void> appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
-        return null;
+
+        return this.stateService.getCurrentTerm()
+                .flatMap(currentTerm -> {
+
+                    if (appendEntriesReply.getTerm() > currentTerm) {
+
+                        return this.stateService.setState(appendEntriesReply.getTerm(), null)
+                                .doOnTerminate(() -> {
+
+                                    // delete the existing scheduled task
+                                    this.scheduledTransition.dispose();
+
+                                    // set a new timeout, it's equivalent to transit to a new follower state
+                                    this.setTimeout();
+
+                                })
+                                .then();
+
+                    } else {
+
+                        return Mono.empty();
+
+                    }
+
+                });
+
     }
 
     @Override
