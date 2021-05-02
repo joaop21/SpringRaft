@@ -44,6 +44,7 @@ public class RaftController implements InboundCommunication {
     )
     public Mono<ResponseEntity<AppendEntriesReply>> appendEntriesEndpoint(@RequestBody AppendEntries appendEntries) {
         return this.appendEntries(appendEntries)
+                .doOnNext(reply -> log.info("\nAPPEND ENTRIES: " + appendEntries + "\n" + "RESPONSE: " + reply))
                 .map(ResponseEntity::ok);
     }
 
@@ -62,14 +63,9 @@ public class RaftController implements InboundCommunication {
             produces = "application/json"
     )
     public Mono<ResponseEntity<RequestVoteReply>> requestVoteEndpoint(@RequestBody RequestVote requestVote) {
-
-        // log.info("\nREQUEST: " + requestVote.toString() + "\n" + "RESPONSE: " + reply);
-
-        // log.info("\nREQUEST: " + requestVote.toString());
-
         return this.requestVote(requestVote)
+                .doOnNext(reply -> log.info("\nREQUEST VOTE: " + requestVote + "\n" + "RESPONSE: " + reply))
                 .map(ResponseEntity::ok);
-
     }
 
     /* --------------------------------------------------- */
