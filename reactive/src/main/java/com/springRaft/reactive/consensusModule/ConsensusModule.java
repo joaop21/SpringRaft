@@ -1,8 +1,6 @@
 package com.springRaft.reactive.consensusModule;
 
-import com.springRaft.reactive.communication.message.Message;
-import com.springRaft.reactive.communication.message.RequestVote;
-import com.springRaft.reactive.communication.message.RequestVoteReply;
+import com.springRaft.reactive.communication.message.*;
 import com.springRaft.reactive.util.Pair;
 import lombok.Getter;
 import lombok.Synchronized;
@@ -37,6 +35,18 @@ public class ConsensusModule implements RaftState {
     }
 
     /* --------------------------------------------------- */
+
+    @Override
+    @Synchronized
+    public Mono<AppendEntriesReply> appendEntries(AppendEntries appendEntries) {
+        return this.current.appendEntries(appendEntries);
+    }
+
+    @Override
+    @Synchronized
+    public Mono<Void> appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
+        return this.current.appendEntriesReply(appendEntriesReply, from);
+    }
 
     @Override
     @Synchronized

@@ -1,5 +1,7 @@
 package com.springRaft.reactive.communication.outbound;
 
+import com.springRaft.reactive.communication.message.AppendEntries;
+import com.springRaft.reactive.communication.message.AppendEntriesReply;
 import com.springRaft.reactive.communication.message.RequestVote;
 import com.springRaft.reactive.communication.message.RequestVoteReply;
 import lombok.NoArgsConstructor;
@@ -22,6 +24,11 @@ public class OutboundContext implements OutboundStrategy {
     }
 
     /* --------------------------------------------------- */
+
+    @Override
+    public Mono<AppendEntriesReply> appendEntries(String to, AppendEntries message) {
+        return this.communicationStrategy.appendEntries(to, message);
+    }
 
     @Override
     public Mono<RequestVoteReply> requestVote(String to, RequestVote message) {

@@ -1,8 +1,6 @@
 package com.springRaft.reactive.worker;
 
-import com.springRaft.reactive.communication.message.Message;
-import com.springRaft.reactive.communication.message.RequestVote;
-import com.springRaft.reactive.communication.message.RequestVoteReply;
+import com.springRaft.reactive.communication.message.*;
 import com.springRaft.reactive.communication.outbound.MessageSubscriber;
 import com.springRaft.reactive.communication.outbound.OutboundContext;
 import com.springRaft.reactive.config.RaftProperties;
@@ -164,26 +162,28 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
             this.handleRequestVote((RequestVote) message);
 
-        } /*else if (message instanceof AppendEntries) {
+        } else if (message instanceof AppendEntries) {
 
             if (heartbeat) {
                 // if it is an heartbeat
 
                 this.handleHeartbeat((AppendEntries) message);
 
-            } else {
+            } /*else {
                 // if it has an Entry to add to the log or it is an AppendEntries to find a match index
 
                 this.handleNormalAppendEntries((AppendEntries) message);
 
-            }
+            }*/
 
-        }*/
+        }
 
     }
 
     /**
-     * TODO
+     * Method that handles the requestVoteRPC communication.
+     *
+     * @param requestVote Message to send to the target server.
      * */
     private void handleRequestVote(RequestVote requestVote) {
 
@@ -201,6 +201,37 @@ public class PeerWorker implements Runnable, MessageSubscriber {
                     .flatMap(result -> this.clearMessages())
                     .block();
         }
+
+    }
+
+    private void handleHeartbeat(AppendEntries appendEntries) {
+
+        AppendEntriesReply reply;
+
+        do {
+
+            long start = System.currentTimeMillis();
+
+            reply = (AppendEntriesReply) this.sendRPCHandler(this.outbound.appendEntries(this.targetServerName, appendEntries))
+                    .block();
+
+            if (reply != null && this.active) {
+
+                this.consensusModule.appendEntriesReply(reply, this.targetServerName)
+                        .block();
+
+                if (!reply.getSuccess())
+                    break;
+
+                // sleep for the remaining time, if any
+                this.waitWhileCondition(start, () -> this.active && this.remainingMessages == 0);
+
+                // go get the next heartbeat because the committed index may have changed
+                break;
+
+            }
+
+        } while (this.active && this.remainingMessages == 0);
 
     }
 

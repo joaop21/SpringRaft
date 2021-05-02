@@ -1,8 +1,6 @@
 package com.springRaft.reactive.consensusModule;
 
-import com.springRaft.reactive.communication.message.Message;
-import com.springRaft.reactive.communication.message.RequestVote;
-import com.springRaft.reactive.communication.message.RequestVoteReply;
+import com.springRaft.reactive.communication.message.*;
 import com.springRaft.reactive.communication.outbound.OutboundManager;
 import com.springRaft.reactive.config.RaftProperties;
 import com.springRaft.reactive.persistence.log.LogService;
@@ -55,6 +53,40 @@ public class Candidate extends RaftStateContext implements RaftState {
     }
 
     /* --------------------------------------------------- */
+
+    @Override
+    public Mono<AppendEntriesReply> appendEntries(AppendEntries appendEntries) {
+        return super.appendEntries(appendEntries);
+    }
+
+    @Override
+    public Mono<Void> appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
+
+        return this.stateService.getCurrentTerm()
+                .flatMap(currentTerm -> {
+
+                    if (appendEntriesReply.getTerm() > currentTerm) {
+
+                        return this.stateService.setState(appendEntriesReply.getTerm(), null)
+                                .doOnTerminate(() -> {
+
+                                    this.cleanBeforeTransit().subscribe();
+
+                                    // transit to follower state
+                                    this.transitionManager.setNewFollowerState();
+
+                                })
+                                .then();
+
+                    } else {
+
+                        return Mono.empty();
+
+                    }
+
+                });
+
+    }
 
     @Override
     public Mono<RequestVoteReply> requestVote(RequestVote requestVote) {
@@ -200,6 +232,16 @@ public class Candidate extends RaftStateContext implements RaftState {
 
                 })
                 .doOnTerminate(this::setTimeout);
+
+    }
+
+    /* --------------------------------------------------- */
+
+    @Override
+    protected Mono<Void> postAppendEntries(AppendEntries appendEntries) {
+
+        // transit to follower state
+        return this.cleanBeforeTransit().doOnTerminate(this.transitionManager::setNewFollowerState);
 
     }
 

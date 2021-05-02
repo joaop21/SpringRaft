@@ -1,6 +1,5 @@
 package com.springRaft.reactive.persistence.log;
 
-import com.springRaft.reactive.persistence.state.StateService;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +16,9 @@ public class LogService {
 
     /* Logger */
     private static final Logger log = LoggerFactory.getLogger(LogService.class);
+
+    /* Repository for Entry operations */
+    private final EntryRepository entryRepository;
 
     /* Repository for Entry operations */
     private final LogStateRepository logStateRepository;
@@ -41,6 +43,31 @@ public class LogService {
     public Mono<LogState> saveState(LogState logState) {
         return this.logStateRepository.save(logState)
                 .doOnError(error -> log.error("\nError on saveState method: \n" + error));
+    }
+
+    /* --------------------------------------------------- */
+
+    /**
+     * Method for getting an entry with a specific index.
+     *
+     * @param index Long which is the index of the entry in the log.
+     *
+     * @return Mono<Entry> Entry found in that specific index.
+     * */
+    public Mono<Entry> getEntryByIndex(Long index) {
+        return this.entryRepository.findById(index);
+    }
+
+    /**
+     * Method that gets the last entry in the log.
+     *
+     * @return Mono<Entry> Last entry in the log.
+     * */
+    public Mono<Entry> getLastEntry() {
+        return this.entryRepository.findLastEntry()
+                .switchIfEmpty(
+                        Mono.just(new Entry((long) 0, (long) 0, null, false))
+                );
     }
 
 }

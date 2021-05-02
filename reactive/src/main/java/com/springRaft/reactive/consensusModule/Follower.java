@@ -1,8 +1,6 @@
 package com.springRaft.reactive.consensusModule;
 
-import com.springRaft.reactive.communication.message.Message;
-import com.springRaft.reactive.communication.message.RequestVote;
-import com.springRaft.reactive.communication.message.RequestVoteReply;
+import com.springRaft.reactive.communication.message.*;
 import com.springRaft.reactive.communication.outbound.OutboundManager;
 import com.springRaft.reactive.config.RaftProperties;
 import com.springRaft.reactive.persistence.log.LogService;
@@ -51,6 +49,41 @@ public class Follower extends RaftStateContext implements RaftState {
     }
 
     /* --------------------------------------------------- */
+
+    @Override
+    public Mono<AppendEntriesReply> appendEntries(AppendEntries appendEntries) {
+        return super.appendEntries(appendEntries);
+    }
+
+    @Override
+    public Mono<Void> appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
+
+        return this.stateService.getCurrentTerm()
+                .flatMap(currentTerm -> {
+
+                    if (appendEntriesReply.getTerm() > currentTerm) {
+
+                        return this.stateService.setState(appendEntriesReply.getTerm(), null)
+                                .doOnTerminate(() -> {
+
+                                    // delete the existing scheduled task
+                                    this.scheduledTransition.dispose();
+
+                                    // set a new timeout, it's equivalent to transit to a new follower state
+                                    this.setTimeout();
+
+                                })
+                                .then();
+
+                    } else {
+
+                        return Mono.empty();
+
+                    }
+
+                });
+
+    }
 
     @Override
     public Mono<RequestVoteReply> requestVote(RequestVote requestVote) {
@@ -150,6 +183,27 @@ public class Follower extends RaftStateContext implements RaftState {
                 })
                 .doOnNext(task -> this.scheduledTransition = task)
                 .then();
+
+    }
+
+    /* --------------------------------------------------- */
+
+    @Override
+    protected Mono<Void> postAppendEntries(AppendEntries appendEntries) {
+
+        return Mono.defer(() -> {
+
+            this.leaderId = appendEntries.getLeaderId();
+
+            // delete the existing scheduled task
+            this.scheduledTransition.dispose();
+
+            // set a new timeout, it's equivalent to transit to a new follower state
+            this.setTimeout();
+
+            return Mono.empty();
+
+        });
 
     }
 

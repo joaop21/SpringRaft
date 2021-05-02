@@ -12,3 +12,10 @@ CREATE TABLE IF NOT EXISTS log_state (
     last_applied BIGINT(255),
     PRIMARY KEY (id)
 );
+
+CREATE TABLE IF NOT EXISTS entry (
+    index BIGINT(255),
+    term BIGINT(255),
+    command VARCHAR(max),
+    PRIMARY KEY (index)
+);

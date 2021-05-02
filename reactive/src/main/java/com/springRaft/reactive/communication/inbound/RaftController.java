@@ -1,5 +1,7 @@
 package com.springRaft.reactive.communication.inbound;
 
+import com.springRaft.reactive.communication.message.AppendEntries;
+import com.springRaft.reactive.communication.message.AppendEntriesReply;
 import com.springRaft.reactive.communication.message.RequestVote;
 import com.springRaft.reactive.communication.message.RequestVoteReply;
 import com.springRaft.reactive.consensusModule.ConsensusModule;
@@ -27,7 +29,32 @@ public class RaftController implements InboundCommunication {
     /* --------------------------------------------------- */
 
     /**
-     * TODO
+     * Method that handles all the POST calls on "/raft/appendEntries" endpoint.
+     *
+     * @param appendEntries Object that represents an appendEntries message.
+     *
+     * @return Mono<ResponseEntity<AppendEntries>> A response entity which includes the reply
+     * to the appendEntries communication.
+     * */
+    @RequestMapping(
+            value = "/appendEntries",
+            method = RequestMethod.POST,
+            consumes = "application/json",
+            produces = "application/json"
+    )
+    public Mono<ResponseEntity<AppendEntriesReply>> appendEntriesEndpoint(@RequestBody AppendEntries appendEntries) {
+        return this.appendEntries(appendEntries)
+                .doOnNext(reply -> log.info("\nAPPEND ENTRIES: " + appendEntries + "\n" + "RESPONSE: " + reply))
+                .map(ResponseEntity::ok);
+    }
+
+    /**
+     * Method that handles all the POST calls on "/raft/requestVote" endpoint.
+     *
+     * @param requestVote Object that represents a requestVote message.
+     *
+     * @return Mono<ResponseEntity<RequestVoteReply>> A response entity which includes the reply
+     * to the requestVote communication.
      * */
     @RequestMapping(
             value = "/requestVote",
@@ -36,17 +63,17 @@ public class RaftController implements InboundCommunication {
             produces = "application/json"
     )
     public Mono<ResponseEntity<RequestVoteReply>> requestVoteEndpoint(@RequestBody RequestVote requestVote) {
-
-        // log.info("\nREQUEST: " + requestVote.toString() + "\n" + "RESPONSE: " + reply);
-
-        // log.info("\nREQUEST: " + requestVote.toString());
-
         return this.requestVote(requestVote)
+                .doOnNext(reply -> log.info("\nREQUEST VOTE: " + requestVote + "\n" + "RESPONSE: " + reply))
                 .map(ResponseEntity::ok);
-
     }
 
     /* --------------------------------------------------- */
+
+    @Override
+    public Mono<AppendEntriesReply> appendEntries(AppendEntries appendEntries) {
+        return this.consensusModule.appendEntries(appendEntries);
+    }
 
     @Override
     public Mono<RequestVoteReply> requestVote(RequestVote requestVote) {
