@@ -34,4 +34,9 @@ public class OutboundContext implements OutboundStrategy {
     public Mono<RequestVoteReply> requestVote(String to, RequestVote message) {
         return this.communicationStrategy.requestVote(to,message);
     }
+
+    @Override
+    public Mono<?> request(String command, String location) {
+        return this.communicationStrategy.request(command, location);
+    }
 }

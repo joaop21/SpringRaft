@@ -36,8 +36,13 @@ public class REST implements OutboundStrategy {
 
     @Override
     public Mono<RequestVoteReply> requestVote(String to, RequestVote message) {
-
         return (Mono<RequestVoteReply>) sendPostToServer(to, "requestVote", message, RequestVoteReply.class);
+    }
+
+    @Override
+    public Mono<?> request(String command, String location) {
+
+        return null;
 
     }
 
@@ -61,7 +66,8 @@ public class REST implements OutboundStrategy {
                 .bodyValue(message)
                 .retrieve()
                 .bodyToMono(type)
-                .timeout(this.raftProperties.getHeartbeat());
+                .timeout(this.raftProperties.getHeartbeat())
+                .subscribeOn(this.scheduler);
     }
 
 }

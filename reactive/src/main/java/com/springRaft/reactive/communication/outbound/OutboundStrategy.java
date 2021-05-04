@@ -28,4 +28,15 @@ public interface OutboundStrategy {
      * */
     Mono<RequestVoteReply> requestVote(String to, RequestVote message);
 
+    /**
+     * Abstract method for the outbound strategies implement it, so they can send a general purpose
+     * request to a server on a specific location.
+     *
+     * @param command String that encapsulates the request to invoke.
+     * @param location String that represents the location of the server.
+     *
+     * @return Mono<?> Response object resulting of invoking the request on the specific server.
+     * */
+    Mono<?> request(String command, String location);
+
 }
