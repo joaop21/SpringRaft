@@ -198,6 +198,23 @@ public class Leader extends RaftStateContext implements RaftState {
     }
 
     @Override
+    public Mono<RequestReply> clientRequest(String command) {
+
+        // For now it remains like this
+        // but it has to change in order to replicate the request
+        // ...
+        return Mono.defer(() ->
+                Mono.just(
+                        this.applicationContext.getBean(
+                                RequestReply.class, true,
+                                command, false, ""
+                        )
+                )
+        );
+
+    }
+
+    @Override
     public Mono<Pair<Message, Boolean>> getNextMessage(String to) {
 
         return Mono.defer(() ->

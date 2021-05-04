@@ -187,6 +187,26 @@ public class Candidate extends RaftStateContext implements RaftState {
     }
 
     @Override
+    public Mono<RequestReply> clientRequest(String command) {
+
+        // When in candidate state, there is nowhere to redirect the request or a leader to
+        // handle them.
+
+        return Mono.defer(() ->
+                Mono.just(
+                        this.applicationContext.getBean(
+                                RequestReply.class, false,
+                                new Object(), false, ""
+                        )
+                )
+        );
+
+        // probably we should store the requests, and redirect them when we became follower
+        // or handle them when became leader
+
+    }
+
+    @Override
     public Mono<Pair<Message, Boolean>> getNextMessage(String to) {
 
         return Mono.defer(() -> Mono.just(new Pair<>(this.requestVoteMessage, false)));

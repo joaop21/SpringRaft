@@ -44,6 +44,14 @@ public interface RaftState {
     Mono<Void> requestVoteReply(RequestVoteReply requestVoteReply);
 
     /**
+     * Method for handling the replication of a client request.
+     * @param command String command to replicate and apply to the FSM.
+     *
+     * @return RequestReply Reply for the income request.
+     * */
+    Mono<RequestReply> clientRequest(String command);
+
+    /**
      * Method for getting the next message for a specific server.
      *
      * @param to String that represents the server.
