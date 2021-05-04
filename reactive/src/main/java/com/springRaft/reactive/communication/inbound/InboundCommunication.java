@@ -1,9 +1,6 @@
 package com.springRaft.reactive.communication.inbound;
 
-import com.springRaft.reactive.communication.message.AppendEntries;
-import com.springRaft.reactive.communication.message.AppendEntriesReply;
-import com.springRaft.reactive.communication.message.RequestVote;
-import com.springRaft.reactive.communication.message.RequestVoteReply;
+import com.springRaft.reactive.communication.message.*;
 import reactor.core.publisher.Mono;
 
 public interface InboundCommunication {
@@ -27,4 +24,14 @@ public interface InboundCommunication {
      * @return Mono<RequestVoteReply> Reply to send to the server which invoke the communication.
      * */
     Mono<RequestVoteReply> requestVote(RequestVote requestVote);
+
+    /**
+     * Abstract method for the inbound strategies to implement it, so they can handle the reception
+     * of general requests.
+     *
+     * @param command String that contains the command to execute in the FSM.
+     *
+     * @return Mono<RequestReply> Reply ti send to the client who made the request.
+     * */
+    Mono<RequestReply> clientRequest(String command);
 }
