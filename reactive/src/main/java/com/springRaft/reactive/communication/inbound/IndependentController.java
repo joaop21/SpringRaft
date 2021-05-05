@@ -30,9 +30,13 @@ public class IndependentController {
     /* --------------------------------------------------- */
 
     /**
-     * TODO
+     * Method that handles all the calls on whatever endpoint not defined in any other controller.
      *
-     * @return*/
+     * @param body String that represents the body of the request.
+     * @param request ServerHttpRequest object that contains all the information about the request.
+     *
+     * @return Mono<ResponseEntity<?>> A response entity which includes the reply to the request made.
+     * */
     @RequestMapping(value = "**")
     public Mono<ResponseEntity<?>> clientRequestEndpoint(@RequestBody(required = false) String body, ServerHttpRequest request) {
 
@@ -56,9 +60,6 @@ public class IndependentController {
                                     // send a request to leader, because I'm a follower
 
                                     return (Mono<ResponseEntity<?>>) this.outbound.request(command, requestReply.getRedirectTo());
-                                                //.cast(ResponseEntity.class);
-
-                                    //return Mono.just((ResponseEntity<?>) requestReply.getResponse());
 
 
                                 } else {

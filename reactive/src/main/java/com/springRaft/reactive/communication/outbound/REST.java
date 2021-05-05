@@ -3,10 +3,14 @@ package com.springRaft.reactive.communication.outbound;
 import com.springRaft.reactive.communication.message.*;
 import com.springRaft.reactive.config.RaftProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
+
+import java.util.Arrays;
 
 @Service
 public class REST implements OutboundStrategy {
@@ -42,7 +46,19 @@ public class REST implements OutboundStrategy {
     @Override
     public Mono<?> request(String command, String location) {
 
-        return null;
+        return Mono.defer(() -> {
+
+            String[] tokens = command.split(";;;");
+            HttpMethod HTTPMethod = HttpMethod.valueOf(tokens[0]);
+            String endpoint = tokens[1];
+            String body = String.join(";;;", Arrays.asList(tokens).subList(2, tokens.length));
+
+            return Mono.just(new Object[]{HTTPMethod, endpoint, body});
+
+        })
+                .flatMap(array ->
+                   this.sendRequestToServer(location, (HttpMethod) array[0], (String) array[1], (String) array[2])
+                );
 
     }
 
@@ -68,6 +84,34 @@ public class REST implements OutboundStrategy {
                 .bodyToMono(type)
                 .timeout(this.raftProperties.getHeartbeat())
                 .subscribeOn(this.scheduler);
+    }
+
+    /**
+     * Method that invokes an HTTP request in a specific server.
+     *
+     * @param to String that represents the server name.
+     * @param method HTTP method to invoke in the server.
+     * @param route String that represents the endpoint to invoke the request.
+     * @param body String that contains the body of the request.
+     *
+     * @return Object which is the response to the request.
+     * */
+    private Mono<ResponseEntity<Object>> sendRequestToServer(String to, HttpMethod method, String route, String body) {
+
+        return body.equals("null")
+                ? WebClient.create("http://" + to)
+                        .method(method)
+                        .uri(route)
+                        .retrieve()
+                        .toEntity(Object.class)
+
+                : WebClient.create("http://" + to)
+                        .method(method)
+                        .uri(route)
+                        .bodyValue(body)
+                        .retrieve()
+                        .toEntity(Object.class);
+
     }
 
 }
