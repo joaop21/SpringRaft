@@ -1,6 +1,7 @@
 package com.springRaft.reactive.persistence.log;
 
 import lombok.AllArgsConstructor;
+import lombok.Synchronized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
@@ -59,6 +60,16 @@ public class LogService {
     }
 
     /**
+     * Method that gets the index of the last stored entry in the log.
+     *
+     * @return Mono<Long> Long which is the index of the last entry in the log.
+     * */
+    public Mono<Long> getLastEntryIndex() {
+        return this.entryRepository.findLastEntryIndex()
+                .switchIfEmpty(Mono.just((long) 0));
+    }
+
+    /**
      * Method that gets the last entry in the log.
      *
      * @return Mono<Entry> Last entry in the log.
@@ -68,6 +79,22 @@ public class LogService {
                 .switchIfEmpty(
                         Mono.just(new Entry((long) 0, (long) 0, null, false))
                 );
+    }
+
+    /**
+     * Method that inserts a contiguously new entry in the existing log.
+     *
+     * @param entry Entry to insert in the log.
+     *
+     * @return Mono<Entry> The new persisted entry.
+     * */
+    @Synchronized
+    public Mono<Entry> insertEntry(Entry entry) {
+
+        return this.getLastEntryIndex()
+                .doOnNext(lastIndex -> entry.setIndex(lastIndex + 1))
+                .flatMap(lastIndex -> this.entryRepository.save(entry));
+
     }
 
 }
