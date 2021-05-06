@@ -1,9 +1,6 @@
 package com.springRaft.reactive.communication.inbound;
 
-import com.springRaft.reactive.communication.message.AppendEntries;
-import com.springRaft.reactive.communication.message.AppendEntriesReply;
-import com.springRaft.reactive.communication.message.RequestVote;
-import com.springRaft.reactive.communication.message.RequestVoteReply;
+import com.springRaft.reactive.communication.message.*;
 import com.springRaft.reactive.consensusModule.ConsensusModule;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
@@ -78,6 +75,11 @@ public class RaftController implements InboundCommunication {
     @Override
     public Mono<RequestVoteReply> requestVote(RequestVote requestVote) {
         return this.consensusModule.requestVote(requestVote);
+    }
+
+    @Override
+    public Mono<RequestReply> clientRequest(String command) {
+        return this.consensusModule.clientRequest(command);
     }
 
 }

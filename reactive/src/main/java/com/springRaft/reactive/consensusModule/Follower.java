@@ -164,6 +164,21 @@ public class Follower extends RaftStateContext implements RaftState {
     }
 
     @Override
+    public Mono<RequestReply> clientRequest(String command) {
+
+        // When in follower state, we need to redirect the request to the leader
+        return Mono.defer(() ->
+                Mono.just(
+                        this.applicationContext.getBean(
+                                RequestReply.class, false,
+                                new Object(), true, this.leaderId
+                        )
+                )
+        );
+
+    }
+
+    @Override
     public Mono<Pair<Message, Boolean>> getNextMessage(String to) {
 
         return Mono.defer(() -> Mono.just(new Pair<>(null, false)));

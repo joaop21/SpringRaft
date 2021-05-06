@@ -13,6 +13,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -194,6 +198,31 @@ public class Leader extends RaftStateContext implements RaftState {
                                 })
                 )
                 .then();
+
+    }
+
+    @Override
+    public Mono<RequestReply> clientRequest(String command) {
+
+        // For now it remains like this
+        // but it has to change in order to replicate the request
+        // ...
+        return Mono.defer(() -> {
+
+            HttpHeaders httpHeaders = new HttpHeaders();
+            httpHeaders.setContentType(MediaType.APPLICATION_JSON);
+
+            Map<String, String> response = new HashMap<>(){{
+                put("command", command);
+            }};
+
+            return Mono.just(
+                    this.applicationContext.getBean(
+                            RequestReply.class, true,
+                            new ResponseEntity<>(response, httpHeaders, HttpStatus.OK), false, ""
+                    )
+            );
+        });
 
     }
 

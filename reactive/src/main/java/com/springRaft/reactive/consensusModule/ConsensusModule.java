@@ -61,6 +61,11 @@ public class ConsensusModule implements RaftState {
     }
 
     @Override
+    public Mono<RequestReply> clientRequest(String command) {
+        return this.current.clientRequest(command);
+    }
+
+    @Override
     @Synchronized
     public Mono<Pair<Message, Boolean>> getNextMessage(String to) {
         return this.current.getNextMessage(to);
