@@ -104,13 +104,16 @@ public class REST implements OutboundStrategy {
                         .uri(route)
                         .retrieve()
                         .toEntity(Object.class)
+                        .subscribeOn(this.scheduler)
 
                 : WebClient.create("http://" + to)
                         .method(method)
                         .uri(route)
                         .bodyValue(body)
                         .retrieve()
-                        .toEntity(Object.class);
+                        .toEntity(Object.class)
+                        .subscribeOn(this.scheduler)
+                ;
 
     }
 
