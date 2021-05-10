@@ -31,9 +31,9 @@ public class PersistentState implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
 
-        this.checkAndSetState().subscribe();
-
-        this.checkAndSetLogState().subscribe();
+        this.checkAndSetState()
+                .flatMap(state -> this.checkAndSetLogState())
+                .block();
 
     }
 
