@@ -34,10 +34,11 @@ public class Entry implements Persistable<Long> {
     /**
      * Specific constructor for creating a parametrized entry.
      * */
-    public Entry(Long term, String command) {
+    public Entry(Long term, String command, boolean isNew) {
         this.index = null;
         this.term = term;
         this.command = command;
+        this.isNew = isNew;
     }
 
     /* --------------------------------------------------- */

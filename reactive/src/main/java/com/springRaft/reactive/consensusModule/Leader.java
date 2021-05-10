@@ -207,7 +207,7 @@ public class Leader extends RaftStateContext implements RaftState {
         // For now it remains like this
         // but it has to change in order to replicate the request
         // ...
-        return Mono.defer(() -> {
+        /*return Mono.defer(() -> {
 
             HttpHeaders httpHeaders = new HttpHeaders();
             httpHeaders.setContentType(MediaType.APPLICATION_JSON);
@@ -222,7 +222,26 @@ public class Leader extends RaftStateContext implements RaftState {
                             new ResponseEntity<>(response, httpHeaders, HttpStatus.OK), false, ""
                     )
             );
-        });
+        });*/
+
+        return this.stateService.getCurrentTerm()
+                .flatMap(currentTerm ->
+
+                        this.logService.insertEntry(new Entry(currentTerm, command, true))
+                                .doOnNext(entry -> this.outboundManager.newMessage().subscribe())
+                                .flatMap(entry ->
+                                        Mono.defer(() ->
+
+                                            Mono.just(
+                                                    this.applicationContext.getBean(
+                                                            RequestReply.class, true,
+                                                            new ResponseEntity<>(entry, HttpStatus.OK), false, ""
+                                                    )
+                                            )
+
+                                        )
+                                )
+                );
 
     }
 
