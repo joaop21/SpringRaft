@@ -45,11 +45,7 @@ public class PersistentState implements ApplicationRunner {
      * */
     private Mono<State> checkAndSetState() {
         return this.stateService.getState()
-                .switchIfEmpty(
-                        Mono.defer(() ->
-                                Mono.just(this.applicationContext.getBean("InitialState", State.class))
-                        )
-                )
+                .switchIfEmpty((Mono<State>) this.applicationContext.getBean("InitialState"))
                 .flatMap(this.stateService::saveState);
     }
 
@@ -61,11 +57,7 @@ public class PersistentState implements ApplicationRunner {
      * */
     private Mono<LogState> checkAndSetLogState() {
         return this.logService.getState()
-                .switchIfEmpty(
-                        Mono.defer(() ->
-                                Mono.just(this.applicationContext.getBean("InitialLogState", LogState.class))
-                        )
-                )
+                .switchIfEmpty((Mono<LogState>) this.applicationContext.getBean("InitialLogState"))
                 .flatMap(this.logService::saveState);
     }
 
