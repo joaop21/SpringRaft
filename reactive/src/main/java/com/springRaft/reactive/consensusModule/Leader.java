@@ -74,6 +74,11 @@ public class Leader extends RaftStateContext implements RaftState {
 
         if (appendEntriesReply.getSuccess()) {
 
+            // ...
+            // IT NEEDS MORE CODE HERE
+            // IT NEEDS MORE CODE HERE
+            // ...
+
             return Mono.empty();
 
         } else {
@@ -85,30 +90,21 @@ public class Leader extends RaftStateContext implements RaftState {
                         if (appendEntriesReply.getTerm() > currentTerm) {
 
                             return this.stateService.setState(appendEntriesReply.getTerm(), null)
-                                    .doOnTerminate(() -> {
-
-                                        // clean leader's state
-                                        this.cleanVolatileState();
-
-                                        // transit to follower state
-                                        this.transitionManager.setNewFollowerState();
-
-                                        // deactivate PeerWorker
-                                        this.outboundManager.clearMessages().subscribe();
-
-                                    })
-                                    .then();
+                                    .doOnNext(state ->
+                                            // clean leader's state
+                                            this.cleanVolatileState()
+                                    )
+                                    // transit to follower state and
+                                    // deactivate PeerWorker
+                                    .then(this.transitionManager.setNewFollowerState())
+                                    .then(this.outboundManager.clearMessages());
 
                         } else {
 
-                            return Mono.defer(() -> {
+                            this.nextIndex.put(from, this.nextIndex.get(from) - 1);
+                            this.matchIndex.put(from, (long) 0);
 
-                                this.nextIndex.put(from, this.nextIndex.get(from) - 1);
-                                this.matchIndex.put(from, (long) 0);
-
-                                return Mono.empty();
-
-                            });
+                            return Mono.empty();
 
                         }
 
@@ -122,10 +118,7 @@ public class Leader extends RaftStateContext implements RaftState {
     public Mono<RequestVoteReply> requestVote(RequestVote requestVote) {
 
         // get a reply object
-        Mono<RequestVoteReply> replyMono = Mono.defer(
-                () -> Mono.just(this.applicationContext.getBean(RequestVoteReply.class))
-        );
-
+        Mono<RequestVoteReply> replyMono = Mono.just(this.applicationContext.getBean(RequestVoteReply.class));
         // get the current term
         Mono<Long> currentTermMono = this.stateService.getCurrentTerm();
 
@@ -137,14 +130,11 @@ public class Leader extends RaftStateContext implements RaftState {
 
                     if (requestVote.getTerm() <= currentTerm) {
 
-                        return Mono.defer(() -> {
+                        // revoke request
+                        reply.setTerm(currentTerm);
+                        reply.setVoteGranted(false);
 
-                            // revoke request
-                            reply.setTerm(currentTerm);
-                            reply.setVoteGranted(false);
-
-                            return Mono.just(reply);
-                        });
+                        return Mono.just(reply);
 
                     } else {
 
@@ -156,17 +146,13 @@ public class Leader extends RaftStateContext implements RaftState {
                                         // check if candidate's log is at least as up-to-date as mine
                                         this.checkLog(requestVote, reply)
                                 )
-                                .doOnTerminate(() -> {
-
+                                .doOnNext(requestVoteReply -> {
                                     this.cleanVolatileState();
-
-                                    // transit to follower state
-                                    this.transitionManager.setNewFollowerState();
-
-                                    // deactivate PeerWorker
-                                    this.outboundManager.clearMessages().subscribe();
-
-                                });
+                                })
+                                .zipWith(
+                                        Mono.zip(this.transitionManager.setNewFollowerState(), this.outboundManager.clearMessages()),
+                                        (requestVoteReply, tuple2) -> requestVoteReply
+                                );
 
                     }
 
@@ -181,23 +167,13 @@ public class Leader extends RaftStateContext implements RaftState {
                 // if term is greater than mine, I should update it and transit to new follower
                 .filter(currentTerm -> requestVoteReply.getTerm() > currentTerm)
                 .flatMap(currentTerm ->
-
                         // update term
+                        // clean leader's state
                         this.stateService.setState(requestVoteReply.getTerm(), null)
-                                .doOnTerminate(() -> {
-
-                                    // clean leader's state
-                                    this.cleanVolatileState();
-
-                                    // transit to follower state
-                                    this.transitionManager.setNewFollowerState();
-
-                                    // deactivate PeerWorker
-                                    this.outboundManager.clearMessages().subscribe();
-
-                                })
+                                .doOnTerminate(this::cleanVolatileState)
                 )
-                .then();
+                .then(this.transitionManager.setNewFollowerState())
+                .then(this.outboundManager.clearMessages());
 
     }
 
@@ -248,9 +224,7 @@ public class Leader extends RaftStateContext implements RaftState {
     @Override
     public Mono<Pair<Message, Boolean>> getNextMessage(String to) {
 
-        return Mono.defer(() ->
-                Mono.just(new Pair<>(this.nextIndex.get(to), this.matchIndex.get(to)))
-        )
+        return Mono.just(new Pair<>(this.nextIndex.get(to), this.matchIndex.get(to)))
                 .flatMap(pair -> {
 
                     // get next index for specific "to" server
@@ -258,11 +232,7 @@ public class Leader extends RaftStateContext implements RaftState {
                     Long matchIndex = pair.getSecond();
 
                     return this.logService.getEntryByIndex(nextIndex)
-                            .switchIfEmpty(
-                                    Mono.defer(() ->
-                                        Mono.just(new Entry(null, null, null, false))
-                                    )
-                            )
+                            .switchIfEmpty(Mono.just(new Entry(null, null, null, false)))
                             .flatMap(entry -> {
 
                                 if (entry.getIndex() == null && matchIndex == (nextIndex - 1)) {
@@ -294,13 +264,11 @@ public class Leader extends RaftStateContext implements RaftState {
     public Mono<Void> start() {
 
         return this.reinitializeVolatileState()
-                .doFirst(() -> log.info("LEADER"))
-                .doOnTerminate(() -> {
-
-                    // issue empty AppendEntries in parallel to each of the other servers in the cluster
-                    this.outboundManager.newMessage().subscribe();
-
-                });
+                .then(
+                        // issue empty AppendEntries in parallel to each of the other servers in the cluster
+                        this.outboundManager.newMessage()
+                )
+                .doFirst(() -> log.info("LEADER"));
 
     }
 
@@ -309,16 +277,11 @@ public class Leader extends RaftStateContext implements RaftState {
     @Override
     protected Mono<Void> postAppendEntries(AppendEntries appendEntries) {
 
+        // transit to follower state
         // deactivate PeerWorker
-        return this.outboundManager.clearMessages()
-                .doFirst(() -> {
-
-                    this.cleanVolatileState();
-
-                    // transit to follower state
-                    this.transitionManager.setNewFollowerState();
-
-                });
+        return this.transitionManager.setNewFollowerState()
+                .then(this.outboundManager.clearMessages())
+                .doFirst(this::cleanVolatileState);
 
 
     }
@@ -332,24 +295,22 @@ public class Leader extends RaftStateContext implements RaftState {
      * */
     private Mono<Void> reinitializeVolatileState() {
 
-        // Long defaultNextIndex = this.logService.getLastEntryIndex() + 1;
+        return this.logService.getLastEntryIndex()
+                .map(defaultNextIndex -> defaultNextIndex + 1)
+                .flatMap(defaultNextIndex ->
 
-        return Flux.fromIterable(this.raftProperties.getCluster())
-                .doFirst(() -> {
+                    Flux.fromIterable(this.raftProperties.getCluster())
+                            .doFirst(() -> {
+                                this.nextIndex = new HashMap<>();
+                                this.matchIndex = new HashMap<>();
+                            })
+                            .doOnNext(serverName -> {
+                                this.nextIndex.put(serverName, defaultNextIndex);
+                                this.matchIndex.put(serverName, (long) 0);
+                            })
+                            .then()
 
-                    this.nextIndex = new HashMap<>();
-                    this.matchIndex = new HashMap<>();
-
-                })
-                .doOnNext(serverName -> {
-
-                    // this.nextIndex.put(serverName, defaultNextIndex);
-
-                    this.nextIndex.put(serverName, (long) 1);
-                    this.matchIndex.put(serverName, (long) 0);
-
-                })
-                .then();
+                );
 
     }
 
@@ -393,8 +354,7 @@ public class Leader extends RaftStateContext implements RaftState {
      * */
     private Mono<AppendEntries> createAppendEntries(State state, LogState logState, Entry lastEntry, List<Entry> entries) {
 
-        return Mono.defer(() ->
-                Mono.just(
+        return Mono.just(
                     this.applicationContext.getBean(
                         AppendEntries.class,
                         state.getCurrentTerm(), // term
@@ -404,8 +364,7 @@ public class Leader extends RaftStateContext implements RaftState {
                         entries, // entries
                         logState.getCommittedIndex() // leaderCommit
                     )
-                )
-        );
+                );
 
     }
 

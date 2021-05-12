@@ -15,8 +15,6 @@ import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
 
-import java.time.Duration;
-
 @Component
 @Order(2)
 public class PeerWorkers implements ApplicationRunner {
@@ -60,22 +58,21 @@ public class PeerWorkers implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
 
-        OutboundContext context = this.applicationContext.getBean(OutboundContext.class);
-        ConsensusModule module = this.applicationContext.getBean(ConsensusModule.class);
-
         Flux.fromIterable(this.raftProperties.getCluster())
-                .doOnNext(server -> {
-                    PeerWorker worker = this.applicationContext.getBean(
+                .map(server ->
+                        this.applicationContext.getBean(
                             PeerWorker.class,
-                            context,
-                            module,
+                            this.applicationContext.getBean(OutboundContext.class),
+                            this.applicationContext.getBean(ConsensusModule.class),
                             this.raftProperties,
                             server
-                    );
+                        )
+                )
+                .doOnNext(worker -> {
                     this.outboundManager.subscribe(worker);
                     this.scheduler.schedule(worker);
                 })
-                .subscribe();
+                .blockLast();
 
     }
 

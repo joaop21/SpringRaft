@@ -46,19 +46,13 @@ public class REST implements OutboundStrategy {
     @Override
     public Mono<?> request(String command, String location) {
 
-        return Mono.defer(() -> {
-
-            String[] tokens = command.split(";;;");
-            HttpMethod HTTPMethod = HttpMethod.valueOf(tokens[0]);
-            String endpoint = tokens[1];
-            String body = String.join(";;;", Arrays.asList(tokens).subList(2, tokens.length));
-
-            return Mono.just(new Object[]{HTTPMethod, endpoint, body});
-
-        })
-                .flatMap(array ->
-                   this.sendRequestToServer(location, (HttpMethod) array[0], (String) array[1], (String) array[2])
-                );
+        return Mono.just(command.split(";;;"))
+                .flatMap(tokens -> Mono.zip(
+                            Mono.just(HttpMethod.valueOf(tokens[0])),
+                            Mono.just(tokens[1]),
+                            Mono.just(String.join(";;;", Arrays.asList(tokens).subList(2, tokens.length))))
+                )
+                .flatMap(tuple -> this.sendRequestToServer(location, tuple.getT1(), tuple.getT2(), tuple.getT3()));
 
     }
 
@@ -104,13 +98,16 @@ public class REST implements OutboundStrategy {
                         .uri(route)
                         .retrieve()
                         .toEntity(Object.class)
+                        .subscribeOn(this.scheduler)
 
                 : WebClient.create("http://" + to)
                         .method(method)
                         .uri(route)
                         .bodyValue(body)
                         .retrieve()
-                        .toEntity(Object.class);
+                        .toEntity(Object.class)
+                        .subscribeOn(this.scheduler)
+                ;
 
     }
 

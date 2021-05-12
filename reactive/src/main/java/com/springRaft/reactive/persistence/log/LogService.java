@@ -76,9 +76,7 @@ public class LogService {
      * */
     public Mono<Entry> getLastEntry() {
         return this.entryRepository.findLastEntry()
-                .switchIfEmpty(
-                        Mono.just(new Entry((long) 0, (long) 0, null, false))
-                );
+                .switchIfEmpty(Mono.just(new Entry((long) 0, (long) 0, null, false)));
     }
 
     /**

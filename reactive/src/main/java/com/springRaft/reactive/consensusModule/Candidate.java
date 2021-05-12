@@ -63,28 +63,10 @@ public class Candidate extends RaftStateContext implements RaftState {
     public Mono<Void> appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
 
         return this.stateService.getCurrentTerm()
-                .flatMap(currentTerm -> {
-
-                    if (appendEntriesReply.getTerm() > currentTerm) {
-
-                        return this.stateService.setState(appendEntriesReply.getTerm(), null)
-                                .doOnTerminate(() -> {
-
-                                    this.cleanBeforeTransit().subscribe();
-
-                                    // transit to follower state
-                                    this.transitionManager.setNewFollowerState();
-
-                                })
-                                .then();
-
-                    } else {
-
-                        return Mono.empty();
-
-                    }
-
-                });
+                .filter(currentTerm -> appendEntriesReply.getTerm() > currentTerm)
+                .flatMap(currentTerm -> this.stateService.setState(appendEntriesReply.getTerm(), null))
+                .then(this.cleanBeforeTransit())
+                .then(this.transitionManager.setNewFollowerState());
 
     }
 
@@ -92,10 +74,7 @@ public class Candidate extends RaftStateContext implements RaftState {
     public Mono<RequestVoteReply> requestVote(RequestVote requestVote) {
 
         // get a reply object
-        Mono<RequestVoteReply> replyMono = Mono.defer(
-                () -> Mono.just(this.applicationContext.getBean(RequestVoteReply.class))
-        );
-
+        Mono<RequestVoteReply> replyMono = Mono.just(this.applicationContext.getBean(RequestVoteReply.class));
         // get the current term
         Mono<Long> currentTermMono = this.stateService.getCurrentTerm();
 
@@ -107,14 +86,11 @@ public class Candidate extends RaftStateContext implements RaftState {
 
                     if(requestVote.getTerm() <= currentTerm) {
 
-                        return Mono.defer(() -> {
+                        // revoke request
+                        reply.setTerm(currentTerm);
+                        reply.setVoteGranted(false);
 
-                            // revoke request
-                            reply.setTerm(currentTerm);
-                            reply.setVoteGranted(false);
-
-                            return Mono.just(reply);
-                        });
+                        return Mono.just(reply);
 
                     } else {
 
@@ -123,14 +99,10 @@ public class Candidate extends RaftStateContext implements RaftState {
                         // update term
                         return this.stateService.setState(requestVote.getTerm(), null)
                                 .flatMap(state -> this.checkLog(requestVote, reply))
-                                .doOnTerminate(() -> {
-
-                                    this.cleanBeforeTransit().subscribe();
-
-                                    // transit to follower state
-                                    this.transitionManager.setNewFollowerState();
-
-                                });
+                                .zipWith(
+                                        Mono.zip(this.cleanBeforeTransit(), this.transitionManager.setNewFollowerState()),
+                                        (rvreply, zipTuple) -> rvreply
+                                );
 
 
                     }
@@ -149,14 +121,8 @@ public class Candidate extends RaftStateContext implements RaftState {
 
                         // update term
                         return this.stateService.setState(requestVoteReply.getTerm(), null)
-                                .doOnTerminate(() -> {
-
-                                    this.cleanBeforeTransit().subscribe();
-
-                                    // transit to follower state
-                                    this.transitionManager.setNewFollowerState();
-
-                                });
+                                .then(this.cleanBeforeTransit())
+                                .then(this.transitionManager.setNewFollowerState());
 
                     } else {
 
@@ -167,11 +133,7 @@ public class Candidate extends RaftStateContext implements RaftState {
                             if (this.votesGranted >= this.raftProperties.getQuorum()) {
 
                                 // transit to leader state
-                                return this.cleanBeforeTransit()
-                                        .doOnTerminate(
-                                                // transit to leader state
-                                                this.transitionManager::setNewLeaderState
-                                        );
+                                return this.cleanBeforeTransit().then(this.transitionManager.setNewLeaderState());
 
                             }
 
@@ -181,8 +143,7 @@ public class Candidate extends RaftStateContext implements RaftState {
 
                     }
 
-                })
-                .then();
+                });
 
     }
 
@@ -192,14 +153,7 @@ public class Candidate extends RaftStateContext implements RaftState {
         // When in candidate state, there is nowhere to redirect the request or a leader to
         // handle them.
 
-        return Mono.defer(() ->
-                Mono.just(
-                        this.applicationContext.getBean(
-                                RequestReply.class, false,
-                                new Object(), false, ""
-                        )
-                )
-        );
+        return Mono.just(this.applicationContext.getBean(RequestReply.class, false, new Object(), false, ""));
 
         // probably we should store the requests, and redirect them when we became follower
         // or handle them when became leader
@@ -209,7 +163,7 @@ public class Candidate extends RaftStateContext implements RaftState {
     @Override
     public Mono<Pair<Message, Boolean>> getNextMessage(String to) {
 
-        return Mono.defer(() -> Mono.just(new Pair<>(this.requestVoteMessage, false)));
+        return Mono.just(new Pair<>(this.requestVoteMessage, false));
 
     }
 
@@ -248,10 +202,10 @@ public class Candidate extends RaftStateContext implements RaftState {
                             );
 
                     // issue RequestVote RPCs in parallel to each of the other servers in the cluster
-                    return this.outboundManager.newMessage();
+                    return this.outboundManager.newMessage()
+                            .then(this.setTimeout());
 
-                })
-                .doOnTerminate(this::setTimeout);
+                });
 
     }
 
@@ -259,10 +213,8 @@ public class Candidate extends RaftStateContext implements RaftState {
 
     @Override
     protected Mono<Void> postAppendEntries(AppendEntries appendEntries) {
-
         // transit to follower state
-        return this.cleanBeforeTransit().doOnTerminate(this.transitionManager::setNewFollowerState);
-
+        return this.cleanBeforeTransit().then(this.transitionManager.setNewFollowerState());
     }
 
     /* --------------------------------------------------- */
@@ -270,12 +222,12 @@ public class Candidate extends RaftStateContext implements RaftState {
     /**
      * Set a timer in milliseconds that represents a timeout.
      * */
-    private void setTimeout() {
+    private Mono<Void> setTimeout() {
 
-        this.transitionManager.setElectionTimeout()
+        return this.transitionManager.setElectionTimeout()
                 .doOnNext(task -> this.scheduledTransition = task)
                 .subscribeOn(Schedulers.single())
-                .subscribe();
+                .then();
 
     }
 
@@ -286,16 +238,13 @@ public class Candidate extends RaftStateContext implements RaftState {
      * */
     private Mono<Void> cleanBeforeTransit() {
 
-        return Mono.defer(() -> {
+        // delete the existing scheduled task
+        this.scheduledTransition.dispose();
 
-            // delete the existing scheduled task
-            this.scheduledTransition.dispose();
+        // change message to null and notify peer workers
+        this.requestVoteMessage = null;
 
-            // change message to null and notify peer workers
-            this.requestVoteMessage = null;
-            return this.outboundManager.clearMessages();
-
-        });
+        return this.outboundManager.clearMessages();
 
     }
 

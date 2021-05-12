@@ -28,7 +28,7 @@ public class StateTransition implements Runnable {
 
         // transitions to candidate state
         RaftState raftState = applicationContext.getBean(state);
-        this.consensusModule.setCurrentState(raftState);
+        this.consensusModule.setCurrentState(raftState).subscribe();
 
     }
 

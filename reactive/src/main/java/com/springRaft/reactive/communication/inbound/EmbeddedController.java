@@ -39,55 +39,48 @@ public class EmbeddedController {
      * @return Mono<ResponseEntity<?>> A response entity which includes the reply to the request made.
      * */
     @RequestMapping(value = "**")
-    public Mono<ResponseEntity<?>> clientRequestEndpoint(@RequestBody(required = false) String body, ServerHttpRequest request) {
+    public Mono<ResponseEntity<?>> clientRequestEndpoint(
+            @RequestBody(required = false) String body,
+            ServerHttpRequest request)
+    {
 
-        return Mono.defer(() ->
-                Mono.just(request.getMethod() + ";;;" + request.getPath() + ";;;" + body)
-        )
-                .flatMap(command ->
+        String command = request.getMethod() + ";;;" + request.getPath() + ";;;" + body;
+        return this.raftController.clientRequest(command)
+                .flatMap(requestReply -> {
 
-                    this.raftController.clientRequest(command)
-                        .flatMap(requestReply -> {
+                    System.out.println("\n\ncommand: " + command);
 
-                            System.out.println("\n\ncommand: " + command);
+                    if (requestReply.getSuccess()) {
+                        // if the reply is successful just return the response
 
-                            if (requestReply.getSuccess()) {
-                                // if the reply is successful just return the response
+                        return Mono.just((ResponseEntity<?>) requestReply.getResponse());
 
-                                return Mono.just((ResponseEntity<?>) requestReply.getResponse());
+                    } else {
 
-                            } else {
+                        if (requestReply.getRedirect()) {
+                            // send a request to leader, because I'm a follower
 
-                                if (requestReply.getRedirect()) {
-                                    // send a request to leader, because I'm a follower
-
-                                    return (Mono<ResponseEntity<?>>) this.outbound.request(
-                                            command.replaceFirst("/raft", ""),
-                                            requestReply.getRedirectTo());
+                            return (Mono<ResponseEntity<?>>) this.outbound.request(
+                                    command.replaceFirst("/raft", ""),
+                                    requestReply.getRedirectTo());
 
 
-                                } else {
-                                    // if I'm a candidate, I cant redirect to anyone
+                        } else {
+                            // if I'm a candidate, I cant redirect to anyone
 
-                                    return Mono.defer(() -> {
+                            HttpHeaders httpHeaders = new HttpHeaders();
+                            httpHeaders.set(
+                                    HttpHeaders.RETRY_AFTER,
+                                    Long.toString(this.raftProperties.getHeartbeat().toMillis() / 1000)
+                            );
 
-                                        HttpHeaders httpHeaders = new HttpHeaders();
-                                        httpHeaders.set(
-                                                HttpHeaders.RETRY_AFTER,
-                                                Long.toString(this.raftProperties.getHeartbeat().toMillis() / 1000)
-                                        );
+                            return Mono.just(new ResponseEntity<>(httpHeaders, HttpStatus.SERVICE_UNAVAILABLE));
 
-                                        return Mono.just(new ResponseEntity<>(httpHeaders, HttpStatus.SERVICE_UNAVAILABLE));
+                        }
 
-                                    });
+                    }
 
-                                }
-
-                            }
-
-                        })
-
-                );
+                });
 
     }
 

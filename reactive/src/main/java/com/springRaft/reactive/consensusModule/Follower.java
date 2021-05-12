@@ -59,29 +59,9 @@ public class Follower extends RaftStateContext implements RaftState {
     public Mono<Void> appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
 
         return this.stateService.getCurrentTerm()
-                .flatMap(currentTerm -> {
-
-                    if (appendEntriesReply.getTerm() > currentTerm) {
-
-                        return this.stateService.setState(appendEntriesReply.getTerm(), null)
-                                .doOnTerminate(() -> {
-
-                                    // delete the existing scheduled task
-                                    this.scheduledTransition.dispose();
-
-                                    // set a new timeout, it's equivalent to transit to a new follower state
-                                    this.setTimeout();
-
-                                })
-                                .then();
-
-                    } else {
-
-                        return Mono.empty();
-
-                    }
-
-                });
+                .filter(currentTerm -> appendEntriesReply.getTerm() > currentTerm)
+                .flatMap(currentTerm -> this.stateService.setState(appendEntriesReply.getTerm(), null))
+                .flatMap(state -> this.cleanBeforeTransit());
 
     }
 
@@ -89,10 +69,7 @@ public class Follower extends RaftStateContext implements RaftState {
     public Mono<RequestVoteReply> requestVote(RequestVote requestVote) {
 
         // get a reply object
-        Mono<RequestVoteReply> replyMono = Mono.defer(
-                () -> Mono.just(this.applicationContext.getBean(RequestVoteReply.class))
-        );
-
+        Mono<RequestVoteReply> replyMono = Mono.just(this.applicationContext.getBean(RequestVoteReply.class));
         // get the current term
         Mono<Long> currentTermMono = this.stateService.getCurrentTerm();
 
@@ -108,6 +85,8 @@ public class Follower extends RaftStateContext implements RaftState {
                         reply.setTerm(currentTerm);
                         reply.setVoteGranted(false);
 
+                        return Mono.just(reply);
+
                     } else if (requestVote.getTerm() > currentTerm) {
 
                         reply.setTerm(requestVote.getTerm());
@@ -115,25 +94,15 @@ public class Follower extends RaftStateContext implements RaftState {
                         // update term
                         return this.stateService.setState(requestVote.getTerm(), null)
                                 .flatMap(state -> this.checkLog(requestVote, reply))
-                                .doOnTerminate(() -> {
+                                .zipWith(this.cleanBeforeTransit(), (rvreply, clean) -> rvreply);
 
-                                    // delete the existing scheduled task
-                                    this.scheduledTransition.dispose();
-
-                                    // set a new timeout, it's equivalent to transit to a new follower state
-                                    this.setTimeout();
-
-                                });
-
-                    } else if (requestVote.getTerm() == currentTerm) {
+                    } else {
 
                         reply.setTerm(currentTerm);
 
                         return this.checkLog(requestVote, reply);
 
                     }
-
-                    return Mono.defer(() -> Mono.just(reply));
 
                 });
 
@@ -146,43 +115,25 @@ public class Follower extends RaftStateContext implements RaftState {
                 // if term is greater than mine, I should update it and transit to new follower
                 .filter(currentTerm -> requestVoteReply.getTerm() > currentTerm)
                 .flatMap(currentTerm ->
-
-                    // update term
-                    this.stateService.setState(requestVoteReply.getTerm(), null)
-                            .doOnTerminate(() -> {
-
-                                // delete the existing scheduled task
-                                this.scheduledTransition.dispose();
-
-                                // set a new timeout, it's equivalent to transit to a new follower state
-                                this.setTimeout();
-
-                            })
+                        // update term
+                        this.stateService.setState(requestVoteReply.getTerm(), null)
                 )
+                .flatMap(state -> this.cleanBeforeTransit())
                 .then();
 
     }
 
     @Override
     public Mono<RequestReply> clientRequest(String command) {
-
         // When in follower state, we need to redirect the request to the leader
-        return Mono.defer(() ->
-                Mono.just(
-                        this.applicationContext.getBean(
-                                RequestReply.class, false,
-                                new Object(), true, this.leaderId
-                        )
-                )
+        return Mono.just(
+                this.applicationContext.getBean(RequestReply.class, false, new Object(), true, this.leaderId)
         );
-
     }
 
     @Override
     public Mono<Pair<Message, Boolean>> getNextMessage(String to) {
-
-        return Mono.defer(() -> Mono.just(new Pair<>(null, false)));
-
+        return Mono.just(new Pair<>(null, false));
     }
 
     @Override
@@ -190,11 +141,8 @@ public class Follower extends RaftStateContext implements RaftState {
 
         return this.transitionManager.setElectionTimeout()
                 .doFirst(() -> {
-
                     log.info("FOLLOWER");
-
                     this.leaderId = this.raftProperties.getHost();
-
                 })
                 .doOnNext(task -> this.scheduledTransition = task)
                 .then();
@@ -205,21 +153,7 @@ public class Follower extends RaftStateContext implements RaftState {
 
     @Override
     protected Mono<Void> postAppendEntries(AppendEntries appendEntries) {
-
-        return Mono.defer(() -> {
-
-            this.leaderId = appendEntries.getLeaderId();
-
-            // delete the existing scheduled task
-            this.scheduledTransition.dispose();
-
-            // set a new timeout, it's equivalent to transit to a new follower state
-            this.setTimeout();
-
-            return Mono.empty();
-
-        });
-
+        return this.cleanBeforeTransit().doFirst(() -> this.leaderId = appendEntries.getLeaderId());
     }
 
     /* --------------------------------------------------- */
@@ -227,12 +161,29 @@ public class Follower extends RaftStateContext implements RaftState {
     /**
      * Set a timer in milliseconds that represents a timeout.
      * */
-    private void setTimeout() {
+    private Mono<Void> setTimeout() {
 
-        this.transitionManager.setElectionTimeout()
+        return this.transitionManager.setElectionTimeout()
                 .doOnNext(task -> this.scheduledTransition = task)
                 .subscribeOn(Schedulers.single())
-                .subscribe();
+                .then();
+
+    }
+
+    /**
+     * Method that cleans the volatile state before set a new timeout.
+     * */
+    private Mono<Void> cleanBeforeTransit() {
+
+        return Mono.defer(() -> {
+
+            // delete the existing scheduled task
+            this.scheduledTransition.dispose();
+
+            // set a new timeout, it's equivalent to transit to a new follower state
+            return this.setTimeout();
+
+        });
 
     }
 
