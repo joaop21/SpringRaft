@@ -10,7 +10,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
-import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Component
 @Order(1)
@@ -26,18 +26,20 @@ public class Strategies implements ApplicationRunner {
     /* --------------------------------------------------- */
 
     @Override
-    public void run(ApplicationArguments args) throws Exception {
+    public void run(ApplicationArguments args) {
 
         // COMMUNICATION
-        Flux.just(this.raftProperties.getCommunicationStrategy().toUpperCase())
-                .doOnNext(strategy -> {
-                    OutboundContext context = this.applicationContext.getBean(OutboundContext.class);
+        Mono<OutboundStrategy> communicationStrategy =
+                Mono.just(this.raftProperties.getCommunicationStrategy().toUpperCase())
+                    .map(strategy ->
+                        switch (strategy) {
+                            default -> applicationContext.getBean(REST.class);
+                        }
+                    );
 
-                    switch (strategy) {
-                        default -> context.setCommunicationStrategy(applicationContext.getBean(REST.class));
-                    }
-                })
-                .subscribe();
+        Mono.zip(communicationStrategy, Mono.just(this.applicationContext.getBean(OutboundContext.class)))
+                .doOnNext(tuple -> tuple.getT2().setCommunicationStrategy(tuple.getT1()))
+                .block();
 
     }
 }

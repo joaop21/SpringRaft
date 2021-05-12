@@ -59,15 +59,23 @@ public class LogService {
     }
 
     /**
+     * Method that gets the index of the last entry in the log.
+     *
+     * @return Long that represents the index.
+     * */
+    public Mono<Long> getLastEntryIndex() {
+        return this.entryRepository.findLastEntryIndex()
+                .switchIfEmpty(Mono.just((long)0));
+    }
+
+    /**
      * Method that gets the last entry in the log.
      *
      * @return Mono<Entry> Last entry in the log.
      * */
     public Mono<Entry> getLastEntry() {
         return this.entryRepository.findLastEntry()
-                .switchIfEmpty(
-                        Mono.just(new Entry((long) 0, (long) 0, null, false))
-                );
+                .switchIfEmpty(Mono.just(new Entry((long) 0, (long) 0, null, false)));
     }
 
 }

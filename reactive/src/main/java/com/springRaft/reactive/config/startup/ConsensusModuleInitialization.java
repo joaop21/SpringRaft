@@ -10,6 +10,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
 @Component
@@ -42,9 +43,9 @@ public class ConsensusModuleInitialization implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        StateTransition transition = this.applicationContext
-                .getBean(StateTransition.class, this.applicationContext, this.consensusModule, Follower.class);
-        this.scheduler.schedule(transition);
+        Mono.just(this.applicationContext.getBean(StateTransition.class, this.applicationContext, this.consensusModule, Follower.class))
+                .doOnNext(this.scheduler::schedule)
+                .block();
     }
 
 }

@@ -29,9 +29,9 @@ public class ConsensusModule implements RaftState {
      *
      * @param state The new raft state of this consensus module.
      * */
-    public void setCurrentState(RaftState state) {
+    public Mono<Void> setCurrentState(RaftState state) {
         this.current = state;
-        this.start().subscribe();
+        return this.start();
     }
 
     /* --------------------------------------------------- */
