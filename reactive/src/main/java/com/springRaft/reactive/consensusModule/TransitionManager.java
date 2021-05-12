@@ -69,11 +69,7 @@ public class TransitionManager {
      * */
     public Mono<Void> setNewFollowerState() {
 
-        return Mono.just(
-                applicationContext.getBean(StateTransition.class, applicationContext, consensusModule, Follower.class)
-        )
-                .doOnNext(this.scheduler::schedule)
-                .then();
+        return Mono.just(applicationContext.getBean(Follower.class)).flatMap(this.consensusModule::setCurrentState);
 
     }
 
@@ -82,11 +78,7 @@ public class TransitionManager {
      * */
     public Mono<Void> setNewLeaderState() {
 
-        return Mono.just(
-                applicationContext.getBean(StateTransition.class, applicationContext, consensusModule, Leader.class)
-        )
-                .doOnNext(this.scheduler::schedule)
-                .then();
+        return Mono.just(applicationContext.getBean(Leader.class)).flatMap(this.consensusModule::setCurrentState);
 
     }
 
