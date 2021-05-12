@@ -56,43 +56,37 @@ public class TransitionManager {
                 this.raftProperties.getElectionTimeoutMax().toMillis()
         );
 
-        Mono<StateTransition> transitionMono = Mono.defer(() ->
-                Mono.just(this.applicationContext.getBean(StateTransition.class, applicationContext, consensusModule, Candidate.class))
-        );
+        Mono<StateTransition> transitionMono =
+                Mono.just(this.applicationContext.getBean(StateTransition.class, applicationContext, consensusModule, Candidate.class));
 
-        return Mono.zip(timeoutMono, transitionMono)
-                .flatMap(tuple ->
-                        Mono.defer(() -> Mono.just(
-                                this.scheduler.schedule(tuple.getT2(), tuple.getT1(), TimeUnit.MILLISECONDS)
-                        ))
-                );
+        return timeoutMono.zipWith(transitionMono,
+                (timeout, transition) -> this.scheduler.schedule(transition, timeout, TimeUnit.MILLISECONDS));
 
     }
 
     /**
      * Method for creating a new follower state transition which takes place on transition scheduler.
      * */
-    public void setNewFollowerState() {
+    public Mono<Void> setNewFollowerState() {
 
-        Mono.defer(() -> Mono.just(
-                applicationContext
-                        .getBean(StateTransition.class, applicationContext, consensusModule, Follower.class))
+        return Mono.just(
+                applicationContext.getBean(StateTransition.class, applicationContext, consensusModule, Follower.class)
         )
                 .doOnNext(this.scheduler::schedule)
-                .subscribe();
+                .then();
 
     }
 
     /**
      * Method for creating a new leader state transition which takes place on transition scheduler.
      * */
-    public void setNewLeaderState() {
+    public Mono<Void> setNewLeaderState() {
 
-        Mono.defer(() -> Mono.just(
+        return Mono.just(
                 applicationContext.getBean(StateTransition.class, applicationContext, consensusModule, Leader.class)
-        ))
+        )
                 .doOnNext(this.scheduler::schedule)
-                .subscribe();
+                .then();
 
     }
 

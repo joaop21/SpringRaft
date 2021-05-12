@@ -11,18 +11,11 @@ import com.springRaft.reactive.persistence.log.LogService;
 import com.springRaft.reactive.persistence.state.State;
 import com.springRaft.reactive.persistence.state.StateService;
 import lombok.AllArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import reactor.core.publisher.Mono;
 
 @AllArgsConstructor
 public abstract class RaftStateContext {
-
-    /* Logger */
-    private static final Logger log = LoggerFactory.getLogger(RaftStateContext.class);
-
-
 
     /* Application Context for getting beans */
     protected final ApplicationContext applicationContext;
@@ -54,9 +47,12 @@ public abstract class RaftStateContext {
     /* --------------------------------------------------- */
 
     /**
-     * TODO
+     * Method that prepares a reply to the RequestVoteRPC after checking the log against the RequestVote received.
      *
-     * @return
+     * @param requestVote Message sent when invoking a RequestVote RPC.
+     * @param reply Object that represents the reply to send that has to be filled.
+     *
+     * @return RequestVoteReply Reply after checking the RequestVote against the log.
      * */
     protected Mono<RequestVoteReply> checkLog(RequestVote requestVote, RequestVoteReply reply) {
 
@@ -89,14 +85,19 @@ public abstract class RaftStateContext {
 
                     }
 
-                    return Mono.defer(() -> Mono.just(reply));
+                    return Mono.just(reply);
 
                 });
 
     }
 
     /**
-     * TODO
+     * Method that has replicated code used in checkLog method.
+     *
+     * @param requestVote Message sent when invoking a RequestVote RPC.
+     * @param reply Object that represents the reply to send that has to be filled.
+     *
+     * @return RequestVoteReply Reply after checking the RequestVote against the log.
      * */
     private Mono<RequestVoteReply> setVote(RequestVote requestVote, RequestVoteReply reply) {
 
@@ -114,7 +115,7 @@ public abstract class RaftStateContext {
                     } else {
 
                         reply.setVoteGranted(false);
-                        return Mono.defer(() -> Mono.just(reply));
+                        return Mono.just(reply);
 
                     }
 
@@ -125,14 +126,15 @@ public abstract class RaftStateContext {
     /* --------------------------------------------------- */
 
     /**
-     * TODO
+     * Shared method between the 3 raft states for the handling of an AppendEntriesRPC.
+     *
+     * @param appendEntries Message that contains the information of an AppendEntries request communication.
+     *
+     * @return AppendEntriesReply Object that represents the reply of that RPC.
      * */
     protected Mono<AppendEntriesReply> appendEntries(AppendEntries appendEntries) {
 
-        Mono<AppendEntriesReply> replyMono = Mono.defer(
-                () -> Mono.just(this.applicationContext.getBean(AppendEntriesReply.class))
-        );
-
+        Mono<AppendEntriesReply> replyMono = Mono.just(this.applicationContext.getBean(AppendEntriesReply.class));
         Mono<Long> currentTermMono = this.stateService.getCurrentTerm();
 
         return Mono.zip(replyMono, currentTermMono)
@@ -146,7 +148,7 @@ public abstract class RaftStateContext {
                         reply.setTerm(currentTerm);
                         reply.setSuccess(false);
 
-                        return Mono.defer(() -> Mono.just(reply));
+                        return Mono.just(reply);
 
                     } else {
 
@@ -191,6 +193,7 @@ public abstract class RaftStateContext {
 
                             reply.setSuccess(true);
 
+                            // code to include
                             // this.applyAppendEntries(appendEntries);
 
                         } else {
@@ -205,7 +208,7 @@ public abstract class RaftStateContext {
 
                     }
 
-                    return Mono.defer(() -> Mono.just(reply));
+                    return Mono.just(reply);
 
                 });
 
