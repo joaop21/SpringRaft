@@ -8,11 +8,16 @@ import com.springRaft.reactive.communication.outbound.OutboundManager;
 import com.springRaft.reactive.config.RaftProperties;
 import com.springRaft.reactive.persistence.log.Entry;
 import com.springRaft.reactive.persistence.log.LogService;
+import com.springRaft.reactive.persistence.log.LogState;
 import com.springRaft.reactive.persistence.state.State;
 import com.springRaft.reactive.persistence.state.StateService;
+import com.springRaft.reactive.util.Pair;
 import lombok.AllArgsConstructor;
 import org.springframework.context.ApplicationContext;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.Comparator;
 
 @AllArgsConstructor
 public abstract class RaftStateContext {
@@ -161,7 +166,8 @@ public abstract class RaftStateContext {
 
                         return stateMono.flatMap(state ->
                             this.setAppendEntriesReply(appendEntries, reply)
-                                    .doOnTerminate(() -> this.postAppendEntries(appendEntries).subscribe())
+                                    .flatMap(appendEntriesReply ->
+                                            this.postAppendEntries(appendEntries).then(Mono.just(appendEntriesReply)))
                         );
 
                     }
@@ -193,8 +199,7 @@ public abstract class RaftStateContext {
 
                             reply.setSuccess(true);
 
-                            // code to include
-                            // this.applyAppendEntries(appendEntries);
+                            return this.applyAppendEntries(appendEntries).then(Mono.just(reply));
 
                         } else {
 
@@ -211,6 +216,76 @@ public abstract class RaftStateContext {
                     return Mono.just(reply);
 
                 });
+
+    }
+
+    /**
+     * Method for insert new entries in log and update the committed values in log state.
+     *
+     * @param appendEntries The received AppendEntries communication.
+     * */
+    private Mono<Void> applyAppendEntries(AppendEntries appendEntries) {
+
+        if (appendEntries.getEntries().size() != 0) {
+
+            // delete all the following conflict entries
+            return this.logService.deleteIndexesGreaterThan(appendEntries.getPrevLogIndex())
+                    .thenMany(Flux.fromIterable(appendEntries.getEntries()))
+                    .map(entry -> {
+                        entry.setNew(true);
+                        return entry;
+                    })
+                    .collectList()
+                    .flatMapMany(this.logService::saveAllEntries)
+                    .collectSortedList(Comparator.comparing(Entry::getIndex).reversed())
+                    .flatMap(entries -> this.updateCommittedEntries(appendEntries, entries.get(0)));
+
+        } else {
+
+            return this.logService.getLastEntry()
+                    .flatMap(entry -> this.updateCommittedEntries(appendEntries,entry));
+
+        }
+
+    }
+
+    /**
+     * Method that updates the log state in case of leaderCommit > committedIndex.
+     * It also notifies the state machine worker because of a new commit if that's the case.
+     *
+     * @param appendEntries The received AppendEntries communication.
+     * @param lastEntry The last Entry to compare values.
+     * */
+    private Mono<Void> updateCommittedEntries (AppendEntries appendEntries, Entry lastEntry) {
+
+        Mono<Entry> entryMono = Mono.just(lastEntry.getIndex() <= appendEntries.getLeaderCommit())
+                .flatMap(conditional -> {
+                   if (conditional) return Mono.just(lastEntry);
+                   else return this.logService.getEntryByIndex(appendEntries.getLeaderCommit());
+                });
+
+        return this.logService.getState()
+                .filter(logState -> appendEntries.getLeaderCommit() > logState.getCommittedIndex())
+                .flatMap(logState -> entryMono.map(entry -> new Pair<>(logState,entry)))
+                .flatMap(pair -> {
+
+                    LogState logState = pair.getFirst();
+                    Entry entry = pair.getSecond();
+
+                    logState.setCommittedIndex(entry.getIndex());
+                    logState.setCommittedTerm(entry.getTerm());
+                    logState.setNew(false);
+
+                    return this.logService.saveState(logState);
+
+                })
+                .then();
+
+        // ....
+        // IT NEEDS TO ADD THIS CODE
+        // ....
+        // notify state machine of a new commit
+        //this.commitmentPublisher.newCommit();
 
     }
 

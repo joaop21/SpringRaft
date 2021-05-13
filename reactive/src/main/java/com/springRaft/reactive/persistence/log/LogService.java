@@ -110,4 +110,27 @@ public class LogService {
 
     }
 
+    /**
+     * Method that deletes all the log entries with an index greater than a specific value.
+     *
+     * @param index Long that represents the index.
+     *
+     * @return Integer that represents the elements deleted.
+     * */
+    public Mono<Integer> deleteIndexesGreaterThan(Long index) {
+        return this.entryRepository.deleteEntryByIndexGreaterThan(index);
+    }
+
+    /**
+     * Method that saves all the entries in a list.
+     *
+     * @param entries List of entries to save.
+     *
+     * @return Flux<Entry> Entries saved.
+     * */
+    @Synchronized
+    public Flux<Entry> saveAllEntries(List<Entry> entries) {
+        return this.entryRepository.saveAll(entries);
+    }
+
 }

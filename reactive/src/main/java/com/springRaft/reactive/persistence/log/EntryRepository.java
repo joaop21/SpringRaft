@@ -38,7 +38,9 @@ public interface EntryRepository extends ReactiveCrudRepository<Entry,Long> {
      * Delete Method for deleting entries with an index greater than a specific number.
      *
      * @param index Long that represents the index from which the following will be deleted.
+     *
+     * @return Integer that represents the elements deleted.
      * */
-    Mono<Void> deleteEntryByIndexGreaterThan(Long index);
+    Mono<Integer> deleteEntryByIndexGreaterThan(Long index);
 
 }
