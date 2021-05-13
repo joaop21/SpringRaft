@@ -21,10 +21,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @Scope("singleton")
@@ -74,12 +71,35 @@ public class Leader extends RaftStateContext implements RaftState {
 
         if (appendEntriesReply.getSuccess()) {
 
-            // ...
-            // IT NEEDS MORE CODE HERE
-            // IT NEEDS MORE CODE HERE
-            // ...
+            return this.logService.getLastEntryIndex()
+                    .map(index -> index + 1)
+                    .doOnNext(lastEntryIndex -> {
 
-            return Mono.empty();
+                        long nextIndex = this.nextIndex.get(from);
+                        long matchIndex = this.matchIndex.get(from);
+
+                        // compare last entry with next index for "from" server
+                        if (nextIndex != lastEntryIndex) {
+
+                            if (matchIndex != (nextIndex - 1)) {
+
+                                this.matchIndex.put(from, nextIndex - 1);
+
+                            } else {
+
+                                this.matchIndex.put(from, nextIndex);
+                                this.nextIndex.put(from, nextIndex + 1);
+
+                            }
+
+                        } else {
+
+                            this.matchIndex.put(from, nextIndex - 1);
+
+                        }
+
+                    })
+                    .flatMap(index -> this.setCommitIndex(from));
 
         } else {
 
@@ -149,9 +169,10 @@ public class Leader extends RaftStateContext implements RaftState {
                                 .doOnNext(requestVoteReply -> {
                                     this.cleanVolatileState();
                                 })
-                                .zipWith(
-                                        Mono.zip(this.transitionManager.setNewFollowerState(), this.outboundManager.clearMessages()),
-                                        (requestVoteReply, tuple2) -> requestVoteReply
+                                .flatMap(requestVoteReply ->
+                                        this.transitionManager.setNewFollowerState()
+                                            .then(this.outboundManager.clearMessages())
+                                            .then(Mono.just(requestVoteReply))
                                 );
 
                     }
@@ -183,40 +204,18 @@ public class Leader extends RaftStateContext implements RaftState {
         // For now it remains like this
         // but it has to change in order to replicate the request
         // ...
-        /*return Mono.defer(() -> {
-
-            HttpHeaders httpHeaders = new HttpHeaders();
-            httpHeaders.setContentType(MediaType.APPLICATION_JSON);
-
-            Map<String, String> response = new HashMap<>(){{
-                put("command", command);
-            }};
-
-            return Mono.just(
-                    this.applicationContext.getBean(
-                            RequestReply.class, true,
-                            new ResponseEntity<>(response, httpHeaders, HttpStatus.OK), false, ""
-                    )
-            );
-        });*/
 
         return this.stateService.getCurrentTerm()
-                .flatMap(currentTerm ->
-
-                        this.logService.insertEntry(new Entry(currentTerm, command, true))
-                                .doOnNext(entry -> this.outboundManager.newMessage().subscribe())
-                                .flatMap(entry ->
-                                        Mono.defer(() ->
-
-                                            Mono.just(
-                                                    this.applicationContext.getBean(
-                                                            RequestReply.class, true,
-                                                            new ResponseEntity<>(entry, HttpStatus.OK), false, ""
-                                                    )
-                                            )
-
-                                        )
-                                )
+                .flatMap(currentTerm -> this.logService.insertEntry(new Entry(currentTerm, command, true)))
+                .flatMap(entry -> Mono.just(
+                        this.applicationContext.getBean(
+                                RequestReply.class, true,
+                                new ResponseEntity<>(entry, HttpStatus.OK), false, ""
+                        )
+                ))
+                .flatMap(requestReply ->
+                        this.outboundManager.newMessage()
+                            .then(Mono.just(requestReply))
                 );
 
     }
@@ -247,9 +246,26 @@ public class Leader extends RaftStateContext implements RaftState {
                                     return this.heartbeatAppendEntries()
                                             .map(message -> new Pair<>(message, false));
 
-                                } else {
+                                } else if(matchIndex == (nextIndex - 1)) {
+                                    // if there is an entry, and the logs are matching,
+                                    // send that entry
 
-                                    return this.heartbeatAppendEntries()
+                                    return this.logService.getEntriesBetweenIndexes(
+                                            nextIndex,
+                                            nextIndex + this.raftProperties.getEntriesPerCommunication()
+                                    )
+                                            .collectSortedList(Comparator.comparing(Entry::getIndex))
+                                            .doOnNext(entries -> this.nextIndex.put(to, nextIndex + entries.size()))
+                                            .flatMap(entries ->
+                                                    this.createAppendEntries(entries.get(0), entries)
+                                                            .map(message -> new Pair<>(message, false))
+                                            );
+
+                                } else {
+                                    // if there is an entry, but the logs are not matching,
+                                    // send the appendEntries with no entries
+
+                                    return this.createAppendEntries(entry)
                                             .map(message -> new Pair<>(message, true));
 
                                 }
@@ -343,6 +359,39 @@ public class Leader extends RaftStateContext implements RaftState {
     }
 
     /**
+     * Method that creates an AppendEntries with the new entry
+     *
+     * @param entry New entry to replicate.
+     *
+     * @return AppendEntries Message to pass to another server.
+     * */
+    private Mono<AppendEntries> createAppendEntries(Entry entry) {
+
+        return this.createAppendEntries(entry, new ArrayList<>());
+
+    }
+
+    /**
+     * Method that creates an AppendEntries with the new entry
+     *
+     * @param entry New entry to replicate.
+     * @param entries Entries to send in the AppendEntries.
+     *
+     * @return AppendEntries Message to pass to another server.
+     * */
+    private Mono<AppendEntries> createAppendEntries(Entry entry, List<Entry> entries) {
+
+        Mono<State> stateMono = this.stateService.getState();
+        Mono<LogState> logStateMono = this.logService.getState();
+        Mono<Entry> lastEntryMono = this.logService.getEntryByIndex(entry.getIndex() - 1)
+                .switchIfEmpty(Mono.just(new Entry((long) 0, (long) 0, null, false)));
+
+        return Mono.zip(stateMono, logStateMono, lastEntryMono)
+                .flatMap(tuple3 -> this.createAppendEntries(tuple3.getT1(), tuple3.getT2(), tuple3.getT3(), entries));
+
+    }
+
+    /**
      * Method that creates an AppendEntries with the new entry.
      *
      * @param state State for getting current term.
@@ -365,6 +414,69 @@ public class Leader extends RaftStateContext implements RaftState {
                         logState.getCommittedIndex() // leaderCommit
                     )
                 );
+
+    }
+
+    /**
+     * Method that checks whether it is possible to commit an entry,
+     * and if so, commits it in the Log State as well as notifies the StateMachineWorker.
+     *
+     * @param from String that identifies the server that set a new matchIndex, to fetch its value.
+     * */
+    private Mono<Void> setCommitIndex(String from) {
+
+        long N = this.matchIndex.get(from);
+
+        return Mono.zip(
+                    this.logService.getState(),
+                    this.logService.getEntryByIndex(N),
+                    this.stateService.getCurrentTerm(),
+                    this.majorityOfMatchIndexGreaterOrEqualThan(N)
+                )
+                .filter(tuple ->
+                        N > tuple.getT1().getCommittedIndex() &&
+                        tuple.getT2().getTerm() == (long) tuple.getT3() &&
+                        tuple.getT4()
+                )
+                .flatMap(tuple -> {
+
+                    LogState logState = tuple.getT1();
+                    Entry entry = tuple.getT2();
+
+                    logState.setCommittedIndex(N);
+                    logState.setCommittedTerm(entry.getTerm());
+                    logState.setNew(false);
+
+                    return this.logService.saveState(logState);
+                            // ...
+                            // NEEDS MORE CODE HERE
+                            // ...
+                            //.then(
+                                    // notify state machine of a new commit
+                              //      this.commitmentPublisher.newCommit()
+                            //)
+
+
+                })
+                .then();
+
+    }
+
+    /**
+     * Method that checks if an index is replicated in the majority of the servers
+     * in the cluster.
+     *
+     * @param N Long that represents the index to check.
+     *
+     * @return boolean that tells if the majority has or has not that index replicated.
+     * */
+    private Mono<Boolean> majorityOfMatchIndexGreaterOrEqualThan (long N) {
+
+        return Flux.fromIterable(this.matchIndex.values())
+                .filter(index -> index >= N)
+                .count()
+                .map(count -> count + 1) // 1 because of the leader that is not in matchIndex Map
+                .flatMap(count -> Mono.just(count >= this.raftProperties.getQuorum()));
 
     }
 

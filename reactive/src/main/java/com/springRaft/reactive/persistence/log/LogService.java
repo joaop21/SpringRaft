@@ -7,7 +7,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 @Service
 @Scope("singleton")
@@ -77,6 +80,18 @@ public class LogService {
     public Mono<Entry> getLastEntry() {
         return this.entryRepository.findLastEntry()
                 .switchIfEmpty(Mono.just(new Entry((long) 0, (long) 0, null, false)));
+    }
+
+    /**
+     * Method that gets the entries between two indexes.
+     *
+     * @param minIndex Index to begin the search.
+     * @param maxIndex Index to stop the search.
+     *
+     * @return Flux of the Entries found.
+     * */
+    public Flux<Entry> getEntriesBetweenIndexes(Long minIndex, Long maxIndex) {
+        return this.entryRepository.getNextEntries(minIndex, maxIndex);
     }
 
     /**

@@ -76,6 +76,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
     public Mono<Void> newMessage() {
         return Mono.defer(() -> {
                     lock.lock();
+                    log.info("\n\nNew Message!!!\n");
                     this.active = true;
                     this.remainingMessages++;
                     this.newMessages.signal();
@@ -89,6 +90,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
     public Mono<Void> clearMessages() {
         return Mono.defer(() -> {
                     lock.lock();
+                    log.info("\n\nClear Messages!!!\n");
                     this.active = false;
                     this.remainingMessages = 0;
                     this.newMessages.signal();
@@ -115,8 +117,10 @@ public class PeerWorker implements Runnable, MessageSubscriber {
                     .doOnNext(pair -> {
 
                         // send message
-                        if (pair.getFirst() != null)
+                        if (pair.getFirst() != null) {
+                            log.info(pair.getFirst().toString());
                             this.send(pair.getFirst(), pair.getSecond());
+                        }
 
                     })
                     .block();
@@ -169,12 +173,12 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
                 this.handleHeartbeat((AppendEntries) message);
 
-            } /*else {
+            } else {
                 // if it has an Entry to add to the log or it is an AppendEntries to find a match index
 
                 this.handleNormalAppendEntries((AppendEntries) message);
 
-            }*/
+            }
 
         }
 
@@ -191,7 +195,8 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
         do {
 
-            reply = (RequestVoteReply) this.sendRPCHandler(this.outbound.requestVote(this.targetServerName, requestVote))
+            reply = this.sendRPCHandler(this.outbound.requestVote(this.targetServerName, requestVote))
+                    .cast(RequestVoteReply.class)
                     .block();
 
         } while (reply == null && this.active && this.remainingMessages == 0);
@@ -204,6 +209,11 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
     }
 
+    /**
+     * Method that handles the heartbeats communication.
+     *
+     * @param appendEntries Message to send to the target server.
+     * */
     private void handleHeartbeat(AppendEntries appendEntries) {
 
         AppendEntriesReply reply;
@@ -212,7 +222,8 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
             long start = System.currentTimeMillis();
 
-            reply = (AppendEntriesReply) this.sendRPCHandler(this.outbound.appendEntries(this.targetServerName, appendEntries))
+            reply = this.sendRPCHandler(this.outbound.appendEntries(this.targetServerName, appendEntries))
+                    .cast(AppendEntriesReply.class)
                     .block();
 
             if (reply != null && this.active) {
@@ -232,6 +243,30 @@ public class PeerWorker implements Runnable, MessageSubscriber {
             }
 
         } while (this.active && this.remainingMessages == 0);
+
+    }
+
+    /**
+     * TODO
+     * */
+    private void handleNormalAppendEntries(AppendEntries appendEntries) {
+
+        AppendEntriesReply reply;
+
+        do {
+
+            reply = this.sendRPCHandler(this.outbound.appendEntries(this.targetServerName, appendEntries))
+                    .cast(AppendEntriesReply.class)
+                    .block();
+
+            if (reply != null && this.active) {
+
+                this.consensusModule.appendEntriesReply(reply, this.targetServerName).block();
+                break;
+            }
+
+            // if you get here, it means that the reply is null
+        } while (this.active);
 
     }
 
