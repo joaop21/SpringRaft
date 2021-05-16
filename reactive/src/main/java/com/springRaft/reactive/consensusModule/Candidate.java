@@ -227,7 +227,6 @@ public class Candidate extends RaftStateContext implements RaftState {
 
         return this.transitionManager.setElectionTimeout()
                 .doOnNext(task -> this.scheduledTransition = task)
-                .subscribeOn(Schedulers.single())
                 .then();
 
     }

@@ -68,18 +68,22 @@ public class TransitionManager {
      * Method for creating a new follower state transition which takes place on transition scheduler.
      * */
     public Mono<Void> setNewFollowerState() {
-
-        return Mono.just(applicationContext.getBean(Follower.class)).flatMap(this.consensusModule::setCurrentState);
-
+        return Mono.just(applicationContext.getBean(Follower.class))
+                .flatMap(follower -> {
+                    this.consensusModule.setCurrentState(follower);
+                    return follower.start();
+                });
     }
 
     /**
      * Method for creating a new leader state transition which takes place on transition scheduler.
      * */
     public Mono<Void> setNewLeaderState() {
-
-        return Mono.just(applicationContext.getBean(Leader.class)).flatMap(this.consensusModule::setCurrentState);
-
+        return Mono.just(applicationContext.getBean(Leader.class))
+                .flatMap(leader -> {
+                    this.consensusModule.setCurrentState(leader);
+                    return leader.start();
+                });
     }
 
     /* --------------------------------------------------- */
@@ -93,7 +97,6 @@ public class TransitionManager {
      * @return Mono<Long> Random calculated Long.
      * */
     private Mono<Long> getRandomLongBetweenRange(long min, long max){
-
         return Mono.defer(() -> {
             OptionalLong op = new Random().longs(min, max+1).findFirst();
             return Mono.just(op.isPresent() ? op.getAsLong() : min);

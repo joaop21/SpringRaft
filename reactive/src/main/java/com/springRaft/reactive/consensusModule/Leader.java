@@ -114,10 +114,10 @@ public class Leader extends RaftStateContext implements RaftState {
                                             // clean leader's state
                                             this.cleanVolatileState()
                                     )
-                                    // transit to follower state and
                                     // deactivate PeerWorker
-                                    .then(this.transitionManager.setNewFollowerState())
-                                    .then(this.outboundManager.clearMessages());
+                                    .then(this.outboundManager.clearMessages())
+                                    // transit to follower state
+                                    .then(this.transitionManager.setNewFollowerState());
 
                         } else {
 
@@ -170,8 +170,8 @@ public class Leader extends RaftStateContext implements RaftState {
                                     this.cleanVolatileState();
                                 })
                                 .flatMap(requestVoteReply ->
-                                        this.transitionManager.setNewFollowerState()
-                                            .then(this.outboundManager.clearMessages())
+                                        this.outboundManager.clearMessages()
+                                            .then(this.transitionManager.setNewFollowerState())
                                             .then(Mono.just(requestVoteReply))
                                 );
 
@@ -193,8 +193,8 @@ public class Leader extends RaftStateContext implements RaftState {
                         this.stateService.setState(requestVoteReply.getTerm(), null)
                                 .doOnTerminate(this::cleanVolatileState)
                 )
-                .then(this.transitionManager.setNewFollowerState())
-                .then(this.outboundManager.clearMessages());
+                .then(this.outboundManager.clearMessages())
+                .then(this.transitionManager.setNewFollowerState());
 
     }
 
@@ -293,10 +293,10 @@ public class Leader extends RaftStateContext implements RaftState {
     @Override
     protected Mono<Void> postAppendEntries(AppendEntries appendEntries) {
 
-        // transit to follower state
         // deactivate PeerWorker
-        return this.transitionManager.setNewFollowerState()
-                .then(this.outboundManager.clearMessages())
+        return this.outboundManager.clearMessages()
+                // transit to follower state
+                .then(this.transitionManager.setNewFollowerState())
                 .doFirst(this::cleanVolatileState);
 
 

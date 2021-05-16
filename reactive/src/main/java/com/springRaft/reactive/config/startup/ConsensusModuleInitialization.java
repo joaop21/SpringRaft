@@ -43,8 +43,8 @@ public class ConsensusModuleInitialization implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        Mono.just(this.applicationContext.getBean(StateTransition.class, this.applicationContext, this.consensusModule, Follower.class))
-                .doOnNext(this.scheduler::schedule)
+        Mono.just(this.applicationContext.getBean(Follower.class))
+                .flatMap(this.consensusModule::setAndStartNewState)
                 .block();
     }
 
