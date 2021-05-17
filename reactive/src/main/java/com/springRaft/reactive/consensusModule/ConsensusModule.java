@@ -1,6 +1,7 @@
 package com.springRaft.reactive.consensusModule;
 
 import com.springRaft.reactive.communication.message.*;
+import com.springRaft.reactive.config.startup.PeerWorkers;
 import com.springRaft.reactive.util.Pair;
 import lombok.Getter;
 import org.springframework.context.annotation.Scope;
@@ -68,6 +69,7 @@ public class ConsensusModule implements RaftState {
         return Mono.defer(() -> {
             lock.lock();
             return this.current.appendEntriesReply(appendEntriesReply, from)
+                    .publishOn(PeerWorkers.getPeerWorkerScheduler(from))
                     .then(Mono.create(monoSink -> {
                         lock.unlock();
                         monoSink.success();
@@ -93,11 +95,11 @@ public class ConsensusModule implements RaftState {
     public Mono<Void> requestVoteReply(RequestVoteReply requestVoteReply) {
         return Mono.defer(() -> {
             lock.lock();
-                return this.current.requestVoteReply(requestVoteReply)
-                        .then(Mono.create(monoSink -> {
-                            lock.unlock();
-                            monoSink.success();
-                        }));
+            return this.current.requestVoteReply(requestVoteReply)
+                    .then(Mono.create(monoSink -> {
+                        lock.unlock();
+                        monoSink.success();
+                    }));
         });
     }
 
@@ -111,11 +113,13 @@ public class ConsensusModule implements RaftState {
         return Mono.defer(() -> {
             lock.lock();
             return this.current.getNextMessage(to)
+                    .publishOn(PeerWorkers.getPeerWorkerScheduler(to))
                     .flatMap(pair -> {
                         lock.unlock();
                         return Mono.just(pair);
                     });
-        });
+        })
+                .subscribeOn(PeerWorkers.getPeerWorkerScheduler(to));
     }
 
     @Override

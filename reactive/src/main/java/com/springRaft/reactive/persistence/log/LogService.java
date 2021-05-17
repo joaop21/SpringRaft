@@ -5,12 +5,15 @@ import lombok.Synchronized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 @Scope("singleton")
@@ -26,6 +29,9 @@ public class LogService {
 
     /* Repository for Entry operations */
     private final LogStateRepository logStateRepository;
+
+    /* Mutex for some operations */
+    private final Lock lock = new ReentrantLock();
 
     /* --------------------------------------------------- */
 
@@ -101,12 +107,21 @@ public class LogService {
      *
      * @return Mono<Entry> The new persisted entry.
      * */
-    @Synchronized
     public Mono<Entry> insertEntry(Entry entry) {
 
-        return this.getLastEntryIndex()
-                .doOnNext(lastIndex -> entry.setIndex(lastIndex + 1))
-                .flatMap(lastIndex -> this.entryRepository.save(entry));
+        return Mono.<Entry>defer(() -> {
+            lock.lock();
+            return this.getLastEntryIndex()
+                    .doOnNext(lastIndex -> entry.setIndex(lastIndex + 1))
+                    .flatMap(lastIndex -> this.entryRepository.save(entry))
+                    .flatMap(savedEntry ->
+                        Mono.create(monoSink -> {
+                            lock.unlock();
+                            monoSink.success(savedEntry);
+                        })
+                    );
+        })
+                .onErrorResume(DataIntegrityViolationException.class, error -> this.insertEntry(entry));
 
     }
 

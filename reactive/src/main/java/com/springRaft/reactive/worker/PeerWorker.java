@@ -110,11 +110,10 @@ public class PeerWorker implements Runnable, MessageSubscriber {
                 // get next message
                 .flatMap(hasMessage -> this.consensusModule.getNextMessage(this.targetServerName))
                 .filter(pair -> pair.getFirst() != null)
-                    //.doOnNext(pair -> log.info(pair.getFirst().toString() + " for " + this.targetServerName))
                     // send message
                     .flatMap(pair -> this.send(pair.getFirst(), pair.getSecond()))
                 .repeat()
-                .blockLast();
+                .subscribe();
 
 
     }
@@ -127,9 +126,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
     private Mono<Boolean> waitForNewMessages() {
 
         return Mono.create(monoSink -> {
-
             lock.lock();
-
             try {
 
                 while (!this.active)
@@ -138,18 +135,13 @@ public class PeerWorker implements Runnable, MessageSubscriber {
                 if (this.remainingMessages > 0)
                     this.remainingMessages--;
 
-                monoSink.success(true);
-
             } catch (InterruptedException interruptedException) {
-
                 log.error("Break Await in waitForNewMessages");
-
                 monoSink.error(interruptedException);
-
             } finally {
                 lock.unlock();
+                monoSink.success(true);
             }
-
         });
 
     }
@@ -172,14 +164,10 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
                 if (heartbeat) {
                     // if it is an heartbeat
-
                     return this.handleHeartbeat((AppendEntries) message);
-
                 } else {
                     // if it has an Entry to add to the log or it is an AppendEntries to find a match index
-
                     return this.handleNormalAppendEntries((AppendEntries) message);
-
                 }
 
             }

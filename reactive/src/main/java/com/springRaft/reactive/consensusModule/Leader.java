@@ -13,9 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -69,68 +67,72 @@ public class Leader extends RaftStateContext implements RaftState {
     @Override
     public Mono<Void> appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
 
-        if (appendEntriesReply.getSuccess()) {
+        return Mono.defer(() -> {
 
-            return this.logService.getLastEntryIndex()
-                    .map(index -> index + 1)
-                    .doOnNext(lastEntryIndex -> {
+            if (appendEntriesReply.getSuccess()) {
 
-                        long nextIndex = this.nextIndex.get(from);
-                        long matchIndex = this.matchIndex.get(from);
+                return this.logService.getLastEntryIndex()
+                        .map(index -> index + 1)
+                        .doOnNext(lastEntryIndex -> {
 
-                        // compare last entry with next index for "from" server
-                        if (nextIndex != lastEntryIndex) {
+                            long nextIndex = this.nextIndex.get(from);
+                            long matchIndex = this.matchIndex.get(from);
 
-                            if (matchIndex != (nextIndex - 1)) {
+                            // compare last entry with next index for "from" server
+                            if (nextIndex != lastEntryIndex) {
 
-                                this.matchIndex.put(from, nextIndex - 1);
+                                if (matchIndex != (nextIndex - 1)) {
+
+                                    this.matchIndex.put(from, nextIndex - 1);
+
+                                } else {
+
+                                    this.matchIndex.put(from, nextIndex);
+                                    this.nextIndex.put(from, nextIndex + 1);
+
+                                }
 
                             } else {
 
-                                this.matchIndex.put(from, nextIndex);
-                                this.nextIndex.put(from, nextIndex + 1);
+                                this.matchIndex.put(from, nextIndex - 1);
 
                             }
 
-                        } else {
+                        })
+                        .flatMap(index -> this.setCommitIndex(from));
 
-                            this.matchIndex.put(from, nextIndex - 1);
+            } else {
 
-                        }
+                return this.stateService.getCurrentTerm()
+                        .flatMap(currentTerm -> {
 
-                    })
-                    .flatMap(index -> this.setCommitIndex(from));
+                            // if term is greater than mine, I should update it and transit to new follower
+                            if (appendEntriesReply.getTerm() > currentTerm) {
 
-        } else {
+                                return this.stateService.setState(appendEntriesReply.getTerm(), null)
+                                        .doOnNext(state ->
+                                                // clean leader's state
+                                                this.cleanVolatileState()
+                                        )
+                                        // deactivate PeerWorker
+                                        .then(this.outboundManager.clearMessages())
+                                        // transit to follower state
+                                        .then(this.transitionManager.setNewFollowerState());
 
-            return this.stateService.getCurrentTerm()
-                    .flatMap(currentTerm -> {
+                            } else {
 
-                        // if term is greater than mine, I should update it and transit to new follower
-                        if (appendEntriesReply.getTerm() > currentTerm) {
+                                this.nextIndex.put(from, this.nextIndex.get(from) - 1);
+                                this.matchIndex.put(from, (long) 0);
 
-                            return this.stateService.setState(appendEntriesReply.getTerm(), null)
-                                    .doOnNext(state ->
-                                            // clean leader's state
-                                            this.cleanVolatileState()
-                                    )
-                                    // deactivate PeerWorker
-                                    .then(this.outboundManager.clearMessages())
-                                    // transit to follower state
-                                    .then(this.transitionManager.setNewFollowerState());
+                                return Mono.empty();
 
-                        } else {
+                            }
 
-                            this.nextIndex.put(from, this.nextIndex.get(from) - 1);
-                            this.matchIndex.put(from, (long) 0);
+                        });
 
-                            return Mono.empty();
+            }
 
-                        }
-
-                    });
-
-        }
+        });
 
     }
 
@@ -166,9 +168,7 @@ public class Leader extends RaftStateContext implements RaftState {
                                         // check if candidate's log is at least as up-to-date as mine
                                         this.checkLog(requestVote, reply)
                                 )
-                                .doOnNext(requestVoteReply -> {
-                                    this.cleanVolatileState();
-                                })
+                                .doOnNext(requestVoteReply -> this.cleanVolatileState())
                                 .flatMap(requestVoteReply ->
                                         this.outboundManager.clearMessages()
                                             .then(this.transitionManager.setNewFollowerState())
