@@ -99,9 +99,10 @@ public class Candidate extends RaftStateContext implements RaftState {
                         // update term
                         return this.stateService.setState(requestVote.getTerm(), null)
                                 .flatMap(state -> this.checkLog(requestVote, reply))
-                                .zipWith(
-                                        Mono.zip(this.cleanBeforeTransit(), this.transitionManager.setNewFollowerState()),
-                                        (rvreply, zipTuple) -> rvreply
+                                .flatMap(requestVoteReply ->
+                                        this.cleanBeforeTransit()
+                                            .then(this.transitionManager.setNewFollowerState())
+                                            .then(Mono.just(requestVoteReply))
                                 );
 
 
@@ -226,7 +227,6 @@ public class Candidate extends RaftStateContext implements RaftState {
 
         return this.transitionManager.setElectionTimeout()
                 .doOnNext(task -> this.scheduledTransition = task)
-                .subscribeOn(Schedulers.single())
                 .then();
 
     }

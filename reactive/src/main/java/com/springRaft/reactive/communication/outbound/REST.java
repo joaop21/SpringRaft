@@ -2,6 +2,7 @@ package com.springRaft.reactive.communication.outbound;
 
 import com.springRaft.reactive.communication.message.*;
 import com.springRaft.reactive.config.RaftProperties;
+import com.springRaft.reactive.config.startup.PeerWorkers;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +12,8 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class REST implements OutboundStrategy {
@@ -21,6 +24,9 @@ public class REST implements OutboundStrategy {
     /* Raft properties that need to be accessed */
     private final RaftProperties raftProperties;
 
+    /* Map which contain Webclient objects to use instead of creating one each time */
+    private final Map<String,WebClient> webClientsMap;
+
     /* --------------------------------------------------- */
 
     public REST(
@@ -29,18 +35,21 @@ public class REST implements OutboundStrategy {
     ) {
         this.scheduler = scheduler;
         this.raftProperties = raftProperties;
+        this.webClientsMap = new HashMap<>();
     }
 
     /* --------------------------------------------------- */
 
     @Override
     public Mono<AppendEntriesReply> appendEntries(String to, AppendEntries message) {
-        return (Mono<AppendEntriesReply>) sendPostToServer(to, "appendEntries", message, AppendEntriesReply.class);
+        return sendPostToServer(to, "appendEntries", message, AppendEntriesReply.class)
+                .cast(AppendEntriesReply.class);
     }
 
     @Override
     public Mono<RequestVoteReply> requestVote(String to, RequestVote message) {
-        return (Mono<RequestVoteReply>) sendPostToServer(to, "requestVote", message, RequestVoteReply.class);
+        return sendPostToServer(to, "requestVote", message, RequestVoteReply.class)
+                .cast(RequestVoteReply.class);
     }
 
     @Override
@@ -70,14 +79,18 @@ public class REST implements OutboundStrategy {
      * @return Message which is the return object as the response.
      * */
     private Mono<? extends Message> sendPostToServer(String to, String route, Message message, Class<? extends Message> type) {
-        return WebClient.create("http://" + to)
-                .post()
-                .uri("/raft/{route}", route)
-                .bodyValue(message)
-                .retrieve()
-                .bodyToMono(type)
-                .timeout(this.raftProperties.getHeartbeat())
-                .subscribeOn(this.scheduler);
+
+        return this.getWebClient(to)
+                .map(webClient ->
+                    webClient
+                            .post()
+                            .uri("/raft/{route}", route)
+                            .bodyValue(message)
+                            .retrieve()
+                )
+                .flatMap(responseSpec -> responseSpec.bodyToMono(type))
+                .publishOn(PeerWorkers.getPeerWorkerScheduler(to))
+                .timeout(this.raftProperties.getHeartbeat());
     }
 
     /**
@@ -93,21 +106,50 @@ public class REST implements OutboundStrategy {
     private Mono<ResponseEntity<Object>> sendRequestToServer(String to, HttpMethod method, String route, String body) {
 
         return body.equals("null")
-                ? WebClient.create("http://" + to)
-                        .method(method)
-                        .uri(route)
-                        .retrieve()
-                        .toEntity(Object.class)
-                        .subscribeOn(this.scheduler)
+                ? this.getWebClient(to)
+                        .map(webClient ->
+                                webClient
+                                    .method(method)
+                                    .uri(route)
+                                    .retrieve()
+                        )
+                        .flatMap(responseSpec -> responseSpec.toEntity(Object.class))
+                        .publishOn(this.scheduler)
 
-                : WebClient.create("http://" + to)
-                        .method(method)
-                        .uri(route)
-                        .bodyValue(body)
-                        .retrieve()
-                        .toEntity(Object.class)
-                        .subscribeOn(this.scheduler)
+                : this.getWebClient(to)
+                        .map(webClient ->
+                                webClient
+                                    .method(method)
+                                    .uri(route)
+                                    .bodyValue(body)
+                                    .retrieve()
+                        )
+                        .flatMap(responseSpec -> responseSpec.toEntity(Object.class))
+                        .publishOn(this.scheduler)
                 ;
+
+    }
+
+    /**
+     * Method that gets the WebClient object fot a specific target server.
+     *
+     * @param server String that represents the server name.
+     *
+     * @return WebClient object for a specific server.
+     * */
+    private Mono<WebClient> getWebClient(String server) {
+
+        return Mono.create(monoSink -> {
+
+            WebClient webClient = this.webClientsMap.get(server);
+            if (webClient == null) {
+                webClient = WebClient.create("http://" + server);
+                this.webClientsMap.put(server, webClient);
+            }
+
+            monoSink.success(webClient);
+
+        });
 
     }
 

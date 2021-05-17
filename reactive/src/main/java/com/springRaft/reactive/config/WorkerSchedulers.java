@@ -5,7 +5,6 @@ import org.springframework.context.annotation.Configuration;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
-
 @Configuration
 public class WorkerSchedulers {
 
@@ -18,18 +17,6 @@ public class WorkerSchedulers {
     public Scheduler generalPurposeScheduler() {
 
         return Schedulers.newBoundedElastic(5, 5, "GeneralScheduler");
-
-    }
-
-    /**
-     * Scheduler for peer workers.
-     *
-     * @return Scheduler dedicated to PeerWorker workers.
-     * */
-    @Bean(name = "peerWorkersScheduler")
-    public Scheduler peerWorkersScheduler() {
-
-        return Schedulers.newBoundedElastic(20, 5, "PeerWorker");
 
     }
 

@@ -13,18 +13,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @Scope("singleton")
@@ -72,45 +67,72 @@ public class Leader extends RaftStateContext implements RaftState {
     @Override
     public Mono<Void> appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
 
-        if (appendEntriesReply.getSuccess()) {
+        return Mono.defer(() -> {
 
-            // ...
-            // IT NEEDS MORE CODE HERE
-            // IT NEEDS MORE CODE HERE
-            // ...
+            if (appendEntriesReply.getSuccess()) {
 
-            return Mono.empty();
+                return this.logService.getLastEntryIndex()
+                        .map(index -> index + 1)
+                        .doOnNext(lastEntryIndex -> {
 
-        } else {
+                            long nextIndex = this.nextIndex.get(from);
+                            long matchIndex = this.matchIndex.get(from);
 
-            return this.stateService.getCurrentTerm()
-                    .flatMap(currentTerm -> {
+                            // compare last entry with next index for "from" server
+                            if (nextIndex != lastEntryIndex) {
 
-                        // if term is greater than mine, I should update it and transit to new follower
-                        if (appendEntriesReply.getTerm() > currentTerm) {
+                                if (matchIndex != (nextIndex - 1)) {
 
-                            return this.stateService.setState(appendEntriesReply.getTerm(), null)
-                                    .doOnNext(state ->
-                                            // clean leader's state
-                                            this.cleanVolatileState()
-                                    )
-                                    // transit to follower state and
-                                    // deactivate PeerWorker
-                                    .then(this.transitionManager.setNewFollowerState())
-                                    .then(this.outboundManager.clearMessages());
+                                    this.matchIndex.put(from, nextIndex - 1);
 
-                        } else {
+                                } else {
 
-                            this.nextIndex.put(from, this.nextIndex.get(from) - 1);
-                            this.matchIndex.put(from, (long) 0);
+                                    this.matchIndex.put(from, nextIndex);
+                                    this.nextIndex.put(from, nextIndex + 1);
 
-                            return Mono.empty();
+                                }
 
-                        }
+                            } else {
 
-                    });
+                                this.matchIndex.put(from, nextIndex - 1);
 
-        }
+                            }
+
+                        })
+                        .flatMap(index -> this.setCommitIndex(from));
+
+            } else {
+
+                return this.stateService.getCurrentTerm()
+                        .flatMap(currentTerm -> {
+
+                            // if term is greater than mine, I should update it and transit to new follower
+                            if (appendEntriesReply.getTerm() > currentTerm) {
+
+                                return this.stateService.setState(appendEntriesReply.getTerm(), null)
+                                        .doOnNext(state ->
+                                                // clean leader's state
+                                                this.cleanVolatileState()
+                                        )
+                                        // deactivate PeerWorker
+                                        .then(this.outboundManager.clearMessages())
+                                        // transit to follower state
+                                        .then(this.transitionManager.setNewFollowerState());
+
+                            } else {
+
+                                this.nextIndex.put(from, this.nextIndex.get(from) - 1);
+                                this.matchIndex.put(from, (long) 0);
+
+                                return Mono.empty();
+
+                            }
+
+                        });
+
+            }
+
+        });
 
     }
 
@@ -146,12 +168,11 @@ public class Leader extends RaftStateContext implements RaftState {
                                         // check if candidate's log is at least as up-to-date as mine
                                         this.checkLog(requestVote, reply)
                                 )
-                                .doOnNext(requestVoteReply -> {
-                                    this.cleanVolatileState();
-                                })
-                                .zipWith(
-                                        Mono.zip(this.transitionManager.setNewFollowerState(), this.outboundManager.clearMessages()),
-                                        (requestVoteReply, tuple2) -> requestVoteReply
+                                .doOnNext(requestVoteReply -> this.cleanVolatileState())
+                                .flatMap(requestVoteReply ->
+                                        this.outboundManager.clearMessages()
+                                            .then(this.transitionManager.setNewFollowerState())
+                                            .then(Mono.just(requestVoteReply))
                                 );
 
                     }
@@ -172,8 +193,8 @@ public class Leader extends RaftStateContext implements RaftState {
                         this.stateService.setState(requestVoteReply.getTerm(), null)
                                 .doOnTerminate(this::cleanVolatileState)
                 )
-                .then(this.transitionManager.setNewFollowerState())
-                .then(this.outboundManager.clearMessages());
+                .then(this.outboundManager.clearMessages())
+                .then(this.transitionManager.setNewFollowerState());
 
     }
 
@@ -183,22 +204,19 @@ public class Leader extends RaftStateContext implements RaftState {
         // For now it remains like this
         // but it has to change in order to replicate the request
         // ...
-        return Mono.defer(() -> {
 
-            HttpHeaders httpHeaders = new HttpHeaders();
-            httpHeaders.setContentType(MediaType.APPLICATION_JSON);
-
-            Map<String, String> response = new HashMap<>(){{
-                put("command", command);
-            }};
-
-            return Mono.just(
-                    this.applicationContext.getBean(
-                            RequestReply.class, true,
-                            new ResponseEntity<>(response, httpHeaders, HttpStatus.OK), false, ""
-                    )
-            );
-        });
+        return this.stateService.getCurrentTerm()
+                .flatMap(currentTerm -> this.logService.insertEntry(new Entry(currentTerm, command, true)))
+                .flatMap(entry -> Mono.just(
+                        this.applicationContext.getBean(
+                                RequestReply.class, true,
+                                new ResponseEntity<>(entry, HttpStatus.OK), false, ""
+                        )
+                ))
+                .flatMap(requestReply ->
+                        this.outboundManager.newMessage()
+                            .then(Mono.just(requestReply))
+                );
 
     }
 
@@ -228,9 +246,26 @@ public class Leader extends RaftStateContext implements RaftState {
                                     return this.heartbeatAppendEntries()
                                             .map(message -> new Pair<>(message, false));
 
-                                } else {
+                                } else if(matchIndex == (nextIndex - 1)) {
+                                    // if there is an entry, and the logs are matching,
+                                    // send that entry
 
-                                    return this.heartbeatAppendEntries()
+                                    return this.logService.getEntriesBetweenIndexes(
+                                            nextIndex,
+                                            nextIndex + this.raftProperties.getEntriesPerCommunication()
+                                    )
+                                            .collectSortedList(Comparator.comparing(Entry::getIndex))
+                                            .doOnNext(entries -> this.nextIndex.put(to, nextIndex + entries.size()))
+                                            .flatMap(entries ->
+                                                    this.createAppendEntries(entries.get(0), entries)
+                                                            .map(message -> new Pair<>(message, false))
+                                            );
+
+                                } else {
+                                    // if there is an entry, but the logs are not matching,
+                                    // send the appendEntries with no entries
+
+                                    return this.createAppendEntries(entry)
                                             .map(message -> new Pair<>(message, true));
 
                                 }
@@ -258,10 +293,10 @@ public class Leader extends RaftStateContext implements RaftState {
     @Override
     protected Mono<Void> postAppendEntries(AppendEntries appendEntries) {
 
-        // transit to follower state
         // deactivate PeerWorker
-        return this.transitionManager.setNewFollowerState()
-                .then(this.outboundManager.clearMessages())
+        return this.outboundManager.clearMessages()
+                // transit to follower state
+                .then(this.transitionManager.setNewFollowerState())
                 .doFirst(this::cleanVolatileState);
 
 
@@ -324,6 +359,39 @@ public class Leader extends RaftStateContext implements RaftState {
     }
 
     /**
+     * Method that creates an AppendEntries with the new entry
+     *
+     * @param entry New entry to replicate.
+     *
+     * @return AppendEntries Message to pass to another server.
+     * */
+    private Mono<AppendEntries> createAppendEntries(Entry entry) {
+
+        return this.createAppendEntries(entry, new ArrayList<>());
+
+    }
+
+    /**
+     * Method that creates an AppendEntries with the new entry
+     *
+     * @param entry New entry to replicate.
+     * @param entries Entries to send in the AppendEntries.
+     *
+     * @return AppendEntries Message to pass to another server.
+     * */
+    private Mono<AppendEntries> createAppendEntries(Entry entry, List<Entry> entries) {
+
+        Mono<State> stateMono = this.stateService.getState();
+        Mono<LogState> logStateMono = this.logService.getState();
+        Mono<Entry> lastEntryMono = this.logService.getEntryByIndex(entry.getIndex() - 1)
+                .switchIfEmpty(Mono.just(new Entry((long) 0, (long) 0, null, false)));
+
+        return Mono.zip(stateMono, logStateMono, lastEntryMono)
+                .flatMap(tuple3 -> this.createAppendEntries(tuple3.getT1(), tuple3.getT2(), tuple3.getT3(), entries));
+
+    }
+
+    /**
      * Method that creates an AppendEntries with the new entry.
      *
      * @param state State for getting current term.
@@ -346,6 +414,69 @@ public class Leader extends RaftStateContext implements RaftState {
                         logState.getCommittedIndex() // leaderCommit
                     )
                 );
+
+    }
+
+    /**
+     * Method that checks whether it is possible to commit an entry,
+     * and if so, commits it in the Log State as well as notifies the StateMachineWorker.
+     *
+     * @param from String that identifies the server that set a new matchIndex, to fetch its value.
+     * */
+    private Mono<Void> setCommitIndex(String from) {
+
+        long N = this.matchIndex.get(from);
+
+        return Mono.zip(
+                    this.logService.getState(),
+                    this.logService.getEntryByIndex(N),
+                    this.stateService.getCurrentTerm(),
+                    this.majorityOfMatchIndexGreaterOrEqualThan(N)
+                )
+                .filter(tuple ->
+                        N > tuple.getT1().getCommittedIndex() &&
+                        tuple.getT2().getTerm() == (long) tuple.getT3() &&
+                        tuple.getT4()
+                )
+                .flatMap(tuple -> {
+
+                    LogState logState = tuple.getT1();
+                    Entry entry = tuple.getT2();
+
+                    logState.setCommittedIndex(N);
+                    logState.setCommittedTerm(entry.getTerm());
+                    logState.setNew(false);
+
+                    return this.logService.saveState(logState);
+                            // ...
+                            // NEEDS MORE CODE HERE
+                            // ...
+                            //.then(
+                                    // notify state machine of a new commit
+                              //      this.commitmentPublisher.newCommit()
+                            //)
+
+
+                })
+                .then();
+
+    }
+
+    /**
+     * Method that checks if an index is replicated in the majority of the servers
+     * in the cluster.
+     *
+     * @param N Long that represents the index to check.
+     *
+     * @return boolean that tells if the majority has or has not that index replicated.
+     * */
+    private Mono<Boolean> majorityOfMatchIndexGreaterOrEqualThan (long N) {
+
+        return Flux.fromIterable(this.matchIndex.values())
+                .filter(index -> index >= N)
+                .count()
+                .map(count -> count + 1) // 1 because of the leader that is not in matchIndex Map
+                .flatMap(count -> Mono.just(count >= this.raftProperties.getQuorum()));
 
     }
 

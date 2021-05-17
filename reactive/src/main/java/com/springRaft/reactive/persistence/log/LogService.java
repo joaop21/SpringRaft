@@ -1,12 +1,19 @@
 package com.springRaft.reactive.persistence.log;
 
 import lombok.AllArgsConstructor;
+import lombok.Synchronized;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 @Scope("singleton")
@@ -22,6 +29,9 @@ public class LogService {
 
     /* Repository for Entry operations */
     private final LogStateRepository logStateRepository;
+
+    /* Mutex for some operations */
+    private final Lock lock = new ReentrantLock();
 
     /* --------------------------------------------------- */
 
@@ -59,13 +69,13 @@ public class LogService {
     }
 
     /**
-     * Method that gets the index of the last entry in the log.
+     * Method that gets the index of the last stored entry in the log.
      *
-     * @return Long that represents the index.
+     * @return Mono<Long> Long which is the index of the last entry in the log.
      * */
     public Mono<Long> getLastEntryIndex() {
         return this.entryRepository.findLastEntryIndex()
-                .switchIfEmpty(Mono.just((long)0));
+                .switchIfEmpty(Mono.just((long) 0));
     }
 
     /**
@@ -76,6 +86,66 @@ public class LogService {
     public Mono<Entry> getLastEntry() {
         return this.entryRepository.findLastEntry()
                 .switchIfEmpty(Mono.just(new Entry((long) 0, (long) 0, null, false)));
+    }
+
+    /**
+     * Method that gets the entries between two indexes.
+     *
+     * @param minIndex Index to begin the search.
+     * @param maxIndex Index to stop the search.
+     *
+     * @return Flux of the Entries found.
+     * */
+    public Flux<Entry> getEntriesBetweenIndexes(Long minIndex, Long maxIndex) {
+        return this.entryRepository.getNextEntries(minIndex, maxIndex);
+    }
+
+    /**
+     * Method that inserts a contiguously new entry in the existing log.
+     *
+     * @param entry Entry to insert in the log.
+     *
+     * @return Mono<Entry> The new persisted entry.
+     * */
+    public Mono<Entry> insertEntry(Entry entry) {
+
+        return Mono.<Entry>defer(() -> {
+            lock.lock();
+            return this.getLastEntryIndex()
+                    .doOnNext(lastIndex -> entry.setIndex(lastIndex + 1))
+                    .flatMap(lastIndex -> this.entryRepository.save(entry))
+                    .flatMap(savedEntry ->
+                        Mono.create(monoSink -> {
+                            lock.unlock();
+                            monoSink.success(savedEntry);
+                        })
+                    );
+        })
+                .onErrorResume(DataIntegrityViolationException.class, error -> this.insertEntry(entry));
+
+    }
+
+    /**
+     * Method that deletes all the log entries with an index greater than a specific value.
+     *
+     * @param index Long that represents the index.
+     *
+     * @return Integer that represents the elements deleted.
+     * */
+    public Mono<Integer> deleteIndexesGreaterThan(Long index) {
+        return this.entryRepository.deleteEntryByIndexGreaterThan(index);
+    }
+
+    /**
+     * Method that saves all the entries in a list.
+     *
+     * @param entries List of entries to save.
+     *
+     * @return Flux<Entry> Entries saved.
+     * */
+    @Synchronized
+    public Flux<Entry> saveAllEntries(List<Entry> entries) {
+        return this.entryRepository.saveAll(entries);
     }
 
 }

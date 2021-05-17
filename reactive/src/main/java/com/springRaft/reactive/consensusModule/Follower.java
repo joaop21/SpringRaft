@@ -94,7 +94,7 @@ public class Follower extends RaftStateContext implements RaftState {
                         // update term
                         return this.stateService.setState(requestVote.getTerm(), null)
                                 .flatMap(state -> this.checkLog(requestVote, reply))
-                                .zipWith(this.cleanBeforeTransit(), (rvreply, clean) -> rvreply);
+                                .flatMap(requestVoteReply -> this.cleanBeforeTransit().then(Mono.just(requestVoteReply)));
 
                     } else {
 
@@ -165,7 +165,6 @@ public class Follower extends RaftStateContext implements RaftState {
 
         return this.transitionManager.setElectionTimeout()
                 .doOnNext(task -> this.scheduledTransition = task)
-                .subscribeOn(Schedulers.single())
                 .then();
 
     }

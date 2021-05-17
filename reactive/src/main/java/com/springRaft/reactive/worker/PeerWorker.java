@@ -15,6 +15,8 @@ import reactor.core.publisher.Mono;
 import java.net.ConnectException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -79,10 +81,9 @@ public class PeerWorker implements Runnable, MessageSubscriber {
                     this.active = true;
                     this.remainingMessages++;
                     this.newMessages.signal();
+                    lock.unlock();
                     return Mono.empty();
-                })
-                .doFinally(signal -> lock.unlock())
-                .then();
+                });
     }
 
     @Override
@@ -92,10 +93,9 @@ public class PeerWorker implements Runnable, MessageSubscriber {
                     this.active = false;
                     this.remainingMessages = 0;
                     this.newMessages.signal();
+                    lock.unlock();
                     return Mono.empty();
-                })
-                .doFinally(signal -> lock.unlock())
-                .then();
+                });
     }
 
     /* --------------------------------------------------- */
@@ -105,48 +105,44 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
         log.info("Start Peer Worker that handles communications with " + this.targetServerName);
 
-        while (true) {
-
-            // wait for messages
-            this.waitForNewMessages();
-
-            // get next message
-            this.consensusModule.getNextMessage(this.targetServerName)
-                    .doOnNext(pair -> {
-
-                        // send message
-                        if (pair.getFirst() != null)
-                            this.send(pair.getFirst(), pair.getSecond());
-
-                    })
-                    .block();
-
-        }
+        // wait for messages
+        this.waitForNewMessages()
+                // get next message
+                .flatMap(hasMessage -> this.consensusModule.getNextMessage(this.targetServerName))
+                .filter(pair -> pair.getFirst() != null)
+                    // send message
+                    .flatMap(pair -> this.send(pair.getFirst(), pair.getSecond()))
+                .repeat()
+                .subscribe();
 
 
     }
 
     /**
      * Method that waits for new messages.
+     *
+     * @return Boolean which represents the operation success.
      * */
-    private void waitForNewMessages() {
+    private Mono<Boolean> waitForNewMessages() {
 
-        lock.lock();
-        try {
+        return Mono.create(monoSink -> {
+            lock.lock();
+            try {
 
-            while (!this.active)
-                this.newMessages.await();
+                while (!this.active)
+                    this.newMessages.await();
 
-            if (this.remainingMessages > 0)
-                this.remainingMessages--;
+                if (this.remainingMessages > 0)
+                    this.remainingMessages--;
 
-        } catch (InterruptedException interruptedException) {
-
-            log.error("Break Await in waitForNewMessages");
-
-        } finally {
-            lock.unlock();
-        }
+            } catch (InterruptedException interruptedException) {
+                log.error("Break Await in waitForNewMessages");
+                monoSink.error(interruptedException);
+            } finally {
+                lock.unlock();
+                monoSink.success(true);
+            }
+        });
 
     }
 
@@ -156,27 +152,29 @@ public class PeerWorker implements Runnable, MessageSubscriber {
      * @param message Message to send.
      * @param heartbeat Boolean that signals if a message is an heartbeat.
      * */
-    private void send(Message message, Boolean heartbeat) {
+    private Mono<Void> send(Message message, Boolean heartbeat) {
 
-        if(message instanceof RequestVote) {
+        return Mono.defer(() -> {
 
-            this.handleRequestVote((RequestVote) message);
+            if(message instanceof RequestVote) {
 
-        } else if (message instanceof AppendEntries) {
+                return this.handleRequestVote((RequestVote) message);
 
-            if (heartbeat) {
-                // if it is an heartbeat
+            } else if (message instanceof AppendEntries) {
 
-                this.handleHeartbeat((AppendEntries) message);
+                if (heartbeat) {
+                    // if it is an heartbeat
+                    return this.handleHeartbeat((AppendEntries) message);
+                } else {
+                    // if it has an Entry to add to the log or it is an AppendEntries to find a match index
+                    return this.handleNormalAppendEntries((AppendEntries) message);
+                }
 
-            } /*else {
-                // if it has an Entry to add to the log or it is an AppendEntries to find a match index
+            }
 
-                this.handleNormalAppendEntries((AppendEntries) message);
+            return Mono.empty();
 
-            }*/
-
-        }
+        });
 
     }
 
@@ -185,53 +183,66 @@ public class PeerWorker implements Runnable, MessageSubscriber {
      *
      * @param requestVote Message to send to the target server.
      * */
-    private void handleRequestVote(RequestVote requestVote) {
+    private Mono<Void> handleRequestVote(RequestVote requestVote) {
 
-        RequestVoteReply reply;
+        AtomicReference<RequestVoteReply> reply = new AtomicReference<>(null);
 
-        do {
-
-            reply = (RequestVoteReply) this.sendRPCHandler(this.outbound.requestVote(this.targetServerName, requestVote))
-                    .block();
-
-        } while (reply == null && this.active && this.remainingMessages == 0);
-
-        if (reply != null && this.active) {
-            this.consensusModule.requestVoteReply(reply)
-                    .flatMap(result -> this.clearMessages())
-                    .block();
-        }
+        return this.sendRPCHandler(this.outbound.requestVote(this.targetServerName, requestVote))
+                    .cast(RequestVoteReply.class)
+                    .doOnNext(reply::set)
+                .repeat(() -> reply.get() == null && this.active && this.remainingMessages == 0)
+                .next()
+                .filter(requestVoteReply -> reply.get() != null && this.active)
+                    .flatMap(requestVoteReply ->
+                            this.clearMessages()
+                                .then(this.consensusModule.requestVoteReply(reply.get()))
+                    );
 
     }
 
-    private void handleHeartbeat(AppendEntries appendEntries) {
+    /**
+     * Method that handles the heartbeats communication.
+     *
+     * @param appendEntries Message to send to the target server.
+     * */
+    private Mono<Void> handleHeartbeat(AppendEntries appendEntries) {
 
-        AppendEntriesReply reply;
+        AtomicReference<AppendEntriesReply> reply = new AtomicReference<>(null);
+        AtomicLong start = new AtomicLong();
 
-        do {
+        return this.sendRPCHandler(this.outbound.appendEntries(this.targetServerName, appendEntries))
+                .cast(AppendEntriesReply.class)
+                .doFirst(() -> start.set(System.currentTimeMillis()))
+                .doOnNext(reply::set)
+                .filter(appendEntriesReply -> reply.get() != null && this.active)
+                    .flatMap(appendEntriesReply ->
+                            this.consensusModule.appendEntriesReply(reply.get(), this.targetServerName)
+                                    .then(Mono.just(appendEntriesReply))
+                    )
+                    .filter(appendEntriesReply -> reply.get().getSuccess())
+                        .flatMap(appendEntriesReply ->
+                                this.waitWhileCondition(start.get(), () -> this.active && this.remainingMessages == 0)
+                        )
+                .repeat(() -> (this.active && this.remainingMessages == 0) && !(reply.get() != null && this.active))
+                .next()
+                .then();
 
-            long start = System.currentTimeMillis();
+    }
 
-            reply = (AppendEntriesReply) this.sendRPCHandler(this.outbound.appendEntries(this.targetServerName, appendEntries))
-                    .block();
+    /**
+     * TODO
+     * */
+    private Mono<Void> handleNormalAppendEntries(AppendEntries appendEntries) {
 
-            if (reply != null && this.active) {
+        AtomicReference<AppendEntriesReply> reply = new AtomicReference<>(null);
 
-                this.consensusModule.appendEntriesReply(reply, this.targetServerName)
-                        .block();
-
-                if (!reply.getSuccess())
-                    break;
-
-                // sleep for the remaining time, if any
-                this.waitWhileCondition(start, () -> this.active && this.remainingMessages == 0);
-
-                // go get the next heartbeat because the committed index may have changed
-                break;
-
-            }
-
-        } while (this.active && this.remainingMessages == 0);
+        return this.sendRPCHandler(this.outbound.appendEntries(this.targetServerName, appendEntries))
+                .cast(AppendEntriesReply.class)
+                .doOnNext(reply::set)
+                .filter(appendEntriesReply -> reply.get() != null && this.active)
+                    .flatMap(appendEntriesReply -> this.consensusModule.appendEntriesReply(reply.get(), this.targetServerName))
+                .repeat(() -> this.active && !(reply.get() != null && this.active))
+                .next();
 
     }
 
@@ -240,9 +251,10 @@ public class PeerWorker implements Runnable, MessageSubscriber {
      * */
     private Mono<? extends Message> sendRPCHandler(Mono<? extends Message> rpcMono) {
 
-        long start = System.currentTimeMillis();
+        AtomicLong start = new AtomicLong();
 
         return rpcMono
+                .doFirst(() -> start.set(System.currentTimeMillis()))
                 .onErrorResume(error -> {
 
                     if (error instanceof WebClientRequestException) {
@@ -253,7 +265,8 @@ public class PeerWorker implements Runnable, MessageSubscriber {
                             log.warn("Server " + this.targetServerName + " is not up!!");
 
                             // sleep for the remaining time, if any
-                            this.waitWhileCondition(start, () -> this.active);
+                            return this.waitWhileCondition(start.get(), () -> this.active)
+                                    .then(Mono.empty());
 
                         }
 
@@ -282,27 +295,34 @@ public class PeerWorker implements Runnable, MessageSubscriber {
      *                  until the thread has to continue executing.
      * @param condition Condition to evaluate. If true, thread awaits on condition.
      * */
-    private void waitWhileCondition(long startTime, BooleanSupplier condition) {
+    private Mono<Boolean> waitWhileCondition(long startTime, BooleanSupplier condition) {
 
-        long remaining = this.raftProperties.getHeartbeat().toMillis() - (System.currentTimeMillis() - startTime);
+        return Mono.just(this.raftProperties.getHeartbeat().toMillis() - (System.currentTimeMillis() - startTime))
+                .filter(remaining -> remaining > 0)
+                .flatMap(remaining ->
 
-        if (remaining > 0) {
+                    Mono.<Boolean>create(monoSink -> {
+                        lock.lock();
+                        try {
 
-            lock.lock();
-            try {
+                            if(condition.getAsBoolean())
+                                this.newMessages.await(remaining, TimeUnit.MILLISECONDS);
 
-                if(condition.getAsBoolean())
-                    this.newMessages.await(remaining, TimeUnit.MILLISECONDS);
+                            monoSink.success(true);
 
-            } catch (InterruptedException exception) {
+                        } catch (InterruptedException exception) {
 
-                log.error("Exception while awaiting on waitOnConditionForAnAmountOfTime method");
+                            log.error("Exception while awaiting on waitOnConditionForAnAmountOfTime method");
 
-            } finally {
-                lock.unlock();
-            }
+                            monoSink.error(exception);
 
-        }
+                        } finally {
+                            lock.unlock();
+                        }
+                    })
+
+                )
+                .switchIfEmpty(Mono.just(false));
 
     }
 
