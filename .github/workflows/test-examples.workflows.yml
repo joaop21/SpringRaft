@@ -37,5 +37,21 @@ jobs:
         run: mvn --batch-mode --update-snapshots verify
         working-directory: ./test-examples/distributed-counter/reactive-stack
 
+      # Fault-Tolerant Distributed Counter
+      - name: Fault-Tolerant Distributed Counter - Servlet Stack - Embedded Config
+        run: mvn --batch-mode --update-snapshots verify
+        working-directory: ./test-examples/fault-tolerant-distributed-counter/servlet/embedded/
+      - name: Fault-Tolerant Distributed Counter - Servlet Stack - Independent Config
+        run: mvn --batch-mode --update-snapshots verify
+        working-directory: ./test-examples/fault-tolerant-distributed-counter/servlet/independent/
+
+      # Key-Value Store
+      - name: Key-Value Store - Servlet Stack - Embedded Config
+        run: mvn --batch-mode --update-snapshots verify
+        working-directory: ./test-examples/key-value-store/servlet/key-value-store-embedded/
+      - name: Key-Value Store - Servlet Stack - Independent Config
+        run: mvn --batch-mode --update-snapshots verify
+        working-directory: ./test-examples/key-value-store/servlet/key-value-store-independent/
+
       # More examples must be here
       # ...
