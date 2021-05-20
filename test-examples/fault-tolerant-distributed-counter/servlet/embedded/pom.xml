@@ -62,6 +62,16 @@
 		</dependency>
 	</dependencies>
 
+	<repositories>
+		<repository>
+			<id>github</id>
+			<url>https://maven.pkg.github.com/joaop21/*</url>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
+  </repositories>
+
 	<build>
 		<plugins>
 			<plugin>
