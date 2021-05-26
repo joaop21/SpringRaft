@@ -68,24 +68,14 @@ public class TransitionManager {
      * TODO
      * */
     public void setNewFollowerState() {
-
-        StateTransition transition = applicationContext
-                .getBean(StateTransition.class, applicationContext, consensusModule, Follower.class);
-
-        this.threadPoolTaskScheduler.schedule(transition, new Date());
-
+        this.setNewState(Follower.class);
     }
 
     /**
      * TODO
      * */
     public void setNewLeaderState() {
-
-        StateTransition transition = applicationContext
-                .getBean(StateTransition.class, applicationContext, consensusModule, Leader.class);
-
-        this.threadPoolTaskScheduler.schedule(transition, new Date());
-
+        this.setNewState(Leader.class);
     }
 
     /**
@@ -112,5 +102,14 @@ public class TransitionManager {
         OptionalLong op = new Random().longs(min,(max+1)).findFirst();
 
         return op.isPresent() ? op.getAsLong() : min;
+    }
+
+    /**
+     * TODO
+     * */
+    private void setNewState(Class<? extends RaftState> stateClass) {
+        RaftState state = applicationContext.getBean(stateClass);
+        this.consensusModule.setCurrentState(state);
+        state.start();
     }
 }

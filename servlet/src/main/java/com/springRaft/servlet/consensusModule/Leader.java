@@ -109,11 +109,11 @@ public class Leader extends RaftStateContext implements RaftState {
                 // clean leader's state
                 this.cleanVolatileState();
 
-                // transit to follower state
-                this.transitionManager.setNewFollowerState();
-
                 // deactivate PeerWorker
                 this.outboundManager.clearMessages();
+
+                // transit to follower state
+                this.transitionManager.setNewFollowerState();
 
             } else {
 
@@ -151,11 +151,11 @@ public class Leader extends RaftStateContext implements RaftState {
 
             this.cleanVolatileState();
 
-            // transit to follower state
-            this.transitionManager.setNewFollowerState();
-
             // deactivate PeerWorker
             this.outboundManager.clearMessages();
+
+            // transit to follower state
+            this.transitionManager.setNewFollowerState();
 
         }
 
@@ -174,11 +174,11 @@ public class Leader extends RaftStateContext implements RaftState {
             // clean leader's state
             this.cleanVolatileState();
 
-            // transit to follower state
-            this.transitionManager.setNewFollowerState();
-
             // deactivate PeerWorker
             this.outboundManager.clearMessages();
+
+            // transit to follower state
+            this.transitionManager.setNewFollowerState();
 
         }
 
@@ -267,11 +267,11 @@ public class Leader extends RaftStateContext implements RaftState {
 
         this.cleanVolatileState();
 
-        // transit to follower state
-        this.transitionManager.setNewFollowerState();
-
         // deactivate PeerWorker
         this.outboundManager.clearMessages();
+
+        // transit to follower state
+        this.transitionManager.setNewFollowerState();
 
     }
 
