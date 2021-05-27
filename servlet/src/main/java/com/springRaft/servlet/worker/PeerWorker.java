@@ -189,8 +189,8 @@ public class PeerWorker implements Runnable, MessageSubscriber {
         } while (reply == null && this.active && this.remainingMessages == 0);
 
         if (reply != null && this.active) {
-            this.consensusModule.requestVoteReply(reply);
             this.clearMessages();
+            this.consensusModule.requestVoteReply(reply);
         }
 
     }
@@ -278,7 +278,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
         } catch (Exception e) {
 
             // If another exception occurs
-            log.error("Exception not expected in appendEntries method");
+            log.error("Exception not expected in sendRPCHandler method");
 
         }
 

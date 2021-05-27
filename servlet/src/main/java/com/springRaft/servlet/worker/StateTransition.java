@@ -1,7 +1,6 @@
 package com.springRaft.servlet.worker;
 
 import com.springRaft.servlet.consensusModule.ConsensusModule;
-import com.springRaft.servlet.consensusModule.Follower;
 import com.springRaft.servlet.consensusModule.RaftState;
 import lombok.AllArgsConstructor;
 import org.springframework.context.ApplicationContext;
@@ -29,7 +28,7 @@ public class StateTransition implements Runnable {
 
         // transitions to candidate state
         RaftState raftState = applicationContext.getBean(state);
-        this.consensusModule.setCurrentState(raftState);
+        this.consensusModule.start(raftState);
 
     }
 

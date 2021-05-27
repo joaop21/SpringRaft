@@ -24,11 +24,12 @@ public class ConsensusModule implements RaftState {
     /* --------------------------------------------------- */
 
     /**
-     * TODO
+     * Setter method which sets the new state in consensus module.
+     *
+     * @param state The new raft state of this consensus module.
      * */
     public void setCurrentState(RaftState state) {
         this.current = state;
-        this.start();
     }
 
     /* --------------------------------------------------- */
@@ -64,7 +65,6 @@ public class ConsensusModule implements RaftState {
     }
 
     @Override
-    @Synchronized
     public void start() {
         this.current.start();
     }
@@ -72,6 +72,19 @@ public class ConsensusModule implements RaftState {
     @Override
     public RequestReply clientRequest(String command) {
         return this.current.clientRequest(command);
+    }
+
+    /* --------------------------------------------------- */
+
+    /**
+     * Setter method which sets the new state in consensus module and starts that state.
+     *
+     * @param state The new raft state of this consensus module.
+     * */
+    @Synchronized
+    public void start(RaftState state) {
+        this.setCurrentState(state);
+        this.start();
     }
 
 }
