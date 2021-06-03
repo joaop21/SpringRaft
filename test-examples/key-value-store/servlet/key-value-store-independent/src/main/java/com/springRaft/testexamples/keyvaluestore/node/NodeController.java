@@ -1,23 +1,21 @@
 package com.springRaft.testexamples.keyvaluestore.node;
 
 import lombok.AllArgsConstructor;
-import org.springframework.http.HttpHeaders;
+import org.springframework.context.annotation.Scope;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
-import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @RestController
+@Scope("singleton")
 @RequestMapping("/v2/keys")
 @AllArgsConstructor
 public class NodeController {
 
-    private final NodeRepository repository;
+    private final NodeService service;
 
     /* --------------------------------------------------- */
 
@@ -27,19 +25,17 @@ public class NodeController {
     )
     public ResponseEntity<?> get(@PathVariable String key) {
 
-        Optional<Node> node = repository.findByKey(key);
+        Optional<Node> node = this.service.get(key);
 
+        Map<String,Object> response = new HashMap<>();
         if (node.isEmpty()) {
 
-            Map<String,Object> response = new HashMap<>();
             response.put("message", "Key not found");
             response.put("key", key);
-
             return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
 
         } else {
 
-            Map<String,Object> response = new HashMap<>();
             response.put("action", "get");
             response.put("node", node.get());
             return new ResponseEntity<>(response, HttpStatus.OK);
@@ -56,40 +52,26 @@ public class NodeController {
     )
     public ResponseEntity<?> upsert(@PathVariable String key, @RequestBody String text) {
 
-        String value = text.replaceFirst("value=", "");
+        List<Node> list = this.service.upsert(key, text.replaceFirst("value=", ""));
 
-        Optional<Node> node = repository.findByKey(key);
-
-        if (node.isEmpty()) {
-
-            Node savedNode = repository.save(new Node(key, value));
-
-            URI location = ServletUriComponentsBuilder.fromCurrentRequest().build().toUri();
-                    //.path("/{key}").buildAndExpand(savedNode.getKey()).toUri();
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.setLocation(location);
+        if (list.size() == 1) {
 
             Map<String,Object> response = new HashMap<>();
             response.put("action", "set");
-            response.put("node", savedNode);
+            response.put("node", list.get(0));
 
-            return new ResponseEntity<>(response, headers, HttpStatus.CREATED);
+            return ResponseEntity
+                    .created(ServletUriComponentsBuilder.fromCurrentRequest().build().toUri())
+                    .body(response);
 
         } else {
 
-            Node savedNode = node.get();
-            repository.deleteNodeByKey(key);
-
-            Node newNode = new Node(key, value);
-            repository.save(newNode);
-
             Map<String,Object> response = new HashMap<>();
             response.put("action", "set");
-            response.put("node", newNode);
-            response.put("prevNode", savedNode);
+            response.put("node", list.get(1));
+            response.put("prevNode", list.get(0));
 
-            return new ResponseEntity<>(response, HttpStatus.OK);
+            return ResponseEntity.ok(response);
 
         }
 
@@ -103,7 +85,7 @@ public class NodeController {
     )
     public ResponseEntity<?> delete(@PathVariable String key) {
 
-        Optional<Node> node = repository.findByKey(key);
+        Optional<Node> node = this.service.delete(key);
 
         if (node.isEmpty()) {
 
@@ -114,8 +96,6 @@ public class NodeController {
             return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
 
         } else {
-
-            repository.deleteNodeByKey(key);
 
             Node newNode = new Node(node.get().getCreatedIndex(), node.get().getKey(), null);
 
