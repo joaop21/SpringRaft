@@ -16,8 +16,9 @@ import java.util.concurrent.atomic.AtomicReference;
 @AllArgsConstructor
 public class NodeController {
 
-    private final ServiceLock serviceLock;
-    private final ServicePublisher servicePublisher;
+    // private final ServiceUnsafe service;
+    // private final ServiceLock service;
+    private final ServicePublisher service;
 
     /* --------------------------------------------------- */
 
@@ -25,12 +26,11 @@ public class NodeController {
             value = "{key}",
             method = RequestMethod.GET
     )
-    public Mono<ResponseEntity<?>> get(@PathVariable String key) {
+    public Mono<ResponseEntity<Map<String,Object>>> get(@PathVariable String key) {
 
-        AtomicReference<ResponseEntity<?>> responseEntity = new AtomicReference<>();
+        AtomicReference<ResponseEntity<Map<String,Object>>> responseEntity = new AtomicReference<>();
 
-        //return this.serviceLock.get(key)
-        return this.servicePublisher.get(key)
+        return this.service.get(key)
                 .doOnSuccess(node -> {
 
                     Map<String,Object> response = new HashMap<>();
@@ -59,16 +59,16 @@ public class NodeController {
             value = "{key}",
             method = RequestMethod.PUT
     )
-    public Mono<ResponseEntity<?>> upsert(@PathVariable String key, @RequestBody String text, ServerHttpRequest request) {
+    public Mono<ResponseEntity<Map<String,Object>>> upsert(@PathVariable String key, @RequestBody String text, ServerHttpRequest request) {
 
-        return this.servicePublisher.upsert(key,text)
-                .collectList()
+        return this.service.upsert(key,text)
                 .flatMap(list -> {
+
+                    Map<String,Object> response = new HashMap<>();
 
                     if (list.size() == 1) {
 
                         return Mono.create(createSink -> {
-                            Map<String,Object> response = new HashMap<>();
                             response.put("action", "set");
                             response.put("node", list.get(0));
                             createSink.success(ResponseEntity.created(request.getURI()).body(response));
@@ -77,7 +77,6 @@ public class NodeController {
                     } else {
 
                         return Mono.create(createSink -> {
-                            Map<String,Object> response = new HashMap<>();
                             response.put("action", "set");
                             response.put("node", list.get(1));
                             response.put("prevNode", list.get(0));
@@ -97,11 +96,11 @@ public class NodeController {
             value = "{key}",
             method = RequestMethod.DELETE
     )
-    public Mono<ResponseEntity<?>> delete(@PathVariable String key) {
+    public Mono<ResponseEntity<Map<String,Object>>> delete(@PathVariable String key) {
 
-        AtomicReference<ResponseEntity<?>> responseEntity = new AtomicReference<>();
+        AtomicReference<ResponseEntity<Map<String,Object>>> responseEntity = new AtomicReference<>();
 
-        return this.servicePublisher.delete(key)
+        return this.service.delete(key)
                 .doOnSuccess(node -> {
 
                     Map<String,Object> response = new HashMap<>();

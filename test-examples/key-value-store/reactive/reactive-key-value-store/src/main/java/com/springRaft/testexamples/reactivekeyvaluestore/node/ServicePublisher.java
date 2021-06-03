@@ -7,12 +7,14 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 
+import java.util.List;
+
 @Service
 @Scope("singleton")
 @AllArgsConstructor
 public class ServicePublisher {
 
-    private final Sinks.Many<Mono<?>> sink = Sinks.many().multicast().onBackpressureBuffer();
+    private final Sinks.Many<Mono<Node>> sink = Sinks.many().multicast().onBackpressureBuffer();
 
     private final NodeRepository repository;
 
@@ -29,14 +31,15 @@ public class ServicePublisher {
 
     }
 
-    public Flux<Node> upsert(String key, String value) {
+    public Mono<List<Node>> upsert(String key, String value) {
 
         return Mono.<Sinks.Many<Node>>create(createSink -> {
             Sinks.Many<Node> sinkNode = Sinks.many().unicast().onBackpressureBuffer();
             createSink.success(sinkNode);
         })
                 .doOnNext(sinkNode -> this.sink.tryEmitNext(this.safeUpsert(key, value, sinkNode)))
-                .flatMapMany(Sinks.Many::asFlux);
+                .flatMapMany(Sinks.Many::asFlux)
+                .collectList();
 
     }
 
