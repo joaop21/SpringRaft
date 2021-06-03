@@ -64,8 +64,8 @@ public class NodeController {
 
             Node savedNode = repository.save(new Node(key, value));
 
-            URI location = ServletUriComponentsBuilder.fromCurrentRequest().path("/{key}")
-                    .buildAndExpand(savedNode.getKey()).toUri();
+            URI location = ServletUriComponentsBuilder.fromCurrentRequest().build().toUri();
+                    //.path("/{key}").buildAndExpand(savedNode.getKey()).toUri();
 
             HttpHeaders headers = new HttpHeaders();
             headers.setLocation(location);
