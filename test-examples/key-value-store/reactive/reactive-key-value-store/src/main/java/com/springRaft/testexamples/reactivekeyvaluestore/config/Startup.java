@@ -1,9 +1,9 @@
 package com.springRaft.testexamples.reactivekeyvaluestore.config;
 
 import com.springRaft.testexamples.reactivekeyvaluestore.node.NodeController;
-import com.springRaft.testexamples.reactivekeyvaluestore.node.ServiceLock;
-import com.springRaft.testexamples.reactivekeyvaluestore.node.ServicePublisher;
-import com.springRaft.testexamples.reactivekeyvaluestore.node.ServiceUnsafe;
+import com.springRaft.testexamples.reactivekeyvaluestore.node.service.ServiceLock;
+import com.springRaft.testexamples.reactivekeyvaluestore.node.service.ServicePublisher;
+import com.springRaft.testexamples.reactivekeyvaluestore.node.service.ServiceUnsafe;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

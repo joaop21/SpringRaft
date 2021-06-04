@@ -1,5 +1,7 @@
-package com.springRaft.testexamples.reactivekeyvaluestore.node;
+package com.springRaft.testexamples.reactivekeyvaluestore.node.service;
 
+import com.springRaft.testexamples.reactivekeyvaluestore.node.Node;
+import com.springRaft.testexamples.reactivekeyvaluestore.node.NodeRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Scope;

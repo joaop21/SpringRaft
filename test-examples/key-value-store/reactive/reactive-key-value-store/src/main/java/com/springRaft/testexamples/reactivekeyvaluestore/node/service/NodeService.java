@@ -1,5 +1,6 @@
-package com.springRaft.testexamples.reactivekeyvaluestore.node;
+package com.springRaft.testexamples.reactivekeyvaluestore.node.service;
 
+import com.springRaft.testexamples.reactivekeyvaluestore.node.Node;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
