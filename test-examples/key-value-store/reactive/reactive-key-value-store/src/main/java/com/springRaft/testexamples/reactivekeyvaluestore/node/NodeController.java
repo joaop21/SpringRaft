@@ -16,10 +16,6 @@ import java.util.concurrent.atomic.AtomicReference;
 @AllArgsConstructor
 public class NodeController {
 
-    // private final ServiceUnsafe service;
-    // private final ServiceLock service;
-    // private final ServicePublisher service;
-
     private NodeService service;
 
     /* --------------------------------------------------- */
