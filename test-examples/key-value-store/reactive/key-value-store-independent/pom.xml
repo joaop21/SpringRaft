@@ -11,9 +11,9 @@
 	</parent>
 
 	<groupId>com.springRaft.test-examples</groupId>
-	<artifactId>reactive-key-value-store</artifactId>
+	<artifactId>key-value-store-independent</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>reactive-key-value-store</name>
+	<name>key-value-store-independent</name>
 	<description>Reactive Web Application for a Key-Value Store</description>
 
 	<properties>
