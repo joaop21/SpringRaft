@@ -3,6 +3,7 @@ package com.springRaft.testexamples.reactivekeyvaluestore.node;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -13,6 +14,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 @Scope("singleton")
+@ConditionalOnProperty(name = "node.service.strategy", havingValue = "Lock")
 @AllArgsConstructor
 public class ServiceLock implements NodeService {
 

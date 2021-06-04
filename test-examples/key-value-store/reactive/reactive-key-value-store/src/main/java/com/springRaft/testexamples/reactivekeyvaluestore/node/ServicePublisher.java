@@ -1,7 +1,7 @@
 package com.springRaft.testexamples.reactivekeyvaluestore.node;
 
 import lombok.AllArgsConstructor;
-import org.springframework.context.annotation.Primary;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -11,8 +11,8 @@ import reactor.core.publisher.Sinks;
 import java.util.List;
 
 @Service
-@Primary
 @Scope("singleton")
+@ConditionalOnProperty(name = "node.service.strategy", havingValue = "Publisher")
 @AllArgsConstructor
 public class ServicePublisher implements NodeService {
 

@@ -1,6 +1,7 @@
 package com.springRaft.testexamples.reactivekeyvaluestore.node;
 
 import lombok.AllArgsConstructor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -11,6 +12,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 @Scope("singleton")
+@ConditionalOnProperty(name = "node.service.strategy", havingValue = "Unsafe")
 @AllArgsConstructor
 public class ServiceUnsafe implements NodeService {
 
