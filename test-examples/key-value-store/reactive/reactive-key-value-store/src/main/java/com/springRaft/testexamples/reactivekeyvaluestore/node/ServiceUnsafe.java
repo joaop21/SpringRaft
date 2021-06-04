@@ -12,16 +12,18 @@ import java.util.concurrent.atomic.AtomicReference;
 @Service
 @Scope("singleton")
 @AllArgsConstructor
-public class ServiceUnsafe {
+public class ServiceUnsafe implements NodeService {
 
     private final NodeRepository repository;
 
     /* --------------------------------------------------- */
 
+    @Override
     public Mono<Node> get(String key) {
         return this.repository.findNodeByKey(key);
     }
 
+    @Override
     public Mono<List<Node>> upsert(String key, String text) {
 
         AtomicReference<List<Node>> list = new AtomicReference<>(new ArrayList<>());
@@ -36,6 +38,7 @@ public class ServiceUnsafe {
                 .flatMap(savedNode -> Mono.defer(() -> Mono.just(list.get())));
     }
 
+    @Override
     public Mono<Node> delete(String key) {
         return this.repository.findNodeByKey(key)
                 .flatMap(node ->

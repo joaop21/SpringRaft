@@ -1,6 +1,7 @@
 package com.springRaft.testexamples.reactivekeyvaluestore.node;
 
 import lombok.AllArgsConstructor;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -10,9 +11,10 @@ import reactor.core.publisher.Sinks;
 import java.util.List;
 
 @Service
+@Primary
 @Scope("singleton")
 @AllArgsConstructor
-public class ServicePublisher {
+public class ServicePublisher implements NodeService {
 
     private final Sinks.Many<Mono<Node>> sink = Sinks.many().multicast().onBackpressureBuffer();
 
@@ -20,6 +22,7 @@ public class ServicePublisher {
 
     /* --------------------------------------------------- */
 
+    @Override
     public Mono<Node> get(String key) {
 
         return Mono.defer(() -> {
@@ -31,6 +34,7 @@ public class ServicePublisher {
 
     }
 
+    @Override
     public Mono<List<Node>> upsert(String key, String value) {
 
         return Mono.<Sinks.Many<Node>>create(createSink -> {
@@ -43,6 +47,7 @@ public class ServicePublisher {
 
     }
 
+    @Override
     public Mono<Node> delete(String key) {
 
         return Mono.defer(() -> {

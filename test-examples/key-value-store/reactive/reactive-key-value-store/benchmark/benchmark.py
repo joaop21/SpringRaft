@@ -16,5 +16,5 @@ class APICalls(TaskSet):
 
 
 class KeyValueClient(FastHttpUser):
-  host = 'http://localhost:8080/v2'
+  host = 'http://localhost:8001/v2'
   tasks = [APICalls]

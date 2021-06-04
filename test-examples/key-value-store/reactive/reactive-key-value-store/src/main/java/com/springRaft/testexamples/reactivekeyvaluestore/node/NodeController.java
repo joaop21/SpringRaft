@@ -18,7 +18,15 @@ public class NodeController {
 
     // private final ServiceUnsafe service;
     // private final ServiceLock service;
-    private final ServicePublisher service;
+    // private final ServicePublisher service;
+
+    private NodeService service;
+
+    /* --------------------------------------------------- */
+
+    public void setService(NodeService service) {
+        this.service = service;
+    }
 
     /* --------------------------------------------------- */
 
