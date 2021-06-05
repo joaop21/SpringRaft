@@ -1,5 +1,6 @@
 package com.springRaft.reactive.communication.message;
 
+import com.springRaft.reactive.persistence.log.Entry;
 import lombok.*;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
