@@ -22,12 +22,37 @@ public class ConsensusModule implements RaftState {
     /**
      * TODO
      * */
-    public ConsensusModule(RaftState raftState) {
-        this.current = raftState;
+    public ConsensusModule() {
+        this.current = null;
         this.operationPublisher = Sinks.many().multicast().onBackpressureBuffer();
 
         // subscribe to Concurrency Control Pipeline
         this.concurrencyControlPipeline().subscribe();
+    }
+
+    /* --------------------------------------------------- */
+
+    /**
+     * Setter method which sets the new state in consensus module.
+     *
+     * @param state The new raft state of this consensus module.
+     * */
+    public void setCurrentState(RaftState state) {
+        this.current = state;
+    }
+
+    /**
+     * Setter method which sets the new state in consensus module and starts that state.
+     *
+     * @param state The new raft state of this consensus module.
+     * */
+    public Mono<Void> setAndStartNewState(RaftState state) {
+        return publishAndSubscribeOperation(
+                Mono.create(monoSink -> {
+                    this.setCurrentState(state);
+                    monoSink.success(this.start());
+                })
+        ).cast(Void.class);
     }
 
     /* --------------------------------------------------- */
@@ -64,7 +89,7 @@ public class ConsensusModule implements RaftState {
 
     @Override
     public Mono<Void> start() {
-        return publishAndSubscribeOperation(this.current.start()).cast(Void.class);
+        return this.current.start();
     }
 
     /* --------------------------------------------------- */
@@ -78,6 +103,9 @@ public class ConsensusModule implements RaftState {
 
     /* --------------------------------------------------- */
 
+    /**
+     * TODO
+     * */
     private Mono<?> publishAndSubscribeOperation(Mono<?> operation) {
         return Mono.just(Sinks.one())
                 .doOnNext(responseSink ->
