@@ -1,5 +1,6 @@
 package com.springRaft.reactive.consensusModule;
 
+import com.springRaft.reactive.communication.outbound.OutboundManager;
 import com.springRaft.reactive.config.RaftProperties;
 import com.springRaft.reactive.persistence.log.LogService;
 import com.springRaft.reactive.persistence.state.StateService;
@@ -26,6 +27,9 @@ public abstract class RaftStateContext {
 
     /* Timer handles for timeouts */
     protected final TransitionManager transitionManager;
+
+    /* Publisher of messages */
+    protected final OutboundManager outboundManager;
 
     /* --------------------------------------------------- */
 

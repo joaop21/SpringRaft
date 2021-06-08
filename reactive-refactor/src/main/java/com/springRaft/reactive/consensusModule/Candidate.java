@@ -1,6 +1,7 @@
 package com.springRaft.reactive.consensusModule;
 
 import com.springRaft.reactive.communication.message.*;
+import com.springRaft.reactive.communication.outbound.OutboundManager;
 import com.springRaft.reactive.config.RaftProperties;
 import com.springRaft.reactive.persistence.log.LogService;
 import com.springRaft.reactive.persistence.log.LogState;
@@ -39,12 +40,13 @@ public class Candidate extends RaftStateContext implements RaftState {
             StateService stateService,
             LogService logService,
             RaftProperties raftProperties,
-            TransitionManager transitionManager
+            TransitionManager transitionManager,
+            OutboundManager outboundManager
     ) {
         super(
                 applicationContext, consensusModule,
                 stateService, logService, raftProperties,
-                transitionManager
+                transitionManager, outboundManager
         );
         this.scheduledTransition = null;
         this.requestVoteMessage = null;
@@ -55,32 +57,32 @@ public class Candidate extends RaftStateContext implements RaftState {
 
     @Override
     public Mono<AppendEntriesReply> appendEntries(AppendEntries appendEntries) {
-        return null;
+        return Mono.empty();
     }
 
     @Override
     public Mono<Void> appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
-        return null;
+        return Mono.empty();
     }
 
     @Override
     public Mono<RequestVoteReply> requestVote(RequestVote requestVote) {
-        return null;
+        return Mono.empty();
     }
 
     @Override
     public Mono<Void> requestVoteReply(RequestVoteReply requestVoteReply) {
-        return null;
+        return Mono.empty();
     }
 
     @Override
     public Mono<RequestReply> clientRequest(String command) {
-        return null;
+        return Mono.empty();
     }
 
     @Override
     public Mono<Pair<Message, Boolean>> getNextMessage(String to) {
-        return null;
+        return Mono.just(new Pair<>(this.requestVoteMessage, false));
     }
 
     @Override
@@ -118,10 +120,8 @@ public class Candidate extends RaftStateContext implements RaftState {
                             );
 
                     // issue RequestVote RPCs in parallel to each of the other servers in the cluster
-                    // return this.outboundManager.newMessage()
-                            //.then(this.setTimeout());
-
-                    return this.setTimeout();
+                    return this.outboundManager.newMessage()
+                            .then(this.setTimeout());
 
                 });
 

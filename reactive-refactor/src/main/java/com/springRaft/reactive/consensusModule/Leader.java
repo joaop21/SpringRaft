@@ -1,6 +1,7 @@
 package com.springRaft.reactive.consensusModule;
 
 import com.springRaft.reactive.communication.message.*;
+import com.springRaft.reactive.communication.outbound.OutboundManager;
 import com.springRaft.reactive.config.RaftProperties;
 import com.springRaft.reactive.persistence.log.LogService;
 import com.springRaft.reactive.persistence.state.StateService;
@@ -38,12 +39,13 @@ public class Leader extends RaftStateContext implements RaftState {
             StateService stateService,
             LogService logService,
             RaftProperties raftProperties,
-            TransitionManager transitionManager
+            TransitionManager transitionManager,
+            OutboundManager outboundManager
     ) {
         super(
                 applicationContext, consensusModule,
                 stateService, logService, raftProperties,
-                transitionManager
+                transitionManager, outboundManager
         );
         this.nextIndex = new HashMap<>();
         this.matchIndex = new HashMap<>();

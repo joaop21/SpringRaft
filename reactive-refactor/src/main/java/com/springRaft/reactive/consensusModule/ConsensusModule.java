@@ -15,6 +15,7 @@ public class ConsensusModule implements RaftState {
     /* Current Raft state - Follower, Candidate, Leader */
     private RaftState current;
 
+    /* Sink for publish operations */
     private final Sinks.Many<Mono<?>> operationPublisher;
 
     /* --------------------------------------------------- */

@@ -1,6 +1,7 @@
 package com.springRaft.reactive.consensusModule;
 
 import com.springRaft.reactive.communication.message.*;
+import com.springRaft.reactive.communication.outbound.OutboundManager;
 import com.springRaft.reactive.config.RaftProperties;
 import com.springRaft.reactive.persistence.log.LogService;
 import com.springRaft.reactive.persistence.state.StateService;
@@ -35,12 +36,13 @@ public class Follower extends RaftStateContext implements RaftState {
             StateService stateService,
             LogService logService,
             RaftProperties raftProperties,
-            TransitionManager transitionManager
+            TransitionManager transitionManager,
+            OutboundManager outboundManager
     ) {
         super(
                 applicationContext, consensusModule,
                 stateService, logService, raftProperties,
-                transitionManager
+                transitionManager, outboundManager
         );
         this.scheduledTransition = null;
         this.leaderId = raftProperties.getHost();
@@ -50,32 +52,32 @@ public class Follower extends RaftStateContext implements RaftState {
 
     @Override
     public Mono<AppendEntriesReply> appendEntries(AppendEntries appendEntries) {
-        return null;
+        return Mono.empty();
     }
 
     @Override
     public Mono<Void> appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
-        return null;
+        return Mono.empty();
     }
 
     @Override
     public Mono<RequestVoteReply> requestVote(RequestVote requestVote) {
-        return null;
+        return Mono.empty();
     }
 
     @Override
     public Mono<Void> requestVoteReply(RequestVoteReply requestVoteReply) {
-        return null;
+        return Mono.empty();
     }
 
     @Override
     public Mono<RequestReply> clientRequest(String command) {
-        return null;
+        return Mono.empty();
     }
 
     @Override
     public Mono<Pair<Message, Boolean>> getNextMessage(String to) {
-        return null;
+        return Mono.just(new Pair<>(null, false));
     }
 
     @Override
