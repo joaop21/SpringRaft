@@ -22,6 +22,9 @@ public abstract class RaftStateContext {
     /* Raft properties that need to be accessed */
     protected final RaftProperties raftProperties;
 
+    /* Timer handles for timeouts */
+    protected final TransitionManager transitionManager;
+
     /* --------------------------------------------------- */
 
 }

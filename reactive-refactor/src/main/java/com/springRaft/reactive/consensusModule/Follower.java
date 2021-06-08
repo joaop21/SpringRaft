@@ -30,9 +30,10 @@ public class Follower extends RaftStateContext implements RaftState {
     public Follower(
             ApplicationContext applicationContext,
             ConsensusModule consensusModule,
-            RaftProperties raftProperties
+            RaftProperties raftProperties,
+            TransitionManager transitionManager
     ) {
-        super(applicationContext, consensusModule,raftProperties);
+        super(applicationContext, consensusModule, raftProperties, transitionManager);
         this.scheduledTransition = null;
         this.leaderId = raftProperties.getHost();
     }
@@ -71,8 +72,27 @@ public class Follower extends RaftStateContext implements RaftState {
 
     @Override
     public Mono<Void> start() {
-        return null;
+
+        return this.transitionManager.setElectionTimeout()
+                .doFirst(() -> {
+                    log.info("FOLLOWER");
+                    this.leaderId = this.raftProperties.getHost();
+                })
+                .doOnNext(task -> this.scheduledTransition = task)
+                .then();
+
     }
 
     /* --------------------------------------------------- */
+
+    /**
+     * Set a timer in milliseconds that represents a timeout.
+     * */
+    private Mono<Void> setTimeout() {
+
+        return this.transitionManager.setElectionTimeout()
+                .doOnNext(task -> this.scheduledTransition = task)
+                .then();
+
+    }
 }

@@ -32,9 +32,10 @@ public class Candidate extends RaftStateContext implements RaftState {
     public Candidate(
             ApplicationContext applicationContext,
             ConsensusModule consensusModule,
-            RaftProperties raftProperties
+            RaftProperties raftProperties,
+            TransitionManager transitionManager
     ) {
-        super(applicationContext, consensusModule, raftProperties);
+        super(applicationContext, consensusModule, raftProperties, transitionManager);
         this.scheduledTransition = null;
         this.requestVoteMessage = null;
         this.votesGranted = 0;

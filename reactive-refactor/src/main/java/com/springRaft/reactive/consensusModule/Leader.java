@@ -33,9 +33,10 @@ public class Leader extends RaftStateContext implements RaftState {
     public Leader(
             ApplicationContext applicationContext,
             ConsensusModule consensusModule,
-            RaftProperties raftProperties
+            RaftProperties raftProperties,
+            TransitionManager transitionManager
     ) {
-        super(applicationContext, consensusModule, raftProperties);
+        super(applicationContext, consensusModule, raftProperties, transitionManager);
         this.nextIndex = new HashMap<>();
         this.matchIndex = new HashMap<>();
     }

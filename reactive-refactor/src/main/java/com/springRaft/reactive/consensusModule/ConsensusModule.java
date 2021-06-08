@@ -48,10 +48,11 @@ public class ConsensusModule implements RaftState {
      * */
     public Mono<Void> setAndStartNewState(RaftState state) {
         return publishAndSubscribeOperation(
-                Mono.create(monoSink -> {
+                Mono.<Mono<Void>>create(monoSink -> {
                     this.setCurrentState(state);
                     monoSink.success(this.start());
                 })
+                .flatMap(mono -> mono)
         ).cast(Void.class);
     }
 
@@ -109,7 +110,7 @@ public class ConsensusModule implements RaftState {
     private Mono<?> publishAndSubscribeOperation(Mono<?> operation) {
         return Mono.just(Sinks.one())
                 .doOnNext(responseSink ->
-                        this.operationPublisher.tryEmitNext(operation.doOnSuccess(responseSink::tryEmitValue))
+                    this.operationPublisher.tryEmitNext(operation.doOnSuccess(responseSink::tryEmitValue))
                 )
                 .flatMap(Sinks.Empty::asMono);
     }
