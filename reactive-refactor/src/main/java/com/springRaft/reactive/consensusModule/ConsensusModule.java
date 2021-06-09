@@ -61,22 +61,30 @@ public class ConsensusModule implements RaftState {
 
     @Override
     public Mono<AppendEntriesReply> appendEntries(AppendEntries appendEntries) {
-        return publishAndSubscribeOperation(this.current.appendEntries(appendEntries)).cast(AppendEntriesReply.class);
+        return publishAndSubscribeOperation(
+                Mono.defer(() -> this.current.appendEntries(appendEntries))
+        ).cast(AppendEntriesReply.class);
     }
 
     @Override
     public Mono<Void> appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
-        return publishAndSubscribeOperation(this.current.appendEntriesReply(appendEntriesReply,from)).cast(Void.class);
+        return publishAndSubscribeOperation(
+                Mono.defer(() -> this.current.appendEntriesReply(appendEntriesReply,from))
+        ).cast(Void.class);
     }
 
     @Override
     public Mono<RequestVoteReply> requestVote(RequestVote requestVote) {
-        return publishAndSubscribeOperation(this.current.requestVote(requestVote)).cast(RequestVoteReply.class);
+        return publishAndSubscribeOperation(
+                Mono.defer(() -> this.current.requestVote(requestVote))
+        ).cast(RequestVoteReply.class);
     }
 
     @Override
     public Mono<Void> requestVoteReply(RequestVoteReply requestVoteReply) {
-        return publishAndSubscribeOperation(this.current.requestVoteReply(requestVoteReply)).cast(Void.class);
+        return publishAndSubscribeOperation(
+                Mono.defer(() -> this.current.requestVoteReply(requestVoteReply))
+        ).cast(Void.class);
     }
 
     @Override
@@ -86,7 +94,8 @@ public class ConsensusModule implements RaftState {
 
     @Override
     public Mono<Pair<Message, Boolean>> getNextMessage(String to) {
-        return (Mono<Pair<Message, Boolean>>) publishAndSubscribeOperation(this.current.getNextMessage(to));
+        return (Mono<Pair<Message, Boolean>>) publishAndSubscribeOperation(
+                Mono.defer(() -> this.current.getNextMessage(to)));
     }
 
     @Override

@@ -67,12 +67,69 @@ public class Candidate extends RaftStateContext implements RaftState {
 
     @Override
     public Mono<RequestVoteReply> requestVote(RequestVote requestVote) {
-        return Mono.empty();
+
+        return this.stateService.getCurrentTerm()
+                .flatMap(currentTerm -> {
+
+                    RequestVoteReply reply = this.applicationContext.getBean(RequestVoteReply.class);
+
+                    if(requestVote.getTerm() <= currentTerm) {
+
+                        // revoke request
+                        reply.setTerm(currentTerm);
+                        reply.setVoteGranted(false);
+                        return Mono.just(reply);
+
+                    } else {
+
+                        reply.setTerm(requestVote.getTerm());
+
+                        // update term
+                        return this.stateService.setState(requestVote.getTerm(), null)
+                                .flatMap(state -> this.checkLog(requestVote, reply))
+                                .flatMap(requestVoteReply ->
+                                        this.cleanBeforeTransit()
+                                                .then(this.transitionManager.setNewFollowerState())
+                                                .then(Mono.just(requestVoteReply))
+                                );
+
+                    }
+
+                });
+
     }
 
     @Override
     public Mono<Void> requestVoteReply(RequestVoteReply requestVoteReply) {
-        return Mono.empty();
+
+        return this.stateService.getCurrentTerm()
+                .flatMap(currentTerm -> {
+
+                    if (requestVoteReply.getTerm() > currentTerm) {
+
+                        // update term
+                        return this.stateService.setState(requestVoteReply.getTerm(), null)
+                                .then(this.cleanBeforeTransit())
+                                .then(this.transitionManager.setNewFollowerState());
+
+                    } else {
+
+                        if (requestVoteReply.getVoteGranted()) {
+
+                            this.votesGranted++;
+
+                            if (this.votesGranted >= this.raftProperties.getQuorum())
+                                // transit to leader state
+                                return this.cleanBeforeTransit().then(this.transitionManager.setNewLeaderState());
+
+                        }
+
+                        return Mono.empty();
+
+                    }
+
+                });
+
     }
 
     @Override
@@ -137,6 +194,23 @@ public class Candidate extends RaftStateContext implements RaftState {
         return this.transitionManager.setElectionTimeout()
                 .doOnNext(task -> this.scheduledTransition = task)
                 .then();
+
+    }
+
+    /**
+     * Clean volatile candidate state before transit to another state.
+     *
+     * @return Mono<Void> The result it's not important, but something is returned so it can be subscribed.
+     * */
+    private Mono<Void> cleanBeforeTransit() {
+
+        // delete the existing scheduled task
+        this.scheduledTransition.dispose();
+
+        // change message to null and notify peer workers
+        this.requestVoteMessage = null;
+
+        return this.outboundManager.clearMessages();
 
     }
 

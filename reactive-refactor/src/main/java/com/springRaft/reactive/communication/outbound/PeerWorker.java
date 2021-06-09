@@ -1,9 +1,6 @@
 package com.springRaft.reactive.communication.outbound;
 
-import com.springRaft.reactive.communication.message.AppendEntries;
-import com.springRaft.reactive.communication.message.Message;
-import com.springRaft.reactive.communication.message.RequestVote;
-import com.springRaft.reactive.communication.message.RequestVoteReply;
+import com.springRaft.reactive.communication.message.*;
 import com.springRaft.reactive.config.RaftProperties;
 import com.springRaft.reactive.consensusModule.*;
 import org.slf4j.Logger;
@@ -183,7 +180,7 @@ public class PeerWorker implements MessageSubscriber {
 
                 if (heartbeat) {
                     // if it is an heartbeat
-                    //return this.handleHeartbeat((AppendEntries) message);
+                    return this.handleHeartbeat((AppendEntries) message);
                 } else {
                     // if it has an Entry to add to the log or it is an AppendEntries to find a match index
                     //return this.handleNormalAppendEntries((AppendEntries) message);
@@ -216,6 +213,35 @@ public class PeerWorker implements MessageSubscriber {
                             this.clearMessages()
                                     .then(this.consensusModule.requestVoteReply(reply.get()))
                     );
+
+    }
+
+    /**
+     * Method that handles the heartbeats communication.
+     *
+     * @param appendEntries Message to send to the target server.
+     * */
+    private Mono<Void> handleHeartbeat(AppendEntries appendEntries) {
+
+        AtomicReference<AppendEntriesReply> reply = new AtomicReference<>(null);
+        AtomicLong start = new AtomicLong();
+
+        return this.sendRPCHandler(this.outbound.appendEntries(this.targetServerName, appendEntries))
+                .cast(AppendEntriesReply.class)
+                .doFirst(() -> start.set(System.currentTimeMillis()))
+                .doOnNext(reply::set)
+                .filter(appendEntriesReply -> reply.get() != null && this.active)
+                    .flatMap(appendEntriesReply ->
+                            this.consensusModule.appendEntriesReply(reply.get(), this.targetServerName)
+                                    .then(Mono.just(appendEntriesReply))
+                    )
+                    .filter(appendEntriesReply -> reply.get().getSuccess())
+                    .flatMap(appendEntriesReply ->
+                            this.waitWhileCondition(start.get(), () -> this.active && this.remainingMessages == 0)
+                    )
+                .repeat(() -> (this.active && this.remainingMessages == 0) && !(reply.get() != null && this.active))
+                .next()
+                .then();
 
     }
 

@@ -61,6 +61,28 @@ public class TransitionManager {
 
     }
 
+    /**
+     * Method for creating a new follower state transition which takes place on transition scheduler.
+     * */
+    public Mono<Void> setNewFollowerState() {
+        return Mono.just(applicationContext.getBean(Follower.class))
+                .flatMap(follower -> {
+                    this.consensusModule.setCurrentState(follower);
+                    return follower.start();
+                });
+    }
+
+    /**
+     * Method for creating a new leader state transition which takes place on transition scheduler.
+     * */
+    public Mono<Void> setNewLeaderState() {
+        return Mono.just(applicationContext.getBean(Leader.class))
+                .flatMap(leader -> {
+                    this.consensusModule.setCurrentState(leader);
+                    return leader.start();
+                });
+    }
+
     /* --------------------------------------------------- */
 
     /**
