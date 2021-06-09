@@ -17,7 +17,6 @@ import reactor.core.publisher.Sinks;
 
 import java.net.ConnectException;
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -146,13 +145,16 @@ public class PeerWorker implements MessageSubscriber {
     }
 
     /**
-     * Method that waits for new messages.
+     * Method that waits for new messages while this.active is false.
      *
      * @return Boolean which represents the operation success.
      * */
     private Mono<Boolean> waitForNewMessages() {
 
-        return Mono.just(this.active)
+        // it has to be defer because this pipeline is invoked in a repeat operator
+        // if it was only Mono.just(this.active), the pipeline would use always the value os this.active when
+        // this pipeline was assembled
+        return Mono.defer(() -> Mono.just(this.active))
                 .flatMapMany(active -> active ? Flux.just(true) : this.hasMessages.asFlux())
                 .flatMap(bool -> bool ? Mono.just(true) : Mono.empty(), 1)
                 .next()
