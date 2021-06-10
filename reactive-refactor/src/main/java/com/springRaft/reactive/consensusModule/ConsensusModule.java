@@ -48,7 +48,7 @@ public class ConsensusModule implements RaftState {
      * @param state The new raft state of this consensus module.
      * */
     public Mono<Void> setAndStartNewState(RaftState state) {
-        return publishAndSubscribeOperation(
+        return publishOperation(
                 Mono.<Mono<Void>>create(monoSink -> {
                     this.setCurrentState(state);
                     monoSink.success(this.start());
@@ -68,7 +68,7 @@ public class ConsensusModule implements RaftState {
 
     @Override
     public Mono<Void> appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
-        return publishAndSubscribeOperation(
+        return publishOperation(
                 Mono.defer(() -> this.current.appendEntriesReply(appendEntriesReply,from))
         ).cast(Void.class);
     }
@@ -82,7 +82,7 @@ public class ConsensusModule implements RaftState {
 
     @Override
     public Mono<Void> requestVoteReply(RequestVoteReply requestVoteReply) {
-        return publishAndSubscribeOperation(
+        return publishOperation(
                 Mono.defer(() -> this.current.requestVoteReply(requestVoteReply))
         ).cast(Void.class);
     }
@@ -115,7 +115,11 @@ public class ConsensusModule implements RaftState {
     /* --------------------------------------------------- */
 
     /**
-     * TODO
+     * Method that publishes the mono operation into the publisher and waits for the response in a specific sink.
+     *
+     * @param operation Mono operation to invoke in the current state.
+     *
+     * @return Response of the invocation of the operation in the current state.
      * */
     private Mono<?> publishAndSubscribeOperation(Mono<?> operation) {
         return Mono.just(Sinks.one())
@@ -123,6 +127,15 @@ public class ConsensusModule implements RaftState {
                     this.operationPublisher.tryEmitNext(operation.doOnSuccess(responseSink::tryEmitValue))
                 )
                 .flatMap(Sinks.Empty::asMono);
+    }
+
+    /**
+     * Method that publishes the mono operation into the publisher and doesn't wait for the response.
+     *
+     * @param operation Mono operation to invoke in the current state.
+     * */
+    private Mono<?> publishOperation(Mono<?> operation) {
+        return Mono.just(this.operationPublisher.tryEmitNext(operation));
     }
 
 }
