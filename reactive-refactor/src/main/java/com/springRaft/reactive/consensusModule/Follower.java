@@ -51,7 +51,7 @@ public class Follower extends RaftStateContext implements RaftState {
 
     @Override
     public Mono<AppendEntriesReply> appendEntries(AppendEntries appendEntries) {
-        return Mono.empty();
+        return super.appendEntries(appendEntries);
     }
 
     @Override
@@ -134,6 +134,13 @@ public class Follower extends RaftStateContext implements RaftState {
                 .doOnNext(task -> this.scheduledTransition = task)
                 .then();
 
+    }
+
+    /* --------------------------------------------------- */
+
+    @Override
+    protected Mono<Void> postAppendEntries(AppendEntries appendEntries) {
+        return this.cleanBeforeTransit().doFirst(() -> this.leaderId = appendEntries.getLeaderId());
     }
 
     /* --------------------------------------------------- */

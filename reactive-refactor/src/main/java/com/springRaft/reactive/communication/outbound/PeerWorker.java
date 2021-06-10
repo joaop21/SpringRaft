@@ -205,10 +205,15 @@ public class PeerWorker implements MessageSubscriber {
 
         return this.sendRPCHandler(this.outbound.requestVote(this.targetServerName, requestVote))
                     .cast(RequestVoteReply.class)
+                    .doOnSuccess(result ->
+                        log.info("\n\n" + this.targetServerName + ":\n" +
+                                "REQUEST VOTE: " + requestVote +
+                                "\nREQUEST VOTE REPLY: " + result + "\n")
+                    )
                     .doOnNext(reply::set)
                 .repeat(() -> reply.get() == null && this.active && this.remainingMessages == 0)
                 .next()
-                .filter(requestVoteReply -> reply.get() != null && this.active)
+                .filter(requestVoteReply -> reply.get() != null && this.active) // PROBLEM HERE
                     .flatMap(requestVoteReply ->
                             this.clearMessages()
                                     .then(this.consensusModule.requestVoteReply(reply.get()))
@@ -227,18 +232,23 @@ public class PeerWorker implements MessageSubscriber {
         AtomicLong start = new AtomicLong();
 
         return this.sendRPCHandler(this.outbound.appendEntries(this.targetServerName, appendEntries))
-                .cast(AppendEntriesReply.class)
-                .doFirst(() -> start.set(System.currentTimeMillis()))
-                .doOnNext(reply::set)
-                .filter(appendEntriesReply -> reply.get() != null && this.active)
-                    .flatMap(appendEntriesReply ->
-                            this.consensusModule.appendEntriesReply(reply.get(), this.targetServerName)
-                                    .then(Mono.just(appendEntriesReply))
+                    .cast(AppendEntriesReply.class)
+                    .doFirst(() -> start.set(System.currentTimeMillis()))
+                    .doOnSuccess(result ->
+                        log.info("\n\n" + this.targetServerName + ":\n" +
+                                "APPEND ENTRIES: " + appendEntries +
+                                "\nAPPEND ENTRIES REPLY: " + result + "\n")
                     )
-                    .filter(appendEntriesReply -> reply.get().getSuccess())
-                    .flatMap(appendEntriesReply ->
-                            this.waitWhileCondition(start.get(), () -> this.active && this.remainingMessages == 0)
-                    )
+                    .doOnNext(reply::set)
+                    .filter(appendEntriesReply -> reply.get() != null && this.active)
+                        .flatMap(appendEntriesReply ->
+                                this.consensusModule.appendEntriesReply(reply.get(), this.targetServerName)
+                                        .then(Mono.just(appendEntriesReply))
+                        )
+                        .filter(appendEntriesReply -> reply.get().getSuccess())
+                            .flatMap(appendEntriesReply ->
+                                    this.waitWhileCondition(start.get(), () -> this.active && this.remainingMessages == 0)
+                            )
                 .repeat(() -> (this.active && this.remainingMessages == 0) && !(reply.get() != null && this.active))
                 .next()
                 .then();

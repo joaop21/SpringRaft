@@ -58,7 +58,7 @@ public class Leader extends RaftStateContext implements RaftState {
 
     @Override
     public Mono<AppendEntriesReply> appendEntries(AppendEntries appendEntries) {
-        return Mono.empty();
+        return super.appendEntries(appendEntries);
     }
 
     @Override
@@ -110,14 +110,14 @@ public class Leader extends RaftStateContext implements RaftState {
         return this.stateService.getCurrentTerm()
                 // if term is greater than mine, I should update it and transit to new follower
                 .filter(currentTerm -> requestVoteReply.getTerm() > currentTerm)
-                .flatMap(currentTerm ->
-                        // update term
-                        this.stateService.setState(requestVoteReply.getTerm(), null)
-                                // clean leader's state
-                                .doOnTerminate(this::cleanVolatileState)
-                )
-                .then(this.outboundManager.clearMessages())
-                .then(this.transitionManager.setNewFollowerState());
+                    .flatMap(currentTerm ->
+                            // update term
+                            this.stateService.setState(requestVoteReply.getTerm(), null)
+                                    // clean leader's state
+                                    .doOnTerminate(this::cleanVolatileState)
+                                    .then(this.outboundManager.clearMessages())
+                                    .then(this.transitionManager.setNewFollowerState())
+                    );
 
     }
 
@@ -146,6 +146,20 @@ public class Leader extends RaftStateContext implements RaftState {
                         this.outboundManager.newMessage()
                 )
                 .doFirst(() -> log.info("LEADER"));
+
+    }
+
+    /* --------------------------------------------------- */
+
+    @Override
+    protected Mono<Void> postAppendEntries(AppendEntries appendEntries) {
+
+        // deactivate PeerWorker
+        return this.outboundManager.clearMessages()
+                // transit to follower state
+                .then(this.transitionManager.setNewFollowerState())
+                .doFirst(this::cleanVolatileState);
+
 
     }
 
