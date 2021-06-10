@@ -93,7 +93,7 @@ public class Leader extends RaftStateContext implements RaftState {
                                 )
                                 .doOnNext(requestVoteReply -> this.cleanVolatileState())
                                 .flatMap(requestVoteReply ->
-                                        this.outboundManager.clearMessages()
+                                        this.outboundManager.newFollowerState()
                                                 .then(this.transitionManager.setNewFollowerState())
                                                 .then(Mono.just(requestVoteReply))
                                 );
@@ -115,7 +115,7 @@ public class Leader extends RaftStateContext implements RaftState {
                             this.stateService.setState(requestVoteReply.getTerm(), null)
                                     // clean leader's state
                                     .doOnTerminate(this::cleanVolatileState)
-                                    .then(this.outboundManager.clearMessages())
+                                    .then(this.outboundManager.newFollowerState())
                                     .then(this.transitionManager.setNewFollowerState())
                     );
 
@@ -143,7 +143,7 @@ public class Leader extends RaftStateContext implements RaftState {
         return this.reinitializeVolatileState()
                 .then(
                         // issue empty AppendEntries in parallel to each of the other servers in the cluster
-                        this.outboundManager.newMessage()
+                        this.heartbeatAppendEntries().flatMap(this.outboundManager::sendAuthorityHeartbeat)
                 )
                 .doFirst(() -> log.info("LEADER"));
 
@@ -155,7 +155,7 @@ public class Leader extends RaftStateContext implements RaftState {
     protected Mono<Void> postAppendEntries(AppendEntries appendEntries) {
 
         // deactivate PeerWorker
-        return this.outboundManager.clearMessages()
+        return this.outboundManager.newFollowerState()
                 // transit to follower state
                 .then(this.transitionManager.setNewFollowerState())
                 .doFirst(this::cleanVolatileState);
