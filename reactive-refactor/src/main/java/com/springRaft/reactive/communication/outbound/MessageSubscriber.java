@@ -7,32 +7,43 @@ import reactor.core.publisher.Mono;
 public interface MessageSubscriber {
 
     /**
-     * TODO
+     * Method that invokes a RequestVoteRPC in every cluster member.
+     *
+     * @param requestVote Message to send.
      * */
     Mono<Void> sendRequestVote(RequestVote requestVote);
 
     /**
-     * TODO
+     * Method that invokes an AppendEntriesRPC in every cluster member, which works as an authority heartbeat so
+     * every member in the cluster knows the new Leader.
+     *
+     * @param heartbeat Message to send.
      * */
     Mono<Void> sendAuthorityHeartbeat(AppendEntries heartbeat);
 
     /**
-     * TODO
+     * Method that invokes an AppendEntriesRPC in a specific server, which works as an heartbeat.
+     *
+     * @param heartbeat Message to send.
+     * @param to String that represents the target server.
      * */
     Mono<Void> sendHeartbeat(AppendEntries heartbeat, String to);
 
     /**
-     * TODO
+     * Method that invokes an AppendEntriesRPC in a specific server.
+     *
+     * @param appendEntries Message to send.
+     * @param to String that represents the target server.
      * */
     Mono<Void> sendAppendEntries(AppendEntries appendEntries, String to);
 
     /**
-     * TODO
+     * Method that marks a new client request.
      * */
     Mono<Void> newClientRequest();
 
     /**
-     * TODO
+     * Method thar marks a new Follower state in order to stop all the outgoing communications to the cluster.
      * */
     Mono<Void> newFollowerState();
 

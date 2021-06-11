@@ -42,7 +42,7 @@ public class PeerWorkers implements ApplicationRunner {
      * @param args Arguments of the application.
      * */
     @Override
-    public void run(ApplicationArguments args) throws Exception {
+    public void run(ApplicationArguments args) {
 
         Flux.fromIterable(this.raftProperties.getCluster())
                 .doOnNext(server -> {

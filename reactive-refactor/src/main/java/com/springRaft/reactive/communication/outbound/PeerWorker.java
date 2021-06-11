@@ -16,7 +16,6 @@ import reactor.core.publisher.Sinks;
 import java.net.ConnectException;
 import java.time.Duration;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -142,11 +141,6 @@ public class PeerWorker implements MessageSubscriber {
 
         return this.sendRPCHandler(this.outbound.requestVote(this.targetServerName, requestVote))
                     .cast(RequestVoteReply.class)
-                    //.doOnSuccess(result ->
-                      //      log.info("\n\n" + this.targetServerName + ":\n" +
-                        //            "REQUEST VOTE: " + requestVote +
-                          //          "\nREQUEST VOTE REPLY: " + result + "\n")
-                    //)
                     .doOnNext(reply::set)
                 .repeat(() -> reply.get() == null)
                 .next()
@@ -169,11 +163,6 @@ public class PeerWorker implements MessageSubscriber {
                     .doOnNext(number -> this.communicationStart.set(System.currentTimeMillis()))
                     .flatMap(number -> this.sendRPCHandler(this.outbound.appendEntries(this.targetServerName, appendEntries)))
                     .cast(AppendEntriesReply.class)
-                    //.doOnSuccess(result ->
-                    //      log.info("\n\n" + this.targetServerName + ":\n" +
-                    //            "HEARTBEAT: " + appendEntries +
-                    //            "\nHEARTBEAT REPLY: " + result + "\n")
-                    //)
                     .doOnNext(reply::set)
                     .filter(appendEntriesReply -> reply.get() != null)
                         .flatMap(appendEntriesReply -> this.consensusModule.appendEntriesReply(reply.get(), this.targetServerName))
@@ -240,6 +229,7 @@ public class PeerWorker implements MessageSubscriber {
                     } else if (error instanceof TimeoutException) {
 
                         // If the communication exceeded heartbeat timeout
+                        log.warn("Communication to " + this.targetServerName + " exceeded heartbeat timeout");
 
                     } else {
 

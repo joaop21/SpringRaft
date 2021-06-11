@@ -8,7 +8,6 @@ import com.springRaft.reactive.persistence.log.LogService;
 import com.springRaft.reactive.persistence.log.LogState;
 import com.springRaft.reactive.persistence.state.State;
 import com.springRaft.reactive.persistence.state.StateService;
-import com.springRaft.reactive.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -86,8 +85,8 @@ public class Leader extends RaftStateContext implements RaftState {
                         this.matchIndex.put(from, nextIndex - 1);
                         return this.sendNextAppendEntries(from, nextIndex, nextIndex - 1);
 
-                    });
-                    //.flatMap(index -> this.setCommitIndex(from));
+                    })
+                    .flatMap(index -> this.setCommitIndex(from));
 
         } else {
 

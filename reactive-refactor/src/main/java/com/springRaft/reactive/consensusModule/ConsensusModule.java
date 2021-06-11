@@ -1,24 +1,15 @@
 package com.springRaft.reactive.consensusModule;
 
 import com.springRaft.reactive.communication.message.*;
-import com.springRaft.reactive.util.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.SignalType;
 import reactor.core.publisher.Sinks;
-
-import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 @Scope("singleton")
 public class ConsensusModule implements RaftState {
-
-    /* Logger */
-    private static final Logger log = LoggerFactory.getLogger(ConsensusModule.class);
 
     /* Current Raft state - Follower, Candidate, Leader */
     private RaftState current;

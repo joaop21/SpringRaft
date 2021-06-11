@@ -1,7 +1,6 @@
 package com.springRaft.reactive.consensusModule;
 
 import com.springRaft.reactive.communication.message.*;
-import com.springRaft.reactive.util.Pair;
 import reactor.core.publisher.Mono;
 
 public interface RaftState {
