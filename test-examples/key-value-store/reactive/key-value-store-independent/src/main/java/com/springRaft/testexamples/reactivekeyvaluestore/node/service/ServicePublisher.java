@@ -27,11 +27,28 @@ public class ServicePublisher implements NodeService {
     @Override
     public Mono<Node> get(String key) {
 
-        return Mono.defer(() -> {
+        // JUST
+        /*
+        Sinks.One<Node> responseSink = Sinks.one();
+
+        return Mono.just(responseSink)
+                .doOnNext(sinkNode -> this.sink.tryEmitNext(this.safeGet(key, sinkNode)))
+                .flatMap(Sinks.Empty::asMono);*/
+
+        // DEFER
+        /*return Mono.defer(() -> {
             Sinks.One<Node> sinkNode = Sinks.one();
             return Mono.just(sinkNode);
         })
                 .doOnNext(sinkNode -> this.sink.tryEmitNext(this.safeGet(key, sinkNode)))
+                .flatMap(Sinks.Empty::asMono);*/
+
+        // CREATE
+        return Mono.<Sinks.One<Node>>create(oneMonoSink -> {
+            Sinks.One<Node> sinkNode = Sinks.one();
+            this.sink.tryEmitNext(this.safeGet(key, sinkNode));
+            oneMonoSink.success(sinkNode);
+        })
                 .flatMap(Sinks.Empty::asMono);
 
     }
@@ -39,11 +56,31 @@ public class ServicePublisher implements NodeService {
     @Override
     public Mono<List<Node>> upsert(String key, String value) {
 
+        // JUST
+        /*
+        Sinks.Many<Node> responseSink = Sinks.many().unicast().onBackpressureBuffer();
+
+        return Mono.just(responseSink)
+                .doOnNext(sinkNode -> this.sink.tryEmitNext(this.safeUpsert(key, value, sinkNode)))
+                .flatMapMany(Sinks.Many::asFlux)
+                .collectList();*/
+
+        // DEFER
+        /*
         return Mono.<Sinks.Many<Node>>create(createSink -> {
             Sinks.Many<Node> sinkNode = Sinks.many().unicast().onBackpressureBuffer();
             createSink.success(sinkNode);
         })
                 .doOnNext(sinkNode -> this.sink.tryEmitNext(this.safeUpsert(key, value, sinkNode)))
+                .flatMapMany(Sinks.Many::asFlux)
+                .collectList();*/
+
+        // CREATE
+        return Mono.<Sinks.Many<Node>>create(manyMonoSink -> {
+            Sinks.Many<Node> sinkNode = Sinks.many().unicast().onBackpressureBuffer();
+            this.sink.tryEmitNext(this.safeUpsert(key, value, sinkNode));
+            manyMonoSink.success(sinkNode);
+        })
                 .flatMapMany(Sinks.Many::asFlux)
                 .collectList();
 
@@ -52,11 +89,29 @@ public class ServicePublisher implements NodeService {
     @Override
     public Mono<Node> delete(String key) {
 
+        // JUST
+        /*
+        Sinks.One<Node> responseSink = Sinks.one();
+
+        return Mono.just(responseSink)
+                .doOnNext(sinkNode -> this.sink.tryEmitNext(this.safeDelete(key, sinkNode)))
+                .flatMap(Sinks.Empty::asMono);*/
+
+        // DEFER
+        /*
         return Mono.defer(() -> {
             Sinks.One<Node> sinkNode = Sinks.one();
             return Mono.just(sinkNode);
         })
                 .doOnNext(sinkNode -> this.sink.tryEmitNext(this.safeDelete(key, sinkNode)))
+                .flatMap(Sinks.Empty::asMono);*/
+
+        // CREATE
+        return Mono.<Sinks.One<Node>>create(nodeMonoSink -> {
+            Sinks.One<Node> sinkNode = Sinks.one();
+            this.sink.tryEmitNext(this.safeDelete(key, sinkNode));
+            nodeMonoSink.success(sinkNode);
+        })
                 .flatMap(Sinks.Empty::asMono);
 
     }
