@@ -12,7 +12,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
-import reactor.core.scheduler.Scheduler;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -32,7 +31,7 @@ public class PeerWorkers implements ApplicationRunner {
     private final OutboundManager outboundManager;
 
     /* Map containing the PeerWorkers responsible for the servers */
-    private final Map<String,PeerWorker> peerWorkers = new HashMap<>();
+    private final Map<String, PeerWorker> peerWorkers = new HashMap<>();
 
     /* --------------------------------------------------- */
 
@@ -60,7 +59,7 @@ public class PeerWorkers implements ApplicationRunner {
                     // put worker in the map if doesn't exist
                     if (this.peerWorkers.putIfAbsent(server, worker) == null)
                         // subscribe worker in outbound observer
-                        this.outboundManager.subscribe(worker);
+                        this.outboundManager.subscribe(server, worker);
 
                 })
                 .blockLast();

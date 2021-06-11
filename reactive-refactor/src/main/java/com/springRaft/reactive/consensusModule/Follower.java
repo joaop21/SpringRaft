@@ -101,12 +101,11 @@ public class Follower extends RaftStateContext implements RaftState {
         return this.stateService.getCurrentTerm()
                 // if term is greater than mine, I should update it and transit to new follower
                 .filter(currentTerm -> requestVoteReply.getTerm() > currentTerm)
-                .flatMap(currentTerm ->
-                        // update term
-                        this.stateService.setState(requestVoteReply.getTerm(), null)
-                )
-                .flatMap(state -> this.cleanBeforeTransit())
-                .then();
+                    .flatMap(currentTerm ->
+                            // update term
+                            this.stateService.setState(requestVoteReply.getTerm(), null)
+                    )
+                    .flatMap(state -> this.cleanBeforeTransit());
 
     }
 
@@ -119,11 +118,6 @@ public class Follower extends RaftStateContext implements RaftState {
     }
 
     @Override
-    public Mono<Pair<Message, Boolean>> getNextMessage(String to) {
-        return Mono.just(new Pair<>(null, false));
-    }
-
-    @Override
     public Mono<Void> start() {
 
         return this.transitionManager.setElectionTimeout()
@@ -132,7 +126,7 @@ public class Follower extends RaftStateContext implements RaftState {
                     this.leaderId = this.raftProperties.getHost();
                 })
                 .doOnNext(task -> this.scheduledTransition = task)
-                .then();
+                .then(this.outboundManager.newFollowerState());
 
     }
 

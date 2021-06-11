@@ -26,9 +26,6 @@ public class Candidate extends RaftStateContext implements RaftState {
     /* Scheduled Runnable for state transition*/
     private Disposable scheduledTransition;
 
-    /* Message to send to the cluster requesting votes */
-    private Message requestVoteMessage;
-
     /* Votes granted by the cluster */
     private int votesGranted;
 
@@ -49,7 +46,6 @@ public class Candidate extends RaftStateContext implements RaftState {
                 transitionManager, outboundManager
         );
         this.scheduledTransition = null;
-        this.requestVoteMessage = null;
         this.votesGranted = 0;
     }
 
@@ -112,7 +108,7 @@ public class Candidate extends RaftStateContext implements RaftState {
                                 .then(this.cleanBeforeTransit())
                                 .then(this.transitionManager.setNewFollowerState());
 
-                    } else {
+                    } else if (requestVoteReply.getTerm().equals(currentTerm)) {
 
                         if (requestVoteReply.getVoteGranted()) {
 
@@ -126,7 +122,7 @@ public class Candidate extends RaftStateContext implements RaftState {
 
                         return Mono.empty();
 
-                    }
+                    } else return Mono.empty();
 
                 });
 
@@ -135,11 +131,6 @@ public class Candidate extends RaftStateContext implements RaftState {
     @Override
     public Mono<RequestReply> clientRequest(String command) {
         return Mono.empty();
-    }
-
-    @Override
-    public Mono<Pair<Message, Boolean>> getNextMessage(String to) {
-        return Mono.just(new Pair<>(this.requestVoteMessage, false));
     }
 
     @Override
@@ -167,7 +158,7 @@ public class Candidate extends RaftStateContext implements RaftState {
 
                     this.votesGranted++;
 
-                    this.requestVoteMessage =
+                    RequestVote requestVote =
                             this.applicationContext.getBean(
                                     RequestVote.class,
                                     state.getCurrentTerm(),
@@ -177,7 +168,7 @@ public class Candidate extends RaftStateContext implements RaftState {
                             );
 
                     // issue RequestVote RPCs in parallel to each of the other servers in the cluster
-                    return this.outboundManager.newMessage()
+                    return this.outboundManager.sendRequestVote(requestVote)
                             .then(this.setTimeout());
 
                 });
@@ -214,11 +205,7 @@ public class Candidate extends RaftStateContext implements RaftState {
 
         // delete the existing scheduled task
         this.scheduledTransition.dispose();
-
-        // change message to null and notify peer workers
-        this.requestVoteMessage = null;
-
-        return this.outboundManager.clearMessages();
+        return Mono.empty();
 
     }
 
