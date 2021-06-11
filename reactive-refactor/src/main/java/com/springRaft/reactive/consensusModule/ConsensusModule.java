@@ -2,15 +2,23 @@ package com.springRaft.reactive.consensusModule;
 
 import com.springRaft.reactive.communication.message.*;
 import com.springRaft.reactive.util.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 import reactor.core.publisher.Sinks;
+
+import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 @Scope("singleton")
 public class ConsensusModule implements RaftState {
+
+    /* Logger */
+    private static final Logger log = LoggerFactory.getLogger(ConsensusModule.class);
 
     /* Current Raft state - Follower, Candidate, Leader */
     private RaftState current;
@@ -25,7 +33,7 @@ public class ConsensusModule implements RaftState {
      * */
     public ConsensusModule() {
         this.current = null;
-        this.operationPublisher = Sinks.many().multicast().onBackpressureBuffer();
+        this.operationPublisher = Sinks.many().unicast().onBackpressureBuffer();
 
         // subscribe to Concurrency Control Pipeline
         this.concurrencyControlPipeline().subscribe();
@@ -123,9 +131,9 @@ public class ConsensusModule implements RaftState {
      * */
     private Mono<?> publishAndSubscribeOperation(Mono<?> operation) {
         return Mono.just(Sinks.one())
-                .doOnNext(responseSink ->
-                    this.operationPublisher.tryEmitNext(operation.doOnSuccess(responseSink::tryEmitValue))
-                )
+                .doOnNext(responseSink -> {
+                    while (this.operationPublisher.tryEmitNext(operation.doOnSuccess(responseSink::tryEmitValue)) != Sinks.EmitResult.OK);
+                })
                 .flatMap(Sinks.Empty::asMono);
     }
 
@@ -134,8 +142,11 @@ public class ConsensusModule implements RaftState {
      *
      * @param operation Mono operation to invoke in the current state.
      * */
-    private Mono<?> publishOperation(Mono<?> operation) {
-        return Mono.just(this.operationPublisher.tryEmitNext(operation));
+    private Mono<Void> publishOperation(Mono<?> operation) {
+        return Mono.create(monoSink -> {
+            while (this.operationPublisher.tryEmitNext(operation) != Sinks.EmitResult.OK);
+            monoSink.success();
+        });
     }
 
 }

@@ -89,12 +89,12 @@ public class PeerWorker implements MessageSubscriber {
 
     @Override
     public Mono<Void> sendHeartbeat(AppendEntries heartbeat, String to) {
-        return Mono.empty();
+        return Mono.just(this.rpcSink.tryEmitNext(this.handleHeartbeat(heartbeat))).then();
     }
 
     @Override
     public Mono<Void> sendAppendEntries(AppendEntries appendEntries, String to) {
-        return Mono.empty();
+        return Mono.just(this.rpcSink.tryEmitNext(this.handleNormalAppendEntries(appendEntries))).then();
     }
 
     @Override
@@ -169,11 +169,30 @@ public class PeerWorker implements MessageSubscriber {
                     .doOnNext(number -> this.communicationStart.set(System.currentTimeMillis()))
                     .flatMap(number -> this.sendRPCHandler(this.outbound.appendEntries(this.targetServerName, appendEntries)))
                     .cast(AppendEntriesReply.class)
-                    .doOnSuccess(result ->
-                          log.info("\n\n" + this.targetServerName + ":\n" +
-                                "HEARTBEAT: " + appendEntries +
-                                "\nHEARTBEAT REPLY: " + result + "\n")
-                    )
+                    //.doOnSuccess(result ->
+                    //      log.info("\n\n" + this.targetServerName + ":\n" +
+                    //            "HEARTBEAT: " + appendEntries +
+                    //            "\nHEARTBEAT REPLY: " + result + "\n")
+                    //)
+                    .doOnNext(reply::set)
+                    .filter(appendEntriesReply -> reply.get() != null)
+                        .flatMap(appendEntriesReply -> this.consensusModule.appendEntriesReply(reply.get(), this.targetServerName))
+                .repeat(() -> reply.get() == null)
+                .next();
+
+    }
+
+    /**
+     * Method that handles a normal appendEntries communication.
+     *
+     * @param appendEntries Message to send to the target server.
+     * */
+    private Mono<Void> handleNormalAppendEntries(AppendEntries appendEntries) {
+
+        AtomicReference<AppendEntriesReply> reply = new AtomicReference<>(null);
+
+        return this.sendRPCHandler(this.outbound.appendEntries(this.targetServerName, appendEntries))
+                    .cast(AppendEntriesReply.class)
                     .doFirst(() -> this.communicationStart.set(System.currentTimeMillis()))
                     .doOnNext(reply::set)
                     .filter(appendEntriesReply -> reply.get() != null)
