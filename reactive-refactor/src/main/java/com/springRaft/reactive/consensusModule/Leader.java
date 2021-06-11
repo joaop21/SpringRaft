@@ -185,17 +185,6 @@ public class Leader extends RaftStateContext implements RaftState {
     }
 
     @Override
-    public Mono<Pair<Message, Boolean>> getNextMessage(String to) {
-
-        // IT NEEDS MORE THAN THIS
-        // ---
-        // ...
-        // ---
-        return this.heartbeatAppendEntries().map(message -> new Pair<>(message, true));
-
-    }
-
-    @Override
     public Mono<Void> start() {
 
         return this.reinitializeVolatileState()

@@ -118,11 +118,6 @@ public class Follower extends RaftStateContext implements RaftState {
     }
 
     @Override
-    public Mono<Pair<Message, Boolean>> getNextMessage(String to) {
-        return Mono.just(new Pair<>(null, false));
-    }
-
-    @Override
     public Mono<Void> start() {
 
         return this.transitionManager.setElectionTimeout()

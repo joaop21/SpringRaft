@@ -101,12 +101,6 @@ public class ConsensusModule implements RaftState {
     }
 
     @Override
-    public Mono<Pair<Message, Boolean>> getNextMessage(String to) {
-        return (Mono<Pair<Message, Boolean>>) publishAndSubscribeOperation(
-                Mono.defer(() -> this.current.getNextMessage(to)));
-    }
-
-    @Override
     public Mono<Void> start() {
         return this.current.start();
     }
