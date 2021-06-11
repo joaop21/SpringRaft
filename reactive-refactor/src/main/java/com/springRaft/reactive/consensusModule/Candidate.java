@@ -57,7 +57,12 @@ public class Candidate extends RaftStateContext implements RaftState {
 
     @Override
     public Mono<Void> appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
-        return Mono.empty();
+
+        return this.stateService.getCurrentTerm()
+                .filter(currentTerm -> appendEntriesReply.getTerm() > currentTerm)
+                    .flatMap(currentTerm -> this.stateService.setState(appendEntriesReply.getTerm(), null))
+                    .flatMap(state -> this.cleanBeforeTransit().then(this.transitionManager.setNewFollowerState()));
+
     }
 
     @Override
@@ -129,7 +134,9 @@ public class Candidate extends RaftStateContext implements RaftState {
 
     @Override
     public Mono<RequestReply> clientRequest(String command) {
-        return Mono.empty();
+        // When in candidate state, there is nowhere to redirect the request or a leader to
+        // handle them.
+        return Mono.just(this.applicationContext.getBean(RequestReply.class, false, new Object(), false, ""));
     }
 
     @Override

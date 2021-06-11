@@ -5,6 +5,7 @@ import com.springRaft.reactive.consensusModule.ConsensusModule;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -14,8 +15,9 @@ import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("raft")
+@ConditionalOnProperty(name = "raft.cluster-communication-strategy", havingValue = "REST")
 @AllArgsConstructor
-public class RaftController implements InboundCommunication {
+public class RaftController implements RaftInboundCommunication {
 
     /* Logger */
     private static final Logger log = LoggerFactory.getLogger(RaftController.class);
@@ -75,11 +77,6 @@ public class RaftController implements InboundCommunication {
     @Override
     public Mono<RequestVoteReply> requestVote(RequestVote requestVote) {
         return this.consensusModule.requestVote(requestVote);
-    }
-
-    @Override
-    public Mono<RequestReply> clientRequest(String command) {
-        return this.consensusModule.clientRequest(command);
     }
 
 }

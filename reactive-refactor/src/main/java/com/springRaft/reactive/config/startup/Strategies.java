@@ -28,17 +28,31 @@ public class Strategies implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
 
-        // COMMUNICATION
-        Mono<OutboundStrategy> communicationStrategy =
-                Mono.just(this.raftProperties.getCommunicationStrategy().toUpperCase())
+        // CLUSTER COMMUNICATION
+        Mono<OutboundStrategy> clusterCommunicationStrategy =
+                Mono.just(this.raftProperties.getClusterCommunicationStrategy().toUpperCase())
                         .map(strategy ->
                                 switch (strategy) {
                                     default -> applicationContext.getBean(REST.class);
                                 }
                         );
 
-        Mono.zip(communicationStrategy, Mono.just(this.applicationContext.getBean(OutboundContext.class)))
-                .doOnNext(tuple -> tuple.getT2().setCommunicationStrategy(tuple.getT1()))
+        Mono.zip(clusterCommunicationStrategy, Mono.just(this.applicationContext.getBean(OutboundContext.class)))
+                .doOnNext(tuple -> tuple.getT2().setClusterCommunicationStrategy(tuple.getT1()))
+                .block();
+
+
+        // APPLICATION COMMUNICATION
+        Mono<OutboundStrategy> applicationCommunicationStrategy =
+                Mono.just(this.raftProperties.getApplicationCommunicationStrategy().toUpperCase())
+                        .map(strategy ->
+                                switch (strategy) {
+                                    default -> applicationContext.getBean(REST.class);
+                                }
+                        );
+
+        Mono.zip(applicationCommunicationStrategy, Mono.just(this.applicationContext.getBean(OutboundContext.class)))
+                .doOnNext(tuple -> tuple.getT2().setApplicationCommunicationStrategy(tuple.getT1()))
                 .block();
 
     }

@@ -14,29 +14,36 @@ import reactor.core.publisher.Mono;
 @NoArgsConstructor
 public class OutboundContext implements OutboundStrategy {
 
-    /* Outbound communication Strategy to use */
-    private OutboundStrategy communicationStrategy = null;
+    /* Outbound communication Strategy with cluster members */
+    private OutboundStrategy clusterCommunicationStrategy = null;
+
+    /* Outbound communication Strategy with Application Server */
+    private OutboundStrategy applicationCommunicationStrategy = null;
 
     /* --------------------------------------------------- */
 
-    public void setCommunicationStrategy(OutboundStrategy communication) {
-        this.communicationStrategy = communication;
+    public void setClusterCommunicationStrategy(OutboundStrategy communication) {
+        this.clusterCommunicationStrategy = communication;
+    }
+
+    public void setApplicationCommunicationStrategy(OutboundStrategy communication) {
+        this.applicationCommunicationStrategy = communication;
     }
 
     /* --------------------------------------------------- */
 
     @Override
     public Mono<AppendEntriesReply> appendEntries(String to, AppendEntries message) {
-        return this.communicationStrategy.appendEntries(to, message);
+        return this.clusterCommunicationStrategy.appendEntries(to, message);
     }
 
     @Override
     public Mono<RequestVoteReply> requestVote(String to, RequestVote message) {
-        return this.communicationStrategy.requestVote(to,message);
+        return this.clusterCommunicationStrategy.requestVote(to,message);
     }
 
     @Override
     public Mono<?> request(String command, String location) {
-        return this.communicationStrategy.request(command, location);
+        return this.applicationCommunicationStrategy.request(command, location);
     }
 }

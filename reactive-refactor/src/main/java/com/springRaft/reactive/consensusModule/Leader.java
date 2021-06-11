@@ -12,6 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -76,9 +78,8 @@ public class Leader extends RaftStateContext implements RaftState {
                         // optimized 'if' (extended 'if' in servlet version)
                         if ((nextIndex != lastEntryIndex) && (matchIndex == (nextIndex - 1))) {
 
-                            this.matchIndex.put(from, nextIndex);
-                            this.nextIndex.put(from, nextIndex + 1);
-                            return this.sendNextAppendEntries(from, nextIndex + 1, nextIndex);
+                            return this.sendNextAppendEntries(from, nextIndex, matchIndex)
+                                    .doOnTerminate(() -> this.matchIndex.put(from, nextIndex));
 
                         }
 
@@ -180,7 +181,21 @@ public class Leader extends RaftStateContext implements RaftState {
 
     @Override
     public Mono<RequestReply> clientRequest(String command) {
-        return Mono.empty();
+
+        return this.stateService.getCurrentTerm()
+                .flatMap(currentTerm -> this.logService.insertEntry(new Entry(currentTerm, command, true)))
+                .map(entry ->
+                        this.applicationContext.getBean(
+                                RequestReply.class, true,
+                                new ResponseEntity<>(entry, HttpStatus.OK), false, ""
+                        )
+                )
+                .flatMap(requestReply ->
+                this.outboundManager.newClientRequest()
+                        .then(Mono.just(requestReply))
+                );
+
+
     }
 
     @Override
@@ -249,6 +264,9 @@ public class Leader extends RaftStateContext implements RaftState {
 
     /* --------------------------------------------------- */
 
+    /**
+     * TODO
+     * */
     private Mono<Void> sendNextAppendEntries(String to, long nextIndex, long matchIndex) {
 
         return this.logService.getEntryByIndex(nextIndex)

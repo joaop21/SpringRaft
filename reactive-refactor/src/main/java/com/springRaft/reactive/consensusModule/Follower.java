@@ -55,7 +55,12 @@ public class Follower extends RaftStateContext implements RaftState {
 
     @Override
     public Mono<Void> appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
-        return Mono.empty();
+
+        return this.stateService.getCurrentTerm()
+                .filter(currentTerm -> appendEntriesReply.getTerm() > currentTerm)
+                    .flatMap(currentTerm -> this.stateService.setState(appendEntriesReply.getTerm(), null))
+                    .flatMap(state -> this.cleanBeforeTransit());
+
     }
 
     @Override
