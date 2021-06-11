@@ -39,8 +39,11 @@ public class RaftProperties {
     /* Timeout for direct communications */
     private final Duration heartbeat;
 
-    /* Strategy for communication */
-    private final String communicationStrategy;
+    /* Strategy for cluster communication */
+    private final String clusterCommunicationStrategy;
+
+    /* Strategy for communication with the app server */
+    private final String applicationCommunicationStrategy;
 
     /* Strategy for state machine */
     private final String stateMachineStrategy;
@@ -63,7 +66,8 @@ public class RaftProperties {
                     Duration electionTimeoutMax,
             @DefaultValue("0") @DurationUnit(ChronoUnit.MILLIS)
                     Duration heartbeat,
-            @DefaultValue("REST") String communicationStrategy,
+            @DefaultValue("REST") String clusterCommunicationStrategy,
+            @DefaultValue("REST") String applicationCommunicationStrategy,
             @DefaultValue("INDEPENDENT") String stateMachineStrategy,
             @DefaultValue("localhost:9002") String applicationServer,
             @DefaultValue("10") int entriesPerCommunication
@@ -84,7 +88,8 @@ public class RaftProperties {
         int clusterSize = this.cluster.size() + 1;
         this.quorum = (clusterSize / 2) + 1;
 
-        this.communicationStrategy = communicationStrategy;
+        this.clusterCommunicationStrategy = clusterCommunicationStrategy;
+        this.applicationCommunicationStrategy = applicationCommunicationStrategy;
         this.stateMachineStrategy = stateMachineStrategy;
 
         this.applicationServer = applicationServer;
@@ -101,7 +106,7 @@ public class RaftProperties {
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder()
-                .append("\n*****************************************\n")
+                .append("\n\n*****************************************\n")
                 .append("\nThis server is operating from:\n\t")
                 .append(host).append("\n\n");
 
@@ -120,11 +125,12 @@ public class RaftProperties {
                 .append("Heartbeat has ")
                 .append(heartbeat.toMillis()).append("ms of duration\n")
                 .append("\nCommunication:\n")
-                .append("\tStrategy: ").append(communicationStrategy).append("\n")
+                .append("\tStrategy for Cluster: ").append(clusterCommunicationStrategy).append("\n")
+                .append("\tStrategy for Application: ").append(applicationCommunicationStrategy).append("\n")
                 .append("\tEntries per Communication: ").append(entriesPerCommunication).append("\n")
                 .append("\nState Machine strategy is: ").append(stateMachineStrategy).append("\n")
                 .append("\nApplication Server is: ").append(applicationServer).append("\n")
-                .append("\n*****************************************");
+                .append("\n*****************************************\n");
 
         return builder.toString();
     }
