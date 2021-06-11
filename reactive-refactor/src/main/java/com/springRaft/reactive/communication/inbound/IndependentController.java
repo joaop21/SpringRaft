@@ -46,7 +46,7 @@ public class IndependentController implements ClientInboundCommunication {
     {
 
         String command = request.getMethod() + ";;;" + request.getPath() + ";;;" + body;
-        return this.consensusModule.clientRequest(command)
+        return this.clientRequest(command)
                 .flatMap(requestReply -> {
 
                     if (requestReply.getSuccess()) {
