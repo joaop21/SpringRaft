@@ -129,7 +129,9 @@ public class Candidate extends RaftStateContext implements RaftState {
 
     @Override
     public Mono<RequestReply> clientRequest(String command) {
-        return Mono.empty();
+        // When in candidate state, there is nowhere to redirect the request or a leader to
+        // handle them.
+        return Mono.just(this.applicationContext.getBean(RequestReply.class, false, new Object(), false, ""));
     }
 
     @Override
