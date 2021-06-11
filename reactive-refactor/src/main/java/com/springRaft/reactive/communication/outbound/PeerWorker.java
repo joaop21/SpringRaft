@@ -107,7 +107,10 @@ public class PeerWorker implements MessageSubscriber {
     }
 
     /**
-     * TODO
+     * Method that handles all the communications sent from the Raft consensus algorithm.
+     * When it receives a new communication, it removes the previous communication task if exists one and
+     * then starts the new one.
+     * All of this is done with a Sink that acts like a Publisher.
      * */
     private Flux<?> communicationsHandler() {
         return this.rpcSink.asFlux()
