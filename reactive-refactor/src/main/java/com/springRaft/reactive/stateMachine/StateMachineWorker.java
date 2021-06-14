@@ -25,6 +25,9 @@ public class StateMachineWorker implements CommitmentSubscriber {
     /* Service to access persisted log repository */
     private final LogService logService;
 
+    /* Map that contains the clients waiting requests */
+    protected final WaitingRequests waitingRequests;
+
     /* Sink for publish new commits */
     private final Sinks.Many<Boolean> commitSink;
 
@@ -33,9 +36,10 @@ public class StateMachineWorker implements CommitmentSubscriber {
     /**
      * TODO
      * */
-    public StateMachineWorker(LogService logService) {
+    public StateMachineWorker(LogService logService, WaitingRequests waitingRequests) {
         this.strategy = null;
         this.logService = logService;
+        this.waitingRequests = waitingRequests;
         this.commitSink = Sinks.many().unicast().onBackpressureBuffer();
 
         this.commitmentsHandler().subscribe();
@@ -82,9 +86,13 @@ public class StateMachineWorker implements CommitmentSubscriber {
                 .collectSortedList(Comparator.comparing(Entry::getIndex))
                 .flatMapIterable(entries -> entries)
                 // apply command depending on the strategy
-                .flatMap(entry -> this.strategy.apply(entry.getCommand()),1)
-                // increment lastApplied in the Log State
-                .flatMap(response -> this.logService.incrementLastApplied(), 1)
+                .flatMap(entry ->
+                        this.strategy.apply(entry.getCommand())
+                                // increment lastApplied in the Log State
+                                .flatMap(response -> this.logService.incrementLastApplied().map(logState -> response))
+                                // notify client of the response
+                                .flatMap(response -> this.waitingRequests.putResponse(entry.getIndex(), response))
+                ,1)
                 .then();
 
     }

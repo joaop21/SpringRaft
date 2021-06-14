@@ -9,6 +9,7 @@ import com.springRaft.reactive.persistence.log.LogState;
 import com.springRaft.reactive.persistence.state.State;
 import com.springRaft.reactive.persistence.state.StateService;
 import com.springRaft.reactive.stateMachine.StateMachineWorker;
+import com.springRaft.reactive.stateMachine.WaitingRequests;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -18,6 +19,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
@@ -47,12 +49,14 @@ public class Leader extends RaftStateContext implements RaftState {
             RaftProperties raftProperties,
             TransitionManager transitionManager,
             OutboundManager outboundManager,
-            StateMachineWorker stateMachineWorker
+            StateMachineWorker stateMachineWorker,
+            WaitingRequests waitingRequests
     ) {
         super(
                 applicationContext, consensusModule,
                 stateService, logService, raftProperties,
-                transitionManager, outboundManager, stateMachineWorker
+                transitionManager, outboundManager, stateMachineWorker,
+                waitingRequests
         );
         this.nextIndex = new HashMap<>();
         this.matchIndex = new HashMap<>();
@@ -185,7 +189,7 @@ public class Leader extends RaftStateContext implements RaftState {
     @Override
     public Mono<RequestReply> clientRequest(String command) {
 
-        return this.stateService.getCurrentTerm()
+        /*return this.stateService.getCurrentTerm()
                 .flatMap(currentTerm -> this.logService.insertEntry(new Entry(currentTerm, command, true)))
                 .map(entry ->
                         this.applicationContext.getBean(
@@ -196,8 +200,14 @@ public class Leader extends RaftStateContext implements RaftState {
                 .flatMap(requestReply ->
                 this.outboundManager.newClientRequest()
                         .then(Mono.just(requestReply))
-                );
+                );*/
 
+        return this.stateService.getCurrentTerm()
+                .flatMap(currentTerm -> this.logService.insertEntry(new Entry(currentTerm, command, true)))
+                .flatMap(entry -> this.waitingRequests.insertWaitingRequest(entry.getIndex()))
+                .flatMap(Sinks.Empty::asMono)
+                .map(response -> this.applicationContext.getBean(RequestReply.class, true, response, false, ""))
+                .switchIfEmpty(Mono.just(this.applicationContext.getBean(RequestReply.class, false, new Object(), false, "")));
 
     }
 
