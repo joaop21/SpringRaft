@@ -261,13 +261,7 @@ public abstract class RaftStateContext {
                         return this.logService.saveState(logState);
 
                     })
-                .then();
-
-        // ....
-        // IT NEEDS TO ADD THIS CODE
-        // ....
-        // notify state machine of a new commit
-        //this.commitmentPublisher.newCommit();
+                    .flatMap(logState -> this.stateMachineWorker.newCommit());
 
     }
 
