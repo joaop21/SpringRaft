@@ -8,6 +8,7 @@ import com.springRaft.reactive.persistence.log.LogService;
 import com.springRaft.reactive.persistence.log.LogState;
 import com.springRaft.reactive.persistence.state.State;
 import com.springRaft.reactive.persistence.state.StateService;
+import com.springRaft.reactive.stateMachine.StateMachineWorker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -19,6 +20,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 @Scope("singleton")
@@ -44,12 +46,13 @@ public class Leader extends RaftStateContext implements RaftState {
             LogService logService,
             RaftProperties raftProperties,
             TransitionManager transitionManager,
-            OutboundManager outboundManager
+            OutboundManager outboundManager,
+            StateMachineWorker stateMachineWorker
     ) {
         super(
                 applicationContext, consensusModule,
                 stateService, logService, raftProperties,
-                transitionManager, outboundManager
+                transitionManager, outboundManager, stateMachineWorker
         );
         this.nextIndex = new HashMap<>();
         this.matchIndex = new HashMap<>();
@@ -87,7 +90,7 @@ public class Leader extends RaftStateContext implements RaftState {
                         return this.sendNextAppendEntries(from, nextIndex, nextIndex - 1);
 
                     })
-                    .flatMap(index -> this.setCommitIndex(from));
+                    .then(this.setCommitIndex(from));
 
         } else {
 
@@ -398,16 +401,20 @@ public class Leader extends RaftStateContext implements RaftState {
      * */
     private Mono<Void> setCommitIndex(String from) {
 
-        long N = this.matchIndex.get(from);
+        AtomicLong N = new AtomicLong(0);
 
-        return Mono.zip(
-                this.logService.getState(),
-                this.logService.getEntryByIndex(N),
-                this.stateService.getCurrentTerm(),
-                this.majorityOfMatchIndexGreaterOrEqualThan(N)
-        )
+        return Mono.just(this.matchIndex.get(from))
+                .doOnNext(N::set)
+                .flatMap(n ->
+                        Mono.zip(
+                                this.logService.getState(),
+                                this.logService.getEntryByIndex(N.get()),
+                                this.stateService.getCurrentTerm(),
+                                this.majorityOfMatchIndexGreaterOrEqualThan(N.get())
+                        )
+                )
                 .filter(tuple ->
-                        N > tuple.getT1().getCommittedIndex() &&
+                        N.get() > tuple.getT1().getCommittedIndex() &&
                         tuple.getT2().getTerm() == (long) tuple.getT3() &&
                         tuple.getT4()
                 )
@@ -416,21 +423,15 @@ public class Leader extends RaftStateContext implements RaftState {
                         LogState logState = tuple.getT1();
                         Entry entry = tuple.getT2();
 
-                        logState.setCommittedIndex(N);
+                        logState.setCommittedIndex(N.get());
                         logState.setCommittedTerm(entry.getTerm());
                         logState.setNew(false);
 
                         return this.logService.saveState(logState);
-                        // ...
-                        // NEEDS MORE CODE HERE
-                        // ...
-                        //.then(
-                        // notify state machine of a new commit
-                        //      this.commitmentPublisher.newCommit()
-                        //)
-
 
                     })
+                    // notify state machine of a new commit
+                    .flatMap(logState -> this.stateMachineWorker.newCommit())
                     .then();
 
     }

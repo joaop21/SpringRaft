@@ -11,6 +11,7 @@ import com.springRaft.reactive.persistence.log.LogService;
 import com.springRaft.reactive.persistence.log.LogState;
 import com.springRaft.reactive.persistence.state.State;
 import com.springRaft.reactive.persistence.state.StateService;
+import com.springRaft.reactive.stateMachine.StateMachineWorker;
 import com.springRaft.reactive.util.Pair;
 import lombok.AllArgsConstructor;
 import org.springframework.context.ApplicationContext;
@@ -42,6 +43,9 @@ public abstract class RaftStateContext {
 
     /* Publisher of messages */
     protected final OutboundManager outboundManager;
+
+    /* Publisher of new commitments to State Machine */
+    protected final StateMachineWorker stateMachineWorker;
 
     /* --------------------------------------------------- */
 

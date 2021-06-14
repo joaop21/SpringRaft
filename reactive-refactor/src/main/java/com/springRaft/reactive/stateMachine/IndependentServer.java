@@ -10,7 +10,7 @@ import reactor.core.publisher.Mono;
 @Component
 @Scope("singleton")
 @ConditionalOnProperty(name = "raft.state-machine-strategy", havingValue = "INDEPENDENT")
-public class IndependentServer extends SMStrategyContext implements StateMachineStrategy {
+public class IndependentServer extends SMStrategyContext {
 
     /* --------------------------------------------------- */
 

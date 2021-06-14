@@ -11,7 +11,7 @@ import reactor.core.publisher.Mono;
 @Component
 @Scope("singleton")
 @ConditionalOnProperty(name = "raft.state-machine-strategy", havingValue = "EMBEDDED")
-public class EmbeddedServer extends SMStrategyContext implements StateMachineStrategy {
+public class EmbeddedServer extends SMStrategyContext {
 
     /* --------------------------------------------------- */
 

@@ -7,6 +7,7 @@ import com.springRaft.reactive.persistence.log.LogService;
 import com.springRaft.reactive.persistence.log.LogState;
 import com.springRaft.reactive.persistence.state.State;
 import com.springRaft.reactive.persistence.state.StateService;
+import com.springRaft.reactive.stateMachine.StateMachineWorker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -37,12 +38,13 @@ public class Candidate extends RaftStateContext implements RaftState {
             LogService logService,
             RaftProperties raftProperties,
             TransitionManager transitionManager,
-            OutboundManager outboundManager
+            OutboundManager outboundManager,
+            StateMachineWorker stateMachineWorker
     ) {
         super(
                 applicationContext, consensusModule,
                 stateService, logService, raftProperties,
-                transitionManager, outboundManager
+                transitionManager, outboundManager, stateMachineWorker
         );
         this.scheduledTransition = null;
         this.votesGranted = 0;
