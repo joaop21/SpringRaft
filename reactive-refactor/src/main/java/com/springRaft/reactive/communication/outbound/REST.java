@@ -96,6 +96,7 @@ public class REST implements OutboundStrategy {
                                         .method(method)
                                         .uri(route)
                                         .retrieve()
+                                        .onStatus(status -> status.value() >= 400, response -> Mono.empty())
                         )
                         .flatMap(responseSpec -> responseSpec.toEntity(Object.class))
 
@@ -106,6 +107,7 @@ public class REST implements OutboundStrategy {
                                         .uri(route)
                                         .bodyValue(body)
                                         .retrieve()
+                                        .onStatus(status -> status.value() >= 400, response -> Mono.empty())
                         )
                         .flatMap(responseSpec -> responseSpec.toEntity(Object.class));
 

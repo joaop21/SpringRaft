@@ -35,12 +35,9 @@ public class SMStrategyContext implements StateMachineStrategy {
     @Override
     public Mono<Object> apply(String command) {
 
-        AtomicLong start = new AtomicLong(0);
         AtomicReference<Object> reply = new AtomicReference<>(null);
 
-        return Mono.delay(Duration.ofMillis(start.get()))
-                    .doOnNext(time -> start.set(System.currentTimeMillis()))
-                    .flatMap(time -> this.handleRequest(this.outbound.request(command, this.targetServerName)))
+        return this.handleRequest(this.outbound.request(command, this.targetServerName))
                     .doOnNext(reply::set)
                 .repeat(() -> reply.get() == null)
                 .next()
@@ -52,13 +49,25 @@ public class SMStrategyContext implements StateMachineStrategy {
 
     private Mono<?> handleRequest(Mono<?> requestMono) {
 
+        AtomicLong start = new AtomicLong();
+
         return requestMono
+                .doFirst(() -> start.set(System.currentTimeMillis()))
                 .onErrorResume(error -> {
 
                     if (error instanceof WebClientRequestException) {
-                        if (((WebClientRequestException)error).contains(ConnectException.class))
+                        if (((WebClientRequestException)error).contains(ConnectException.class)) {
                             // If target server is not alive
+
                             log.warn("Server " + this.targetServerName + " is not up!!");
+
+                            // sleep for the remaining time, if any
+                            return Mono.delay(Duration.ofMillis(
+                                    this.raftProperties.getHeartbeat().toMillis() - (System.currentTimeMillis() - start.get())
+                            ))
+                                    .then(Mono.empty());
+
+                        }
 
                     } else {
                         // If another exception occurs
