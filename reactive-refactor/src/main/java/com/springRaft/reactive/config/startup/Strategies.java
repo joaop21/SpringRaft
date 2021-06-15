@@ -4,6 +4,10 @@ import com.springRaft.reactive.communication.outbound.OutboundContext;
 import com.springRaft.reactive.communication.outbound.OutboundStrategy;
 import com.springRaft.reactive.communication.outbound.REST;
 import com.springRaft.reactive.config.RaftProperties;
+import com.springRaft.reactive.stateMachine.EmbeddedServer;
+import com.springRaft.reactive.stateMachine.IndependentServer;
+import com.springRaft.reactive.stateMachine.StateMachineStrategy;
+import com.springRaft.reactive.stateMachine.StateMachineWorker;
 import lombok.AllArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -33,7 +37,7 @@ public class Strategies implements ApplicationRunner {
                 Mono.just(this.raftProperties.getClusterCommunicationStrategy().toUpperCase())
                         .map(strategy ->
                                 switch (strategy) {
-                                    default -> applicationContext.getBean(REST.class);
+                                    default -> this.applicationContext.getBean(REST.class);
                                 }
                         );
 
@@ -47,12 +51,26 @@ public class Strategies implements ApplicationRunner {
                 Mono.just(this.raftProperties.getApplicationCommunicationStrategy().toUpperCase())
                         .map(strategy ->
                                 switch (strategy) {
-                                    default -> applicationContext.getBean(REST.class);
+                                    default -> this.applicationContext.getBean(REST.class);
                                 }
                         );
 
         Mono.zip(applicationCommunicationStrategy, Mono.just(this.applicationContext.getBean(OutboundContext.class)))
                 .doOnNext(tuple -> tuple.getT2().setApplicationCommunicationStrategy(tuple.getT1()))
+                .block();
+
+
+        // STATE MACHINE
+        Mono<StateMachineStrategy> stateMachineStrategy = Mono.just(this.raftProperties.getStateMachineStrategy().toUpperCase())
+                .map(strategy ->
+                    switch (strategy) {
+                        case "EMBEDDED" -> this.applicationContext.getBean(EmbeddedServer.class);
+                        default -> this.applicationContext.getBean(IndependentServer.class);
+                    }
+                );
+
+        Mono.zip(stateMachineStrategy, Mono.just(this.applicationContext.getBean(StateMachineWorker.class)))
+                .doOnNext(tuple -> tuple.getT2().setStrategy(tuple.getT1()))
                 .block();
 
     }

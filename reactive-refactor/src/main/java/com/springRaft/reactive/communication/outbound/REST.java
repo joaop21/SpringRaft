@@ -91,23 +91,25 @@ public class REST implements OutboundStrategy {
 
         return body.equals("null")
                 ? this.getWebClient(to)
-                .map(webClient ->
-                        webClient
-                                .method(method)
-                                .uri(route)
-                                .retrieve()
-                )
-                .flatMap(responseSpec -> responseSpec.toEntity(Object.class))
+                        .map(webClient ->
+                                webClient
+                                        .method(method)
+                                        .uri(route)
+                                        .retrieve()
+                                        .onStatus(status -> status.value() >= 400, response -> Mono.empty())
+                        )
+                        .flatMap(responseSpec -> responseSpec.toEntity(Object.class))
 
                 : this.getWebClient(to)
-                .map(webClient ->
-                        webClient
-                                .method(method)
-                                .uri(route)
-                                .bodyValue(body)
-                                .retrieve()
-                )
-                .flatMap(responseSpec -> responseSpec.toEntity(Object.class));
+                        .map(webClient ->
+                                webClient
+                                        .method(method)
+                                        .uri(route)
+                                        .bodyValue(body)
+                                        .retrieve()
+                                        .onStatus(status -> status.value() >= 400, response -> Mono.empty())
+                        )
+                        .flatMap(responseSpec -> responseSpec.toEntity(Object.class));
 
     }
 

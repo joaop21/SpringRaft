@@ -16,7 +16,7 @@ import reactor.core.publisher.Sinks;
 import java.net.ConnectException;
 import java.time.Duration;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -39,14 +39,17 @@ public class PeerWorker implements MessageSubscriber {
     /* String of the address of the target server */
     private final String targetServerName;
 
-    /* Remaining clientRequests to send */
-    private final AtomicInteger clientRequests;
-
     /* Sink for publish new rpcs */
     private final Sinks.Many<Mono<?>> rpcSink;
 
+    /* Sink for publish new client requests */
+    private final Sinks.Many<Boolean> requestsSink;
+
     /* Disposable of the ongoing communication */
     private Disposable ongoingCommunication;
+
+    /* Flag that marks if the ongoing communication is an heartbeat */
+    private final AtomicBoolean isHeartbeat;
 
     /* Timestamp in Milliseconds that marks the beginning of the last communication */
     private final AtomicLong communicationStart;
@@ -64,14 +67,15 @@ public class PeerWorker implements MessageSubscriber {
         this.raftProperties = raftProperties;
         this.targetServerName = targetServerName;
 
-        this.clientRequests = new AtomicInteger(0);
-
         this.rpcSink = Sinks.many().unicast().onBackpressureBuffer();
+        this.requestsSink = Sinks.many().unicast().onBackpressureBuffer();
 
         this.ongoingCommunication = null;
+        this.isHeartbeat = new AtomicBoolean(false);
         this.communicationStart = new AtomicLong(0);
 
         this.communicationsHandler().subscribe();
+        this.clientRequestsHandler().subscribe();
     }
 
     /* --------------------------------------------------- */
@@ -94,11 +98,6 @@ public class PeerWorker implements MessageSubscriber {
     @Override
     public Mono<Void> sendAppendEntries(AppendEntries appendEntries, String to) {
         return Mono.just(this.rpcSink.tryEmitNext(this.handleNormalAppendEntries(appendEntries))).then();
-    }
-
-    @Override
-    public Mono<Void> newClientRequest() {
-        return Mono.just(this.clientRequests.incrementAndGet()).then();
     }
 
     @Override
@@ -128,6 +127,37 @@ public class PeerWorker implements MessageSubscriber {
             this.ongoingCommunication.dispose();
 
         this.ongoingCommunication = disposable;
+
+    }
+
+    /* --------------------------------------------------- */
+
+    @Override
+    public Mono<Void> newClientRequest() {
+        return Mono.just(this.requestsSink.tryEmitNext(true)).then();
+    }
+
+    /**
+     * TODO
+     */
+    public Flux<?> clientRequestsHandler() {
+
+        return this.requestsSink.asFlux()
+                .flatMap(bool -> {
+                    if (this.isHeartbeat.get()) {
+
+                        if (this.ongoingCommunication != null && !this.ongoingCommunication.isDisposed())
+                            this.ongoingCommunication.dispose();
+
+                        this.ongoingCommunication = null;
+                        this.isHeartbeat.set(false);
+
+                        return this.consensusModule.appendEntriesReply(null, this.targetServerName);
+                    }
+
+                    return Mono.empty();
+
+                }, 1);
 
     }
 
@@ -170,7 +200,8 @@ public class PeerWorker implements MessageSubscriber {
                     .filter(appendEntriesReply -> reply.get() != null)
                         .flatMap(appendEntriesReply -> this.consensusModule.appendEntriesReply(reply.get(), this.targetServerName))
                 .repeat(() -> reply.get() == null)
-                .next();
+                .next()
+                .doFirst(() -> this.isHeartbeat.set(true));
 
     }
 

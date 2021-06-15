@@ -11,6 +11,8 @@ import com.springRaft.reactive.persistence.log.LogService;
 import com.springRaft.reactive.persistence.log.LogState;
 import com.springRaft.reactive.persistence.state.State;
 import com.springRaft.reactive.persistence.state.StateService;
+import com.springRaft.reactive.stateMachine.StateMachineWorker;
+import com.springRaft.reactive.stateMachine.WaitingRequests;
 import com.springRaft.reactive.util.Pair;
 import lombok.AllArgsConstructor;
 import org.springframework.context.ApplicationContext;
@@ -42,6 +44,12 @@ public abstract class RaftStateContext {
 
     /* Publisher of messages */
     protected final OutboundManager outboundManager;
+
+    /* Publisher of new commitments to State Machine */
+    protected final StateMachineWorker stateMachineWorker;
+
+    /* Map that contains the clients waiting requests */
+    protected final WaitingRequests waitingRequests;
 
     /* --------------------------------------------------- */
 
@@ -257,13 +265,7 @@ public abstract class RaftStateContext {
                         return this.logService.saveState(logState);
 
                     })
-                .then();
-
-        // ....
-        // IT NEEDS TO ADD THIS CODE
-        // ....
-        // notify state machine of a new commit
-        //this.commitmentPublisher.newCommit();
+                    .flatMap(logState -> this.stateMachineWorker.newCommit());
 
     }
 
