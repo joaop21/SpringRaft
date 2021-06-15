@@ -6,15 +6,15 @@ services:
   # Application containers
   
   key-value-storage1:
-    image: key-value-store:independent-0.0.1
+    image: key-value-store:reactive-independent-0.0.1
     container_name: key-value-storage1
 
   key-value-storage2:
-    image: key-value-store:independent-0.0.1
+    image: key-value-store:reactive-independent-0.0.1
     container_name: key-value-storage2
 
   key-value-storage3:
-    image: key-value-store:independent-0.0.1
+    image: key-value-store:reactive-independent-0.0.1
     container_name: key-value-storage3
 
   #####################################################
