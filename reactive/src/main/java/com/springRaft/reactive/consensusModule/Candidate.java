@@ -7,7 +7,8 @@ import com.springRaft.reactive.persistence.log.LogService;
 import com.springRaft.reactive.persistence.log.LogState;
 import com.springRaft.reactive.persistence.state.State;
 import com.springRaft.reactive.persistence.state.StateService;
-import com.springRaft.reactive.util.Pair;
+import com.springRaft.reactive.stateMachine.StateMachineWorker;
+import com.springRaft.reactive.stateMachine.WaitingRequests;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -15,7 +16,6 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 @Service
 @Scope("singleton")
@@ -26,9 +26,6 @@ public class Candidate extends RaftStateContext implements RaftState {
 
     /* Scheduled Runnable for state transition*/
     private Disposable scheduledTransition;
-
-    /* Message to send to the cluster requesting votes */
-    private Message requestVoteMessage;
 
     /* Votes granted by the cluster */
     private int votesGranted;
@@ -42,14 +39,18 @@ public class Candidate extends RaftStateContext implements RaftState {
             LogService logService,
             RaftProperties raftProperties,
             TransitionManager transitionManager,
-            OutboundManager outboundManager
+            OutboundManager outboundManager,
+            StateMachineWorker stateMachineWorker,
+            WaitingRequests waitingRequests
     ) {
         super(
                 applicationContext, consensusModule,
                 stateService, logService, raftProperties,
-                transitionManager, outboundManager
+                transitionManager, outboundManager, stateMachineWorker,
+                waitingRequests
         );
         this.scheduledTransition = null;
+        this.votesGranted = 0;
     }
 
     /* --------------------------------------------------- */
@@ -64,32 +65,24 @@ public class Candidate extends RaftStateContext implements RaftState {
 
         return this.stateService.getCurrentTerm()
                 .filter(currentTerm -> appendEntriesReply.getTerm() > currentTerm)
-                .flatMap(currentTerm -> this.stateService.setState(appendEntriesReply.getTerm(), null))
-                .then(this.cleanBeforeTransit())
-                .then(this.transitionManager.setNewFollowerState());
+                    .flatMap(currentTerm -> this.stateService.setState(appendEntriesReply.getTerm(), null))
+                    .flatMap(state -> this.cleanBeforeTransit().then(this.transitionManager.setNewFollowerState()));
 
     }
 
     @Override
     public Mono<RequestVoteReply> requestVote(RequestVote requestVote) {
 
-        // get a reply object
-        Mono<RequestVoteReply> replyMono = Mono.just(this.applicationContext.getBean(RequestVoteReply.class));
-        // get the current term
-        Mono<Long> currentTermMono = this.stateService.getCurrentTerm();
+        return this.stateService.getCurrentTerm()
+                .flatMap(currentTerm -> {
 
-        return Mono.zip(replyMono, currentTermMono)
-                .flatMap(tuple -> {
-
-                    RequestVoteReply reply = tuple.getT1();
-                    long currentTerm = tuple.getT2();
+                    RequestVoteReply reply = this.applicationContext.getBean(RequestVoteReply.class);
 
                     if(requestVote.getTerm() <= currentTerm) {
 
                         // revoke request
                         reply.setTerm(currentTerm);
                         reply.setVoteGranted(false);
-
                         return Mono.just(reply);
 
                     } else {
@@ -101,10 +94,9 @@ public class Candidate extends RaftStateContext implements RaftState {
                                 .flatMap(state -> this.checkLog(requestVote, reply))
                                 .flatMap(requestVoteReply ->
                                         this.cleanBeforeTransit()
-                                            .then(this.transitionManager.setNewFollowerState())
-                                            .then(Mono.just(requestVoteReply))
+                                                .then(this.transitionManager.setNewFollowerState())
+                                                .then(Mono.just(requestVoteReply))
                                 );
-
 
                     }
 
@@ -125,24 +117,21 @@ public class Candidate extends RaftStateContext implements RaftState {
                                 .then(this.cleanBeforeTransit())
                                 .then(this.transitionManager.setNewFollowerState());
 
-                    } else {
+                    } else if (requestVoteReply.getTerm().equals(currentTerm)) {
 
                         if (requestVoteReply.getVoteGranted()) {
 
                             this.votesGranted++;
 
-                            if (this.votesGranted >= this.raftProperties.getQuorum()) {
-
+                            if (this.votesGranted >= this.raftProperties.getQuorum())
                                 // transit to leader state
                                 return this.cleanBeforeTransit().then(this.transitionManager.setNewLeaderState());
-
-                            }
 
                         }
 
                         return Mono.empty();
 
-                    }
+                    } else return Mono.empty();
 
                 });
 
@@ -150,22 +139,9 @@ public class Candidate extends RaftStateContext implements RaftState {
 
     @Override
     public Mono<RequestReply> clientRequest(String command) {
-
         // When in candidate state, there is nowhere to redirect the request or a leader to
         // handle them.
-
         return Mono.just(this.applicationContext.getBean(RequestReply.class, false, new Object(), false, ""));
-
-        // probably we should store the requests, and redirect them when we became follower
-        // or handle them when became leader
-
-    }
-
-    @Override
-    public Mono<Pair<Message, Boolean>> getNextMessage(String to) {
-
-        return Mono.just(new Pair<>(this.requestVoteMessage, false));
-
     }
 
     @Override
@@ -193,7 +169,7 @@ public class Candidate extends RaftStateContext implements RaftState {
 
                     this.votesGranted++;
 
-                    this.requestVoteMessage =
+                    RequestVote requestVote =
                             this.applicationContext.getBean(
                                     RequestVote.class,
                                     state.getCurrentTerm(),
@@ -203,7 +179,7 @@ public class Candidate extends RaftStateContext implements RaftState {
                             );
 
                     // issue RequestVote RPCs in parallel to each of the other servers in the cluster
-                    return this.outboundManager.newMessage()
+                    return this.outboundManager.sendRequestVote(requestVote)
                             .then(this.setTimeout());
 
                 });
@@ -240,11 +216,7 @@ public class Candidate extends RaftStateContext implements RaftState {
 
         // delete the existing scheduled task
         this.scheduledTransition.dispose();
-
-        // change message to null and notify peer workers
-        this.requestVoteMessage = null;
-
-        return this.outboundManager.clearMessages();
+        return Mono.empty();
 
     }
 

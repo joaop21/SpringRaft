@@ -2,41 +2,26 @@ package com.springRaft.reactive.communication.outbound;
 
 import com.springRaft.reactive.communication.message.*;
 import com.springRaft.reactive.config.RaftProperties;
-import com.springRaft.reactive.config.startup.PeerWorkers;
-import org.springframework.beans.factory.annotation.Qualifier;
+import lombok.AllArgsConstructor;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Scheduler;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 @Service
+@AllArgsConstructor
 public class REST implements OutboundStrategy {
-
-    /* Scheduler for submit workers to execution */
-    private final Scheduler scheduler;
 
     /* Raft properties that need to be accessed */
     private final RaftProperties raftProperties;
 
     /* Map which contain Webclient objects to use instead of creating one each time */
-    private final Map<String,WebClient> webClientsMap;
-
-    /* --------------------------------------------------- */
-
-    public REST(
-            @Qualifier(value = "requestsScheduler") Scheduler scheduler,
-            RaftProperties raftProperties
-    ) {
-        this.scheduler = scheduler;
-        this.raftProperties = raftProperties;
-        this.webClientsMap = new HashMap<>();
-    }
+    private final Map<String, WebClient> webClientsMap = new HashMap<>();
 
     /* --------------------------------------------------- */
 
@@ -57,9 +42,9 @@ public class REST implements OutboundStrategy {
 
         return Mono.just(command.split(";;;"))
                 .flatMap(tokens -> Mono.zip(
-                            Mono.just(HttpMethod.valueOf(tokens[0])),
-                            Mono.just(tokens[1]),
-                            Mono.just(String.join(";;;", Arrays.asList(tokens).subList(2, tokens.length))))
+                        Mono.just(HttpMethod.valueOf(tokens[0])),
+                        Mono.just(tokens[1]),
+                        Mono.just(String.join(";;;", Arrays.asList(tokens).subList(2, tokens.length))))
                 )
                 .flatMap(tuple -> this.sendRequestToServer(location, tuple.getT1(), tuple.getT2(), tuple.getT3()));
 
@@ -82,14 +67,13 @@ public class REST implements OutboundStrategy {
 
         return this.getWebClient(to)
                 .map(webClient ->
-                    webClient
-                            .post()
-                            .uri("/raft/{route}", route)
-                            .bodyValue(message)
-                            .retrieve()
+                        webClient
+                                .post()
+                                .uri("/raft/{route}", route)
+                                .bodyValue(message)
+                                .retrieve()
                 )
                 .flatMap(responseSpec -> responseSpec.bodyToMono(type))
-                .publishOn(PeerWorkers.getPeerWorkerScheduler(to))
                 .timeout(this.raftProperties.getHeartbeat());
     }
 
@@ -109,24 +93,23 @@ public class REST implements OutboundStrategy {
                 ? this.getWebClient(to)
                         .map(webClient ->
                                 webClient
-                                    .method(method)
-                                    .uri(route)
-                                    .retrieve()
+                                        .method(method)
+                                        .uri(route)
+                                        .retrieve()
+                                        .onStatus(status -> status.value() >= 400, response -> Mono.empty())
                         )
                         .flatMap(responseSpec -> responseSpec.toEntity(Object.class))
-                        .publishOn(this.scheduler)
 
                 : this.getWebClient(to)
                         .map(webClient ->
                                 webClient
-                                    .method(method)
-                                    .uri(route)
-                                    .bodyValue(body)
-                                    .retrieve()
+                                        .method(method)
+                                        .uri(route)
+                                        .bodyValue(body)
+                                        .retrieve()
+                                        .onStatus(status -> status.value() >= 400, response -> Mono.empty())
                         )
-                        .flatMap(responseSpec -> responseSpec.toEntity(Object.class))
-                        .publishOn(this.scheduler)
-                ;
+                        .flatMap(responseSpec -> responseSpec.toEntity(Object.class));
 
     }
 

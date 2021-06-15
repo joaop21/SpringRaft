@@ -7,7 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import reactor.core.publisher.Mono;
 
 @Configuration
-public class ConstructorBeans {
+public class InstantiationBeans {
 
     /**
      * Bean for creating LogState Objects.

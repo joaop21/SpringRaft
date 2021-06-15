@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - main
+      - reactive/refactor
   pull_request:
     branches:
       - main
+      - reactive/refactor
 
 jobs:
 
@@ -41,7 +43,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [ubuntu-20.04, ubuntu-18.04, macos-latest]
-        java-version: [15]
+        java-version: [16]
 
     runs-on: ${{ matrix.os }}
 

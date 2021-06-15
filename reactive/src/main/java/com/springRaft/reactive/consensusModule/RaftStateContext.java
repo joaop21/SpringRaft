@@ -11,6 +11,8 @@ import com.springRaft.reactive.persistence.log.LogService;
 import com.springRaft.reactive.persistence.log.LogState;
 import com.springRaft.reactive.persistence.state.State;
 import com.springRaft.reactive.persistence.state.StateService;
+import com.springRaft.reactive.stateMachine.StateMachineWorker;
+import com.springRaft.reactive.stateMachine.WaitingRequests;
 import com.springRaft.reactive.util.Pair;
 import lombok.AllArgsConstructor;
 import org.springframework.context.ApplicationContext;
@@ -44,10 +46,10 @@ public abstract class RaftStateContext {
     protected final OutboundManager outboundManager;
 
     /* Publisher of new commitments to State Machine */
-    // ...
+    protected final StateMachineWorker stateMachineWorker;
 
     /* Map that contains the clients waiting requests */
-    // ...
+    protected final WaitingRequests waitingRequests;
 
     /* --------------------------------------------------- */
 
@@ -139,20 +141,15 @@ public abstract class RaftStateContext {
      * */
     protected Mono<AppendEntriesReply> appendEntries(AppendEntries appendEntries) {
 
-        Mono<AppendEntriesReply> replyMono = Mono.just(this.applicationContext.getBean(AppendEntriesReply.class));
-        Mono<Long> currentTermMono = this.stateService.getCurrentTerm();
+        return this.stateService.getCurrentTerm()
+                .flatMap(currentTerm -> {
 
-        return Mono.zip(replyMono, currentTermMono)
-                .flatMap(tuple -> {
-
-                    AppendEntriesReply reply = tuple.getT1();
-                    long currentTerm = tuple.getT2();
+                    AppendEntriesReply reply = this.applicationContext.getBean(AppendEntriesReply.class);
 
                     if (appendEntries.getTerm() < currentTerm) {
 
                         reply.setTerm(currentTerm);
                         reply.setSuccess(false);
-
                         return Mono.just(reply);
 
                     } else {
@@ -165,9 +162,9 @@ public abstract class RaftStateContext {
                         }
 
                         return stateMono.flatMap(state ->
-                            this.setAppendEntriesReply(appendEntries, reply)
-                                    .flatMap(appendEntriesReply ->
-                                            this.postAppendEntries(appendEntries).then(Mono.just(appendEntriesReply)))
+                                this.setAppendEntriesReply(appendEntries, reply)
+                                        .flatMap(appendEntriesReply ->
+                                                this.postAppendEntries(appendEntries).then(Mono.just(appendEntriesReply)))
                         );
 
                     }
@@ -193,27 +190,17 @@ public abstract class RaftStateContext {
                 })
                 .flatMap(entry -> {
 
-                    if(entry.getIndex() == (long) appendEntries.getPrevLogIndex()) {
+                    if((entry.getIndex() == (long) appendEntries.getPrevLogIndex()) && (entry.getTerm() == (long) appendEntries.getPrevLogTerm())) {
 
-                        if (entry.getTerm() == (long) appendEntries.getPrevLogTerm()) {
-
-                            reply.setSuccess(true);
-
-                            return this.applyAppendEntries(appendEntries).then(Mono.just(reply));
-
-                        } else {
-
-                            reply.setSuccess(false);
-
-                        }
+                        reply.setSuccess(true);
+                        return this.applyAppendEntries(appendEntries).then(Mono.just(reply));
 
                     } else {
 
                         reply.setSuccess(false);
+                        return Mono.just(reply);
 
                     }
-
-                    return Mono.just(reply);
 
                 });
 
@@ -259,33 +246,26 @@ public abstract class RaftStateContext {
     private Mono<Void> updateCommittedEntries (AppendEntries appendEntries, Entry lastEntry) {
 
         Mono<Entry> entryMono = Mono.just(lastEntry.getIndex() <= appendEntries.getLeaderCommit())
-                .flatMap(conditional -> {
-                   if (conditional) return Mono.just(lastEntry);
-                   else return this.logService.getEntryByIndex(appendEntries.getLeaderCommit());
-                });
+                .flatMap(conditional ->
+                    conditional ? Mono.just(lastEntry) : this.logService.getEntryByIndex(appendEntries.getLeaderCommit())
+                );
 
         return this.logService.getState()
                 .filter(logState -> appendEntries.getLeaderCommit() > logState.getCommittedIndex())
-                .flatMap(logState -> entryMono.map(entry -> new Pair<>(logState,entry)))
-                .flatMap(pair -> {
+                    .zipWith(entryMono, Pair::new)
+                    .flatMap(pair -> {
 
-                    LogState logState = pair.getFirst();
-                    Entry entry = pair.getSecond();
+                        LogState logState = pair.first();
+                        Entry entry = pair.second();
 
-                    logState.setCommittedIndex(entry.getIndex());
-                    logState.setCommittedTerm(entry.getTerm());
-                    logState.setNew(false);
+                        logState.setCommittedIndex(entry.getIndex());
+                        logState.setCommittedTerm(entry.getTerm());
+                        logState.setNew(false);
 
-                    return this.logService.saveState(logState);
+                        return this.logService.saveState(logState);
 
-                })
-                .then();
-
-        // ....
-        // IT NEEDS TO ADD THIS CODE
-        // ....
-        // notify state machine of a new commit
-        //this.commitmentPublisher.newCommit();
+                    })
+                    .flatMap(logState -> this.stateMachineWorker.newCommit());
 
     }
 

@@ -5,7 +5,8 @@ import com.springRaft.reactive.communication.outbound.OutboundManager;
 import com.springRaft.reactive.config.RaftProperties;
 import com.springRaft.reactive.persistence.log.LogService;
 import com.springRaft.reactive.persistence.state.StateService;
-import com.springRaft.reactive.util.Pair;
+import com.springRaft.reactive.stateMachine.StateMachineWorker;
+import com.springRaft.reactive.stateMachine.WaitingRequests;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -13,7 +14,6 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 @Service
 @Scope("singleton")
@@ -37,12 +37,15 @@ public class Follower extends RaftStateContext implements RaftState {
             LogService logService,
             RaftProperties raftProperties,
             TransitionManager transitionManager,
-            OutboundManager outboundManager
+            OutboundManager outboundManager,
+            StateMachineWorker stateMachineWorker,
+            WaitingRequests waitingRequests
     ) {
         super(
                 applicationContext, consensusModule,
                 stateService, logService, raftProperties,
-                transitionManager, outboundManager
+                transitionManager, outboundManager, stateMachineWorker,
+                waitingRequests
         );
         this.scheduledTransition = null;
         this.leaderId = raftProperties.getHost();
@@ -60,31 +63,24 @@ public class Follower extends RaftStateContext implements RaftState {
 
         return this.stateService.getCurrentTerm()
                 .filter(currentTerm -> appendEntriesReply.getTerm() > currentTerm)
-                .flatMap(currentTerm -> this.stateService.setState(appendEntriesReply.getTerm(), null))
-                .flatMap(state -> this.cleanBeforeTransit());
+                    .flatMap(currentTerm -> this.stateService.setState(appendEntriesReply.getTerm(), null))
+                    .flatMap(state -> this.cleanBeforeTransit());
 
     }
 
     @Override
     public Mono<RequestVoteReply> requestVote(RequestVote requestVote) {
 
-        // get a reply object
-        Mono<RequestVoteReply> replyMono = Mono.just(this.applicationContext.getBean(RequestVoteReply.class));
-        // get the current term
-        Mono<Long> currentTermMono = this.stateService.getCurrentTerm();
+        return this.stateService.getCurrentTerm()
+                .flatMap(currentTerm -> {
 
-        return Mono.zip(replyMono, currentTermMono)
-                .flatMap(tuple -> {
-
-                    RequestVoteReply reply = tuple.getT1();
-                    long currentTerm = tuple.getT2();
+                    RequestVoteReply reply = this.applicationContext.getBean(RequestVoteReply.class);
 
                     if(requestVote.getTerm() < currentTerm) {
 
                         // revoke request
                         reply.setTerm(currentTerm);
                         reply.setVoteGranted(false);
-
                         return Mono.just(reply);
 
                     } else if (requestVote.getTerm() > currentTerm) {
@@ -114,12 +110,11 @@ public class Follower extends RaftStateContext implements RaftState {
         return this.stateService.getCurrentTerm()
                 // if term is greater than mine, I should update it and transit to new follower
                 .filter(currentTerm -> requestVoteReply.getTerm() > currentTerm)
-                .flatMap(currentTerm ->
-                        // update term
-                        this.stateService.setState(requestVoteReply.getTerm(), null)
-                )
-                .flatMap(state -> this.cleanBeforeTransit())
-                .then();
+                    .flatMap(currentTerm ->
+                            // update term
+                            this.stateService.setState(requestVoteReply.getTerm(), null)
+                    )
+                    .flatMap(state -> this.cleanBeforeTransit());
 
     }
 
@@ -132,11 +127,6 @@ public class Follower extends RaftStateContext implements RaftState {
     }
 
     @Override
-    public Mono<Pair<Message, Boolean>> getNextMessage(String to) {
-        return Mono.just(new Pair<>(null, false));
-    }
-
-    @Override
     public Mono<Void> start() {
 
         return this.transitionManager.setElectionTimeout()
@@ -145,7 +135,7 @@ public class Follower extends RaftStateContext implements RaftState {
                     this.leaderId = this.raftProperties.getHost();
                 })
                 .doOnNext(task -> this.scheduledTransition = task)
-                .then();
+                .then(this.outboundManager.newFollowerState());
 
     }
 
@@ -185,5 +175,4 @@ public class Follower extends RaftStateContext implements RaftState {
         });
 
     }
-
 }

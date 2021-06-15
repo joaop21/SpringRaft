@@ -45,6 +45,21 @@ public class LogService {
     }
 
     /**
+     * Method that sets the last applied field of the LogState and persist it.
+     *
+     * @return The updated LogState.
+     * */
+    public Mono<LogState> incrementLastApplied() {
+        return this.getState()
+                .map(logState -> {
+                    logState.setLastApplied(logState.getLastApplied() + 1);
+                    logState.setNew(false);
+                    return logState;
+                })
+                .flatMap(this.logStateRepository::save);
+    }
+
+    /**
      * Method for inserting or updating the current persisted log state.
      *
      * @param logState New log state to insert/update.
@@ -115,10 +130,10 @@ public class LogService {
                     .doOnNext(lastIndex -> entry.setIndex(lastIndex + 1))
                     .flatMap(lastIndex -> this.entryRepository.save(entry))
                     .flatMap(savedEntry ->
-                        Mono.create(monoSink -> {
-                            lock.unlock();
-                            monoSink.success(savedEntry);
-                        })
+                            Mono.create(monoSink -> {
+                                lock.unlock();
+                                monoSink.success(savedEntry);
+                            })
                     );
         })
                 .onErrorResume(DataIntegrityViolationException.class, error -> this.insertEntry(entry));

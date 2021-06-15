@@ -1,32 +1,33 @@
 package com.springRaft.reactive.consensusModule;
 
 import com.springRaft.reactive.communication.message.*;
-import com.springRaft.reactive.config.startup.PeerWorkers;
-import com.springRaft.reactive.util.Pair;
-import lombok.Getter;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
+import reactor.core.publisher.Sinks;
 
 @Service
 @Scope("singleton")
-@Getter
 public class ConsensusModule implements RaftState {
 
     /* Current Raft state - Follower, Candidate, Leader */
     private RaftState current;
 
-    /* Mutex for some operations */
-    private final Lock lock;
+    /* Sink for publish operations */
+    private final Sinks.Many<Mono<?>> operationPublisher;
 
     /* --------------------------------------------------- */
 
+    /**
+     * TODO
+     * */
     public ConsensusModule() {
         this.current = null;
-        this.lock = new ReentrantLock();
+        this.operationPublisher = Sinks.many().unicast().onBackpressureBuffer();
+
+        // subscribe to Concurrency Control Pipeline
+        this.concurrencyControlPipeline().subscribe();
     }
 
     /* --------------------------------------------------- */
@@ -46,61 +47,43 @@ public class ConsensusModule implements RaftState {
      * @param state The new raft state of this consensus module.
      * */
     public Mono<Void> setAndStartNewState(RaftState state) {
-        this.setCurrentState(state);
-        return this.start();
+        return publishOperation(
+                Mono.<Mono<Void>>create(monoSink -> {
+                    this.setCurrentState(state);
+                    monoSink.success(this.start());
+                })
+                .flatMap(mono -> mono)
+        ).cast(Void.class);
     }
 
     /* --------------------------------------------------- */
 
     @Override
     public Mono<AppendEntriesReply> appendEntries(AppendEntries appendEntries) {
-        return Mono.defer(() -> {
-            lock.lock();
-            return this.current.appendEntries(appendEntries)
-                    .flatMap(reply -> {
-                        lock.unlock();
-                        return Mono.just(reply);
-                    });
-        });
+        return publishAndSubscribeOperation(
+                Mono.defer(() -> this.current.appendEntries(appendEntries))
+        ).cast(AppendEntriesReply.class);
     }
 
     @Override
     public Mono<Void> appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
-        return Mono.defer(() -> {
-            lock.lock();
-            return this.current.appendEntriesReply(appendEntriesReply, from)
-                    .publishOn(PeerWorkers.getPeerWorkerScheduler(from))
-                    .then(Mono.create(monoSink -> {
-                        lock.unlock();
-                        monoSink.success();
-                    }));
-        });
+        return publishOperation(
+                Mono.defer(() -> this.current.appendEntriesReply(appendEntriesReply,from))
+        ).cast(Void.class);
     }
 
     @Override
     public Mono<RequestVoteReply> requestVote(RequestVote requestVote) {
-        return Mono.defer(() -> {
-            lock.lock();
-            return this.current.requestVote(requestVote)
-                    .flatMap(reply ->
-                        Mono.create(monoSink -> {
-                            lock.unlock();
-                            monoSink.success(reply);
-                        })
-                    );
-        });
+        return publishAndSubscribeOperation(
+                Mono.defer(() -> this.current.requestVote(requestVote))
+        ).cast(RequestVoteReply.class);
     }
 
     @Override
     public Mono<Void> requestVoteReply(RequestVoteReply requestVoteReply) {
-        return Mono.defer(() -> {
-            lock.lock();
-            return this.current.requestVoteReply(requestVoteReply)
-                    .then(Mono.create(monoSink -> {
-                        lock.unlock();
-                        monoSink.success();
-                    }));
-        });
+        return publishOperation(
+                Mono.defer(() -> this.current.requestVoteReply(requestVoteReply))
+        ).cast(Void.class);
     }
 
     @Override
@@ -109,28 +92,45 @@ public class ConsensusModule implements RaftState {
     }
 
     @Override
-    public Mono<Pair<Message, Boolean>> getNextMessage(String to) {
-        return Mono.defer(() -> {
-            lock.lock();
-            return this.current.getNextMessage(to)
-                    .publishOn(PeerWorkers.getPeerWorkerScheduler(to))
-                    .flatMap(pair -> {
-                        lock.unlock();
-                        return Mono.just(pair);
-                    });
-        })
-                .subscribeOn(PeerWorkers.getPeerWorkerScheduler(to));
+    public Mono<Void> start() {
+        return this.current.start();
     }
 
-    @Override
-    public Mono<Void> start() {
-        return Mono.defer(() -> {
-            lock.lock();
-            return this.current.start()
-                    .then(Mono.create(monoSink -> {
-                        lock.unlock();
-                        monoSink.success();
-                    }));
+    /* --------------------------------------------------- */
+
+    /**
+     * TODO
+     * */
+    private Flux<?> concurrencyControlPipeline() {
+        return this.operationPublisher.asFlux().flatMap(mono -> mono, 1);
+    }
+
+    /* --------------------------------------------------- */
+
+    /**
+     * Method that publishes the mono operation into the publisher and waits for the response in a specific sink.
+     *
+     * @param operation Mono operation to invoke in the current state.
+     *
+     * @return Response of the invocation of the operation in the current state.
+     * */
+    private Mono<?> publishAndSubscribeOperation(Mono<?> operation) {
+        return Mono.just(Sinks.one())
+                .doOnNext(responseSink -> {
+                    while (this.operationPublisher.tryEmitNext(operation.doOnSuccess(responseSink::tryEmitValue)) != Sinks.EmitResult.OK);
+                })
+                .flatMap(Sinks.Empty::asMono);
+    }
+
+    /**
+     * Method that publishes the mono operation into the publisher and doesn't wait for the response.
+     *
+     * @param operation Mono operation to invoke in the current state.
+     * */
+    private Mono<Void> publishOperation(Mono<?> operation) {
+        return Mono.create(monoSink -> {
+            while (this.operationPublisher.tryEmitNext(operation) != Sinks.EmitResult.OK);
+            monoSink.success();
         });
     }
 
