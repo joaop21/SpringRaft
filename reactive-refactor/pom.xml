@@ -12,7 +12,7 @@
 
 	<groupId>com.springRaft</groupId>
 	<artifactId>reactive</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>0.0.1</version>
 	<name>reactive</name>
 	<description>Raft Consensus module for Spring WebFlux (Reactive)</description>
 
