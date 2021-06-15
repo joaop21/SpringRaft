@@ -29,7 +29,7 @@ services:
     env_file:
       - raft-properties.env
     ports:
-      - "50001:8080"
+      - 8001:8080
     depends_on:
       - "key-value-storage1"
 
@@ -42,7 +42,7 @@ services:
     env_file:
       - raft-properties.env
     ports:
-      - "50002:8080"
+      - 8002:8080
     depends_on:
       - "key-value-storage2"
 
@@ -55,6 +55,6 @@ services:
     env_file:
       - raft-properties.env
     ports:
-      - "50003:8080"
+      - 8003:8080
     depends_on:
       - "key-value-storage3"
