@@ -1,7 +1,6 @@
 package com.springRaft.reactive.consensusModule;
 
 import com.springRaft.reactive.communication.message.*;
-import com.springRaft.reactive.util.Pair;
 import reactor.core.publisher.Mono;
 
 public interface RaftState {
@@ -50,16 +49,6 @@ public interface RaftState {
      * @return RequestReply Reply for the income request.
      * */
     Mono<RequestReply> clientRequest(String command);
-
-    /**
-     * Method for getting the next message for a specific server.
-     *
-     * @param to String that represents the server.
-     *
-     * @return Pair<Message, Boolean> Message to send to the target server and a boolean that signals
-     *      if this message is a heartbeat.
-     * */
-    Mono<Pair<Message, Boolean>> getNextMessage(String to);
 
     /**
      * Method for doing the work that it's required on startup.

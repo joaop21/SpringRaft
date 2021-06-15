@@ -2,26 +2,22 @@ package com.springRaft.reactive.config.startup;
 
 import com.springRaft.reactive.communication.outbound.OutboundContext;
 import com.springRaft.reactive.communication.outbound.OutboundManager;
+import com.springRaft.reactive.communication.outbound.PeerWorker;
 import com.springRaft.reactive.config.RaftProperties;
 import com.springRaft.reactive.consensusModule.ConsensusModule;
-import com.springRaft.reactive.worker.PeerWorker;
 import lombok.AllArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.Scope;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
-import reactor.core.scheduler.Scheduler;
-import reactor.core.scheduler.Schedulers;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Component
 @Order(2)
-@Scope("singleton")
 @AllArgsConstructor
 public class PeerWorkers implements ApplicationRunner {
 
@@ -34,8 +30,8 @@ public class PeerWorkers implements ApplicationRunner {
     /* Publisher of messages */
     private final OutboundManager outboundManager;
 
-    /* Map containing schedulers for a specific server */
-    private static final Map<String,Scheduler> peerWorkers = new HashMap<>();
+    /* Map containing the PeerWorkers responsible for the servers */
+    private final Map<String, PeerWorker> peerWorkers = new HashMap<>();
 
     /* --------------------------------------------------- */
 
@@ -60,36 +56,13 @@ public class PeerWorkers implements ApplicationRunner {
                             server
                     );
 
-                    // subscribe worker in outbound observer
-                    this.outboundManager.subscribe(worker);
-
-                    // Schedule worker on a dedicated scheduler
-                    getPeerWorkerScheduler(server)
-                            .schedule(worker);
+                    // put worker in the map if doesn't exist
+                    if (this.peerWorkers.putIfAbsent(server, worker) == null)
+                        // subscribe worker in outbound observer
+                        this.outboundManager.subscribe(server, worker);
 
                 })
                 .blockLast();
-
-    }
-
-    /* --------------------------------------------------- */
-
-    /**
-     * Method that gets a PeerWorker specific scheduler so it can run in the same environment.
-     *
-     * @param worker String that represents the server name.
-     *
-     * @return Scheduler for running the peerWorker.
-     * */
-    public static Scheduler getPeerWorkerScheduler(String worker) {
-
-        Scheduler scheduler = peerWorkers.get(worker);
-        if (scheduler == null) {
-            scheduler = Schedulers.newSingle("PeerWorker");
-            peerWorkers.put(worker, scheduler);
-        }
-
-        return scheduler;
 
     }
 

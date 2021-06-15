@@ -1,7 +1,6 @@
 package com.springRaft.reactive.consensusModule;
 
 import com.springRaft.reactive.config.RaftProperties;
-import com.springRaft.reactive.worker.StateTransition;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Service;
@@ -51,16 +50,14 @@ public class TransitionManager {
      * */
     public Mono<Disposable> setElectionTimeout() {
 
-        Mono<Long> timeoutMono = this.getRandomLongBetweenRange(
-                this.raftProperties.getElectionTimeoutMin().toMillis(),
-                this.raftProperties.getElectionTimeoutMax().toMillis()
-        );
-
-        Mono<StateTransition> transitionMono =
-                Mono.just(this.applicationContext.getBean(StateTransition.class, applicationContext, consensusModule, Candidate.class));
-
-        return timeoutMono.zipWith(transitionMono,
-                (timeout, transition) -> this.scheduler.schedule(transition, timeout, TimeUnit.MILLISECONDS));
+        return this.getRandomLongBetweenRange()
+                .flatMap(timeout ->
+                        Mono.just(
+                            this.scheduler.schedule(() -> {
+                                RaftState state = this.applicationContext.getBean(Candidate.class);
+                                this.consensusModule.setAndStartNewState(state).subscribe();
+                            }, timeout, TimeUnit.MILLISECONDS))
+                );
 
     }
 
@@ -91,13 +88,14 @@ public class TransitionManager {
     /**
      * Calculates a random long between a minimum and a maximum.
      *
-     * @param min Minimum long in the range.
-     * @param max Maximum long in the range.
-     *
      * @return Mono<Long> Random calculated Long.
      * */
-    private Mono<Long> getRandomLongBetweenRange(long min, long max){
+    private Mono<Long> getRandomLongBetweenRange(){
+
         return Mono.defer(() -> {
+            long min = this.raftProperties.getElectionTimeoutMin().toMillis();
+            long max = this.raftProperties.getElectionTimeoutMax().toMillis();
+
             OptionalLong op = new Random().longs(min, max+1).findFirst();
             return Mono.just(op.isPresent() ? op.getAsLong() : min);
         });

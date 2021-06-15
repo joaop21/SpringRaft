@@ -1,7 +1,9 @@
 package com.springRaft.reactive.communication.inbound;
 
+import com.springRaft.reactive.communication.message.*;
 import com.springRaft.reactive.communication.outbound.OutboundContext;
 import com.springRaft.reactive.config.RaftProperties;
+import com.springRaft.reactive.consensusModule.ConsensusModule;
 import lombok.AllArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpHeaders;
@@ -16,10 +18,10 @@ import reactor.core.publisher.Mono;
 @RestController
 @ConditionalOnProperty(name = "raft.state-machine-strategy", havingValue = "INDEPENDENT")
 @AllArgsConstructor
-public class IndependentController {
+public class IndependentController implements ClientInboundCommunication {
 
-    /* Main controller that communicates with consensus module */
-    private final RaftController raftController;
+    /* Module that has the consensus functions to invoke */
+    private final ConsensusModule consensusModule;
 
     /* Raft properties that need to be accessed */
     private final RaftProperties raftProperties;
@@ -44,7 +46,7 @@ public class IndependentController {
     {
 
         String command = request.getMethod() + ";;;" + request.getPath() + ";;;" + body;
-        return this.raftController.clientRequest(command)
+        return this.clientRequest(command)
                 .flatMap(requestReply -> {
 
                     if (requestReply.getSuccess()) {
@@ -78,6 +80,13 @@ public class IndependentController {
 
                 });
 
+    }
+
+    /* --------------------------------------------------- */
+
+    @Override
+    public Mono<RequestReply> clientRequest(String command) {
+        return this.consensusModule.clientRequest(command);
     }
 
 }

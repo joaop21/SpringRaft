@@ -79,9 +79,9 @@ public class StateService {
     public Mono<String> getVotedFor() {
         return this.getState()
                 .map(state ->
-                    state.getVotedFor() == null
-                            ? ""
-                            : state.getVotedFor()
+                        state.getVotedFor() == null
+                                ? ""
+                                : state.getVotedFor()
                 );
     }
 

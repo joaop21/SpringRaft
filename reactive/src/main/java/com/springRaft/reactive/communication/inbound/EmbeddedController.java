@@ -1,7 +1,9 @@
 package com.springRaft.reactive.communication.inbound;
 
+import com.springRaft.reactive.communication.message.RequestReply;
 import com.springRaft.reactive.communication.outbound.OutboundContext;
 import com.springRaft.reactive.config.RaftProperties;
+import com.springRaft.reactive.consensusModule.ConsensusModule;
 import lombok.AllArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpHeaders;
@@ -14,13 +16,12 @@ import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequestMapping("raft")
 @ConditionalOnProperty(name = "raft.state-machine-strategy", havingValue = "EMBEDDED")
 @AllArgsConstructor
-public class EmbeddedController {
+public class EmbeddedController implements ClientInboundCommunication {
 
-    /* Main controller that communicates with consensus module */
-    private final RaftController raftController;
+    /* Module that has the consensus functions to invoke */
+    private final ConsensusModule consensusModule;
 
     /* Raft properties that need to be accessed */
     private final RaftProperties raftProperties;
@@ -45,7 +46,7 @@ public class EmbeddedController {
     {
 
         String command = request.getMethod() + ";;;" + request.getPath() + ";;;" + body;
-        return this.raftController.clientRequest(command)
+        return this.clientRequest(command)
                 .flatMap(requestReply -> {
 
                     System.out.println("\n\ncommand: " + command);
@@ -60,9 +61,7 @@ public class EmbeddedController {
                         if (requestReply.getRedirect()) {
                             // send a request to leader, because I'm a follower
 
-                            return (Mono<ResponseEntity<?>>) this.outbound.request(
-                                    command.replaceFirst("/raft", ""),
-                                    requestReply.getRedirectTo());
+                            return (Mono<ResponseEntity<?>>) this.outbound.request(command.replaceFirst("/raft", ""), requestReply.getRedirectTo());
 
 
                         } else {
@@ -84,4 +83,10 @@ public class EmbeddedController {
 
     }
 
+    /* --------------------------------------------------- */
+
+    @Override
+    public Mono<RequestReply> clientRequest(String command) {
+        return this.consensusModule.clientRequest(command);
+    }
 }
