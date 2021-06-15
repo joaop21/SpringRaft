@@ -14,8 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Scope;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -72,6 +70,10 @@ public class Leader extends RaftStateContext implements RaftState {
     @Override
     public Mono<Void> appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
 
+        if (appendEntriesReply == null)
+            return this.sendNextAppendEntries(from, this.nextIndex.get(from), this.matchIndex.get(from));
+
+
         if (appendEntriesReply.getSuccess()) {
 
             return this.logService.getLastEntryIndex()
@@ -83,18 +85,15 @@ public class Leader extends RaftStateContext implements RaftState {
 
                         // compare last entry with next index for "from" server
                         // optimized 'if' (extended 'if' in servlet version)
-                        if ((nextIndex != lastEntryIndex) && (matchIndex == (nextIndex - 1))) {
+                        if ((nextIndex != lastEntryIndex) && (matchIndex == (nextIndex - 1)))
+                            return this.sendNextAppendEntries(from, nextIndex, matchIndex);
 
-                            return this.sendNextAppendEntries(from, nextIndex, matchIndex)
-                                    .doOnTerminate(() -> this.matchIndex.put(from, nextIndex));
-
-                        }
 
                         this.matchIndex.put(from, nextIndex - 1);
-                        return this.sendNextAppendEntries(from, nextIndex, nextIndex - 1);
+                        return this.setCommitIndex(from)
+                                .then(this.sendNextAppendEntries(from, nextIndex, nextIndex - 1));
 
-                    })
-                    .then(this.setCommitIndex(from));
+                    });
 
         } else {
 
@@ -189,26 +188,13 @@ public class Leader extends RaftStateContext implements RaftState {
     @Override
     public Mono<RequestReply> clientRequest(String command) {
 
-        /*return this.stateService.getCurrentTerm()
-                .flatMap(currentTerm -> this.logService.insertEntry(new Entry(currentTerm, command, true)))
-                .map(entry ->
-                        this.applicationContext.getBean(
-                                RequestReply.class, true,
-                                new ResponseEntity<>(entry, HttpStatus.OK), false, ""
-                        )
-                )
-                .flatMap(requestReply ->
-                this.outboundManager.newClientRequest()
-                        .then(Mono.just(requestReply))
-                );*/
-
         return this.stateService.getCurrentTerm()
                 .flatMap(currentTerm -> this.logService.insertEntry(new Entry(currentTerm, command, true)))
+                .flatMap(entry -> this.outboundManager.newClientRequest().then(Mono.just(entry)))
                 .flatMap(entry -> this.waitingRequests.insertWaitingRequest(entry.getIndex()))
                 .flatMap(Sinks.Empty::asMono)
                 .map(response -> this.applicationContext.getBean(RequestReply.class, true, response, false, ""))
                 .switchIfEmpty(Mono.just(this.applicationContext.getBean(RequestReply.class, false, new Object(), false, "")));
-
     }
 
     @Override
