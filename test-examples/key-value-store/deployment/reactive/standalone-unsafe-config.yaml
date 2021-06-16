@@ -3,7 +3,8 @@ version: '3'
 services:
 
   reactive-kvs-unsafe:
-    image: key-value-store:reactive-independent-0.0.1
+    build: ../../reactive/key-value-store-independent
+    image: key-value-store:reactive-independent
     container_name: reactive-kvs-unsafe
     environment:
       - NODE_SERVICE_STRATEGY=Unsafe
