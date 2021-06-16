@@ -10,9 +10,9 @@ on:
 
 jobs:
 
-  test-examples:
+  test-examples-java-15:
 
-    name: Test Examples
+    name: Test Examples with Java 15
     
     strategy:
       fail-fast: true
@@ -49,6 +49,36 @@ jobs:
       - name: Key-Value Store - Servlet Stack - Independent Config
         run: mvn --batch-mode --update-snapshots verify
         working-directory: ./test-examples/key-value-store/servlet/key-value-store-independent
+      #- name: Key-Value Store - Servlet Stack - Embedded Config
+       # run: mvn --batch-mode --update-snapshots verify
+        #working-directory: ./test-examples/key-value-store/servlet/key-value-store-embedded
+
+      # More examples must be here
+      # ...
+
+  test-examples-java-16:
+
+    name: Test Examples with Java 16
+    
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-20.04, ubuntu-18.04, macos-latest]
+        java-version: [16]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: ${{ matrix.java-version }}
+
+      # Key-Value Store
+      - name: Key-Value Store - Reactive Stack - Independent Config
+        run: mvn --batch-mode --update-snapshots verify
+        working-directory: ./test-examples/key-value-store/reactive/key-value-store-independent
       #- name: Key-Value Store - Servlet Stack - Embedded Config
        # run: mvn --batch-mode --update-snapshots verify
         #working-directory: ./test-examples/key-value-store/servlet/key-value-store-embedded
