@@ -1,6 +1,7 @@
 version: '2'
 
 services:
+
   etcd1:
     image: docker.io/bitnami/etcd:3-debian-10
     environment:
@@ -16,7 +17,8 @@ services:
       - ETCD_ENABLE_V2=true
       - ETCDCTL_API=2
     ports: 
-      - 50001:2379
+      - 8001:2379
+
   etcd2:
     image: docker.io/bitnami/etcd:3-debian-10
     environment:
@@ -32,7 +34,8 @@ services:
       - ETCD_ENABLE_V2=true
       - ETCDCTL_API=2
     ports: 
-      - 50002:2379
+      - 8002:2379
+
   etcd3:
     image: docker.io/bitnami/etcd:3-debian-10
     environment:
@@ -48,4 +51,4 @@ services:
       - ETCD_ENABLE_V2=true
       - ETCDCTL_API=2
     ports: 
-      - 50003:2379
+      - 8003:2379

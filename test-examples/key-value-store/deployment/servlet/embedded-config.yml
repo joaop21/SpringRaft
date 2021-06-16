@@ -12,9 +12,9 @@ services:
       - RAFT_HOSTNAME=key-value-storage1:8080
       - RAFT_APPLICATION-SERVER=key-value-storage1:8080
     env_file:
-      - raft-properties.env
+      - embedded-config-properties.env
     ports:
-      - "50001:8080"
+      - 8001:8080
 
   key-value-storage2:
     image: key-value-store:embedded-0.0.2
@@ -23,9 +23,9 @@ services:
       - RAFT_HOSTNAME=key-value-storage2:8080
       - RAFT_APPLICATION-SERVER=key-value-storage2:8080
     env_file:
-      - raft-properties.env
+      - embedded-config-properties.env
     ports:
-      - "50002:8080"
+      - 8002:8080
 
   key-value-storage3:
     image: key-value-store:embedded-0.0.2
@@ -34,6 +34,6 @@ services:
       - RAFT_HOSTNAME=key-value-storage3:8080
       - RAFT_APPLICATION-SERVER=key-value-storage3:8080
     env_file:
-      - raft-properties.env
+      - embedded-config-properties.env
     ports:
-      - "50003:8080"
+      - 8003:8080

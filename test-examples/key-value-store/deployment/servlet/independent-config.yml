@@ -27,9 +27,9 @@ services:
       - RAFT_HOSTNAME=raft1:8080
       - RAFT_APPLICATION-SERVER=key-value-storage1:8080
     env_file:
-      - raft-properties.env
+      - independent-config-properties.env
     ports:
-      - "50001:8080"
+      - 8001:8080
     depends_on:
       - "key-value-storage1"
 
@@ -40,9 +40,9 @@ services:
       - RAFT_HOSTNAME=raft2:8080
       - RAFT_APPLICATION-SERVER=key-value-storage2:8080
     env_file:
-      - raft-properties.env
+      - independent-config-properties.env
     ports:
-      - "50002:8080"
+      - 8002:8080
     depends_on:
       - "key-value-storage2"
 
@@ -53,8 +53,8 @@ services:
       - RAFT_HOSTNAME=raft3:8080
       - RAFT_APPLICATION-SERVER=key-value-storage3:8080
     env_file:
-      - raft-properties.env
+      - independent-config-properties.env
     ports:
-      - "50003:8080"
+      - 8003:8080
     depends_on:
       - "key-value-storage3"
