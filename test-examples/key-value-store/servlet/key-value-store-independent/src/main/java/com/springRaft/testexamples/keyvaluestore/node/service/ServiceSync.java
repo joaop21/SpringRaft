@@ -1,7 +1,10 @@
-package com.springRaft.testexamples.keyvaluestore.node;
+package com.springRaft.testexamples.keyvaluestore.node.service;
 
+import com.springRaft.testexamples.keyvaluestore.node.Node;
+import com.springRaft.testexamples.keyvaluestore.node.NodeRepository;
 import lombok.AllArgsConstructor;
 import lombok.Synchronized;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
@@ -9,18 +12,21 @@ import java.util.*;
 
 @Service
 @Scope("singleton")
+@ConditionalOnProperty(name = "node.service.strategy", havingValue = "Sync")
 @AllArgsConstructor
-public class NodeService {
+public class ServiceSync implements NodeService {
 
     private final NodeRepository repository;
 
     /* --------------------------------------------------- */
 
+    @Override
     @Synchronized
     public Optional<Node> get(String key) {
         return this.repository.findByKey(key);
     }
 
+    @Override
     @Synchronized
     public List<Node> upsert(String key, String value) {
 
@@ -40,6 +46,7 @@ public class NodeService {
 
     }
 
+    @Override
     @Synchronized
     public Optional<Node> delete(String key) {
 

@@ -1,5 +1,6 @@
 package com.springRaft.testexamples.keyvaluestore.node;
 
+import com.springRaft.testexamples.keyvaluestore.node.service.NodeService;
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Scope;
 import org.springframework.http.HttpStatus;
