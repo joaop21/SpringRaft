@@ -4,6 +4,7 @@ import com.springRaft.testexamples.keyvaluestore.node.Node;
 import com.springRaft.testexamples.keyvaluestore.node.NodeRepository;
 import lombok.AllArgsConstructor;
 import lombok.Synchronized;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
@@ -11,6 +12,7 @@ import java.util.*;
 
 @Service
 @Scope("singleton")
+@ConditionalOnProperty(name = "node.service.strategy", havingValue = "Sync")
 @AllArgsConstructor
 public class ServiceSync implements NodeService {
 
