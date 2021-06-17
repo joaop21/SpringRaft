@@ -5,7 +5,6 @@ class APICalls(TaskSet):
 
   @task
   def work(self):
-
     key = 'benchmark-key'
     
     for value in range(1,101):
