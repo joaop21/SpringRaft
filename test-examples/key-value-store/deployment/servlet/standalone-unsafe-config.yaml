@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+
+  servlet-kvs-unsafe:
+    build: ../../servlet/key-value-store-independent
+    image: key-value-store:servlet-independent
+    container_name: servlet-kvs-unsafe
+    environment:
+      - NODE_SERVICE_STRATEGY=Unsafe
+    ports:
+      - "8001:8080"

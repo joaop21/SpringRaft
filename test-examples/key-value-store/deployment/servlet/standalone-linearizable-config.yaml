@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+
+  servlet-kvs-linearizable:
+    build: ../../servlet/key-value-store-independent
+    image: key-value-store:servlet-independent
+    container_name: servlet-kvs-linearizable
+    environment:
+      - NODE_SERVICE_STRATEGY=Sync
+    ports:
+      - "8001:8080"
