@@ -2,7 +2,7 @@
 FROM openjdk:15-jdk-alpine
 
 # Modify the application jar
-ARG JAR_FILE=target/*.jar
+ARG JAR_FILE=target/*-exec.jar
 COPY ${JAR_FILE} app.jar
 
 # Expose ports
