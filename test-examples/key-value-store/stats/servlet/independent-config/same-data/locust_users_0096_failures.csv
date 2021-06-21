@@ -1,0 +1,8 @@
+Method,Name,Error,Occurrences
+PUT,/keys/benchmark-key,URL http://34.76.46.104:8003/v2/keys/benchmark-key: code=503,15
+GET,/keys/benchmark-key,URL http://34.76.46.104:8003/v2/keys/benchmark-key: code=404,3
+GET,/keys/benchmark-key,URL http://34.76.46.104:8002/v2/keys/benchmark-key: code=503,19
+GET,/keys/benchmark-key,URL http://34.76.46.104:8002/v2/keys/benchmark-key: code=404,6
+PUT,/keys/benchmark-key,URL http://34.76.46.104:8002/v2/keys/benchmark-key: code=503,19
+GET,/keys/benchmark-key,URL http://34.76.46.104:8003/v2/keys/benchmark-key: code=503,24
+GET,/keys/benchmark-key,URL http://34.76.46.104:8001/v2/keys/benchmark-key: code=404,12
