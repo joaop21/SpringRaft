@@ -1,0 +1,10 @@
+Running 1m test @ http://35.240.54.88:8001
+  768 threads and 768 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     1.42s   370.41ms   2.00s    56.34%
+    Req/Sec     0.00      0.11    10.00     99.78%
+  10864 requests in 1.00m, 2.62MB read
+  Socket errors: connect 0, read 0, write 0, timeout 10651
+  Non-2xx or 3xx responses: 1
+Requests/sec:    180.75
+Transfer/sec:     44.64KB
