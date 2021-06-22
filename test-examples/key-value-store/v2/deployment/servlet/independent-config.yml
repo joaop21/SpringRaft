@@ -1,0 +1,62 @@
+version: '3'
+
+services:
+
+  #####################################################
+  # Application containers
+  
+  key-value-storage1:
+    build: ../../servlet/key-value-store-independent
+    image: key-value-store:servlet-independent
+    container_name: key-value-storage1
+
+  key-value-storage2:
+    image: key-value-store:servlet-independent
+    container_name: key-value-storage2
+
+  key-value-storage3:
+    image: key-value-store:servlet-independent
+    container_name: key-value-storage3
+
+  #####################################################
+  # Cluster containers
+
+  raft1:
+    build: ../../../../servlet
+    image: spring-raft:servlet
+    container_name: raft1
+    environment:
+      - RAFT_HOSTNAME=raft1:8080
+      - RAFT_APPLICATION-SERVER=key-value-storage1:8080
+    env_file:
+      - independent-config-properties.env
+    ports:
+      - 8001:8080
+    depends_on:
+      - "key-value-storage1"
+
+  raft2:
+    image: spring-raft:servlet
+    container_name: raft2
+    environment:
+      - RAFT_HOSTNAME=raft2:8080
+      - RAFT_APPLICATION-SERVER=key-value-storage2:8080
+    env_file:
+      - independent-config-properties.env
+    ports:
+      - 8002:8080
+    depends_on:
+      - "key-value-storage2"
+
+  raft3:
+    image: spring-raft:servlet
+    container_name: raft3
+    environment:
+      - RAFT_HOSTNAME=raft3:8080
+      - RAFT_APPLICATION-SERVER=key-value-storage3:8080
+    env_file:
+      - independent-config-properties.env
+    ports:
+      - 8003:8080
+    depends_on:
+      - "key-value-storage3"
