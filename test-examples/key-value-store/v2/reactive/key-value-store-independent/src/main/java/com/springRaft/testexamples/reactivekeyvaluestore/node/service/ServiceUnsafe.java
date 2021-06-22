@@ -1,16 +1,14 @@
 package com.springRaft.testexamples.reactivekeyvaluestore.node.service;
 
 import com.springRaft.testexamples.reactivekeyvaluestore.node.Node;
-import com.springRaft.testexamples.reactivekeyvaluestore.node.NodeRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 @Scope("singleton")
@@ -18,37 +16,32 @@ import java.util.concurrent.atomic.AtomicReference;
 @AllArgsConstructor
 public class ServiceUnsafe implements NodeService {
 
-    private final NodeRepository repository;
+    private final Map<String,Node> keyValueStore = new HashMap<>();
+
+    private final AtomicLong index = new AtomicLong(0);
 
     /* --------------------------------------------------- */
 
     @Override
     public Mono<Node> get(String key) {
-        return this.repository.findNodeByKey(key);
+        return Mono.fromSupplier(() -> this.keyValueStore.get(key));
     }
 
     @Override
     public Mono<List<Node>> upsert(String key, String text) {
 
-        AtomicReference<List<Node>> list = new AtomicReference<>(new ArrayList<>());
-
-        return this.repository.findNodeByKey(key)
-                .flatMap(node ->
-                        repository.deleteNodeByKey(key)
-                                .doOnSuccess(result -> list.get().add(node))
-                )
-                .then(this.repository.save(new Node(key,text.replaceFirst("value=", ""))))
-                .doOnNext(savedNode -> list.get().add(savedNode))
-                .flatMap(savedNode -> Mono.defer(() -> Mono.just(list.get())));
+        return Mono.fromSupplier(() -> {
+            List<Node> result = new ArrayList<>();
+            Node newNode = new Node(index.incrementAndGet(), key, text.replaceFirst("value=", ""));
+            Optional.ofNullable(this.keyValueStore.put(key, newNode)).ifPresent(result::add);
+            result.add(newNode);
+            return result;
+        });
     }
 
     @Override
     public Mono<Node> delete(String key) {
-        return this.repository.findNodeByKey(key)
-                .flatMap(node ->
-                        this.repository.deleteNodeByKey(key)
-                                .then(Mono.just(node))
-                );
+        return Mono.fromSupplier(() -> this.keyValueStore.remove(key));
     }
 
 }
