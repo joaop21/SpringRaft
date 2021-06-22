@@ -1,29 +1,27 @@
 package com.springRaft.testexamples.keyvaluestore.node.service;
 
 import com.springRaft.testexamples.keyvaluestore.node.Node;
-import com.springRaft.testexamples.keyvaluestore.node.NodeRepository;
-import lombok.AllArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 @Scope("singleton")
 @ConditionalOnProperty(name = "node.service.strategy", havingValue = "Unsafe")
-@AllArgsConstructor
 public class ServiceUnsafe implements NodeService {
 
-    private final NodeRepository repository;
+    private final Map<String,Node> keyValueStore = new HashMap<>();
+
+    private final AtomicLong index = new AtomicLong(0);
 
     /* --------------------------------------------------- */
 
     @Override
     public Optional<Node> get(String key) {
-        return this.repository.findByKey(key);
+        return Optional.ofNullable(this.keyValueStore.get(key));
     }
 
     @Override
@@ -31,15 +29,11 @@ public class ServiceUnsafe implements NodeService {
 
         List<Node> result = new ArrayList<>();
 
-        Optional<Node> node = this.repository.findByKey(key);
+        Node newNode = new Node(index.incrementAndGet(), key, value);
 
-        if (node.isPresent()) {
-            this.repository.deleteNodeByKey(key);
-            result.add(node.get());
-        }
+        Optional.ofNullable(this.keyValueStore.put(key, newNode)).ifPresent(result::add);
 
-        Node savedNode = this.repository.save(new Node(key, value));
-        result.add(savedNode);
+        result.add(newNode);
 
         return result;
 
@@ -47,14 +41,9 @@ public class ServiceUnsafe implements NodeService {
 
     @Override
     public Optional<Node> delete(String key) {
-
-        Optional<Node> node = this.repository.findByKey(key);
-
-        if (node.isPresent())
-            this.repository.deleteNodeByKey(key);
-
-        return node;
-
+        return Optional.ofNullable(this.keyValueStore.remove(key));
     }
+
+    /* --------------------------------------------------- */
 
 }

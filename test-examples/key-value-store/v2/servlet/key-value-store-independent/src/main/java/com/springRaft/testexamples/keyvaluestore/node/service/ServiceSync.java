@@ -1,7 +1,6 @@
 package com.springRaft.testexamples.keyvaluestore.node.service;
 
 import com.springRaft.testexamples.keyvaluestore.node.Node;
-import com.springRaft.testexamples.keyvaluestore.node.NodeRepository;
 import lombok.AllArgsConstructor;
 import lombok.Synchronized;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -9,21 +8,23 @@ import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 @Scope("singleton")
 @ConditionalOnProperty(name = "node.service.strategy", havingValue = "Sync")
-@AllArgsConstructor
 public class ServiceSync implements NodeService {
 
-    private final NodeRepository repository;
+    private final Map<String,Node> keyValueStore = new HashMap<>();
+
+    private final AtomicLong index = new AtomicLong(0);
 
     /* --------------------------------------------------- */
 
     @Override
     @Synchronized
     public Optional<Node> get(String key) {
-        return this.repository.findByKey(key);
+        return Optional.ofNullable(this.keyValueStore.get(key));
     }
 
     @Override
@@ -32,15 +33,11 @@ public class ServiceSync implements NodeService {
 
         List<Node> result = new ArrayList<>();
 
-        Optional<Node> node = this.repository.findByKey(key);
+        Node newNode = new Node(index.incrementAndGet(), key, value);
 
-        if (node.isPresent()) {
-            this.repository.deleteNodeByKey(key);
-            result.add(node.get());
-        }
+        Optional.ofNullable(this.keyValueStore.put(key, newNode)).ifPresent(result::add);
 
-        Node savedNode = this.repository.save(new Node(key, value));
-        result.add(savedNode);
+        result.add(newNode);
 
         return result;
 
@@ -49,14 +46,9 @@ public class ServiceSync implements NodeService {
     @Override
     @Synchronized
     public Optional<Node> delete(String key) {
-
-        Optional<Node> node = this.repository.findByKey(key);
-
-        if (node.isPresent())
-            this.repository.deleteNodeByKey(key);
-
-        return node;
-
+        return Optional.ofNullable(this.keyValueStore.remove(key));
     }
+
+    /* --------------------------------------------------- */
 
 }
