@@ -48,7 +48,7 @@ jobs:
       # Key-Value Store
       - name: Key-Value Store - Servlet Stack - Independent Config
         run: mvn --batch-mode --update-snapshots verify
-        working-directory: ./test-examples/key-value-store/servlet/key-value-store-independent
+        working-directory: ./test-examples/key-value-store/v1/servlet/key-value-store-independent
       #- name: Key-Value Store - Servlet Stack - Embedded Config
        # run: mvn --batch-mode --update-snapshots verify
         #working-directory: ./test-examples/key-value-store/servlet/key-value-store-embedded
@@ -76,12 +76,18 @@ jobs:
           java-version: ${{ matrix.java-version }}
 
       # Key-Value Store
-      - name: Key-Value Store - Reactive Stack - Independent Config
+      - name: Key-Value Store V1 - Reactive Stack - Independent Config
         run: mvn --batch-mode --update-snapshots verify
-        working-directory: ./test-examples/key-value-store/reactive/key-value-store-independent
+        working-directory: ./test-examples/key-value-store/v1/reactive/key-value-store-independent
       #- name: Key-Value Store - Servlet Stack - Embedded Config
        # run: mvn --batch-mode --update-snapshots verify
         #working-directory: ./test-examples/key-value-store/servlet/key-value-store-embedded
+      - name: Key-Value Store V2 - Servlet Stack - Independent Config
+        run: mvn --batch-mode --update-snapshots verify
+        working-directory: ./test-examples/key-value-store/v2/servlet/key-value-store-independent
+      - name: Key-Value Store V2 - Reactive Stack - Independent Config
+        run: mvn --batch-mode --update-snapshots verify
+        working-directory: ./test-examples/key-value-store/v2/reactive/key-value-store-independent
 
       # More examples must be here
       # ...

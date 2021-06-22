@@ -22,7 +22,7 @@ services:
   # Cluster containers
 
   raft1:
-    build: ../../../../servlet
+    build: ../../../../../servlet
     image: spring-raft:servlet
     container_name: raft1
     environment:
