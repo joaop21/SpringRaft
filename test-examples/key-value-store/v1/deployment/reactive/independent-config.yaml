@@ -22,7 +22,7 @@ services:
   # Cluster containers
 
   raft1:
-    build: ../../../../reactive
+    build: ../../../../../reactive
     image: spring-raft:reactive
     container_name: raft1
     environment:
