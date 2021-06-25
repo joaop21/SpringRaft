@@ -1,11 +1,13 @@
 package com.springRaft.servlet.communication.inbound;
 
-import com.springRaft.servlet.communication.message.*;
+import com.springRaft.servlet.communication.message.AppendEntries;
+import com.springRaft.servlet.communication.message.AppendEntriesReply;
+import com.springRaft.servlet.communication.message.RequestVote;
+import com.springRaft.servlet.communication.message.RequestVoteReply;
 import com.springRaft.servlet.consensusModule.ConsensusModule;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("raft")
 @AllArgsConstructor
-public class RaftController implements InboundCommunication {
+public class RaftController implements RaftInboundCommunication {
 
     /* Logger */
     private static final Logger log = LoggerFactory.getLogger(RaftController.class);
@@ -77,38 +79,6 @@ public class RaftController implements InboundCommunication {
     public RequestVoteReply requestVote(RequestVote requestVote) {
 
         return this.consensusModule.requestVote(requestVote);
-
-    }
-
-    @Override
-    public RequestReply clientRequest(String command) {
-
-        return this.consensusModule.clientRequest(command);
-
-    }
-
-    /* --------------------------------------------------- */
-
-    public ResponseEntity<?> clientRequestHandling(String command) {
-
-        RequestReply reply = this.clientRequest(command);
-
-        if (reply.getRedirect()) {
-
-            HttpHeaders httpHeaders = new HttpHeaders();
-            httpHeaders.set("raft-leader", reply.getRedirectTo());
-
-            return new ResponseEntity<>(httpHeaders, HttpStatus.TEMPORARY_REDIRECT);
-
-        } else {
-
-            // System.out.println("\n\n" + reply.toString() + "\n" + reply.getResponse().toString() + "\n\n");
-
-            return reply.getSuccess()
-                    ? (ResponseEntity<?>) reply.getResponse()
-                    : new ResponseEntity<>(HttpStatus.NO_CONTENT);
-
-        }
 
     }
 

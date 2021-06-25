@@ -1,7 +1,9 @@
 package com.springRaft.servlet.communication.inbound;
 
+import com.springRaft.servlet.communication.message.RequestReply;
 import com.springRaft.servlet.communication.outbound.OutboundContext;
 import com.springRaft.servlet.config.RaftProperties;
+import com.springRaft.servlet.consensusModule.ConsensusModule;
 import lombok.AllArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpHeaders;
@@ -12,16 +14,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.Objects;
 
 @RestController
 @RequestMapping("raft")
 @ConditionalOnProperty(name = "raft.state-machine-strategy", havingValue = "EMBEDDED")
 @AllArgsConstructor
-public class EmbeddedController {
+public class EmbeddedController implements ClientInboundCommunication {
 
-    /* Main controller that communicates with consensus module */
-    private final RaftController raftController;
+    /* Module that has the consensus functions to invoke */
+    private final ConsensusModule consensusModule;
 
     /* Raft properties that need to be accessed */
     private final RaftProperties raftProperties;
@@ -32,7 +33,12 @@ public class EmbeddedController {
     /* --------------------------------------------------- */
 
     /**
-     * TODO
+     * Method that handles all the calls on whatever endpoint not defined in any other controller.
+     *
+     * @param body String that represents the body of the request.
+     * @param request HttpServletRequest object that contains all the information about the request.
+     *
+     * @return ResponseEntity<?> A response entity which includes the reply to the request made.
      * */
     @RequestMapping(value = "/**/{[^\\.]*}")
     public ResponseEntity<?> clientRequestEndpoint(@RequestBody(required = false) String body, HttpServletRequest request) {
@@ -41,19 +47,19 @@ public class EmbeddedController {
 
         try {
 
-            ResponseEntity<?> response = this.raftController.clientRequestHandling(command);
+            RequestReply reply = this.clientRequest(command);
 
-            if ( response.getStatusCode() == HttpStatus.TEMPORARY_REDIRECT) {
-
-                String location = Objects.requireNonNull(response.getHeaders().get("raft-leader")).get(0);
+            if (reply.getRedirect()) {
 
                 command = command.replaceFirst("/raft", "");
 
-                response = (ResponseEntity<?>) this.outbound.request(command, location);
+                return (ResponseEntity<?>) this.outbound.request(command, reply.getRedirectTo());
 
             }
 
-            return response;
+            return reply.getSuccess()
+                    ? (ResponseEntity<?>) reply.getResponse()
+                    : new ResponseEntity<>(HttpStatus.NO_CONTENT);
 
         } catch (Exception e) {
 
@@ -63,6 +69,13 @@ public class EmbeddedController {
 
         }
 
+    }
+
+    /* --------------------------------------------------- */
+
+    @Override
+    public RequestReply clientRequest(String command) {
+        return this.consensusModule.clientRequest(command);
     }
 
 }
