@@ -8,6 +8,7 @@ import com.springRaft.servlet.consensusModule.ConsensusModule;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("raft")
+@ConditionalOnProperty(name = "raft.cluster-communication-strategy", havingValue = "REST")
 @AllArgsConstructor
 public class RaftController implements RaftInboundCommunication {
 

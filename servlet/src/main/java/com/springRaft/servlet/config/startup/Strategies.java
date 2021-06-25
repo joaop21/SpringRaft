@@ -31,17 +31,29 @@ public class Strategies implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
 
-        // COMMUNICATION
+        // CLUSTER COMMUNICATION
         OutboundContext context = this.applicationContext.getBean(OutboundContext.class);
         OutboundStrategy outboundStrategy;
 
-        switch (this.raftProperties.getCommunicationStrategy().toUpperCase()) {
+        switch (this.raftProperties.getClusterCommunicationStrategy().toUpperCase()) {
 
             case "REST":
 
             default:
                 outboundStrategy = applicationContext.getBean(REST.class);
-                context.setCommunicationStrategy(outboundStrategy);
+                context.setClusterCommunicationStrategy(outboundStrategy);
+                break;
+
+        }
+
+        // APPLICATION COMMUNICATION
+        switch (this.raftProperties.getApplicationCommunicationStrategy().toUpperCase()) {
+
+            case "REST":
+
+            default:
+                outboundStrategy = applicationContext.getBean(REST.class);
+                context.setApplicationCommunicationStrategy(outboundStrategy);
                 break;
 
         }

@@ -17,30 +17,37 @@ import java.util.concurrent.TimeoutException;
 @NoArgsConstructor
 public class OutboundContext implements OutboundStrategy {
 
-    /* Outbound communication Strategy to use */
-    private OutboundStrategy communicationStrategy = null;
+    /* Outbound communication Strategy with cluster members */
+    private OutboundStrategy clusterCommunicationStrategy = null;
+
+    /* Outbound communication Strategy with Application Server */
+    private OutboundStrategy applicationCommunicationStrategy = null;
 
     /* --------------------------------------------------- */
 
-    public void setCommunicationStrategy(OutboundStrategy communication) {
-        this.communicationStrategy = communication;
+    public void setClusterCommunicationStrategy(OutboundStrategy communication) {
+        this.clusterCommunicationStrategy = communication;
+    }
+
+    public void setApplicationCommunicationStrategy(OutboundStrategy communication) {
+        this.applicationCommunicationStrategy = communication;
     }
 
     /* --------------------------------------------------- */
 
     @Override
     public AppendEntriesReply appendEntries(String to, AppendEntries message) throws InterruptedException, ExecutionException, TimeoutException {
-        return this.communicationStrategy.appendEntries(to, message);
+        return this.clusterCommunicationStrategy.appendEntries(to, message);
     }
 
     @Override
     public RequestVoteReply requestVote(String to, RequestVote message) throws InterruptedException, ExecutionException, TimeoutException {
-        return this.communicationStrategy.requestVote(to, message);
+        return this.clusterCommunicationStrategy.requestVote(to, message);
     }
 
     @Override
     public Object request(String command, String location) throws InterruptedException, ExecutionException, URISyntaxException {
-        return this.communicationStrategy.request(command, location);
+        return this.applicationCommunicationStrategy.request(command, location);
     }
 
 }
