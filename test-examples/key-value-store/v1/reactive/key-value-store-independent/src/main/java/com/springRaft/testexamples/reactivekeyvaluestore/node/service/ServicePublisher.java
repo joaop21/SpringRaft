@@ -15,12 +15,19 @@ import java.util.List;
 @Service
 @Scope("singleton")
 @ConditionalOnProperty(name = "node.service.strategy", havingValue = "Publisher")
-@AllArgsConstructor
 public class ServicePublisher implements NodeService {
 
-    private final Sinks.Many<Mono<Node>> sink = Sinks.many().multicast().onBackpressureBuffer();
+    private final Sinks.Many<Mono<Node>> sink;
 
     private final NodeRepository repository;
+
+    /* --------------------------------------------------- */
+
+    public ServicePublisher(NodeRepository repository) {
+        this.sink = Sinks.many().multicast().onBackpressureBuffer();
+        this.repository = repository;
+        this.servicePublisher().subscribe();
+    }
 
     /* --------------------------------------------------- */
 
