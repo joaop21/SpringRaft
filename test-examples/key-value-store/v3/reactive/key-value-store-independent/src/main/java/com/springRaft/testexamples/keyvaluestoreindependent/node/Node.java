@@ -5,9 +5,9 @@ import lombok.*;
 import javax.persistence.*;
 
 @Entity
-/*@Table(
+@Table(
         indexes = { @Index(name = "key_index", columnList = "key", unique = true) }
-)*/
+)
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
