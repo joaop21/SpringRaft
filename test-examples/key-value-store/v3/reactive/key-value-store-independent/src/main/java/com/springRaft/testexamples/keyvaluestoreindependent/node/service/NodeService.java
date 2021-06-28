@@ -4,13 +4,14 @@ import com.springRaft.testexamples.keyvaluestoreindependent.node.Node;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface NodeService {
 
-    Mono<Node> get(String key);
+    Mono<Optional<Node>> get(String key);
 
     Mono<List<Node>> upsert(String key, String text);
 
-    Mono<Node> delete(String key);
+    Mono<Optional<Node>> delete(String key);
 
 }

@@ -31,7 +31,7 @@ public class NodeController {
 
                     Map<String,Object> response = new HashMap<>();
 
-                    if (node == null) {
+                    if (node.isEmpty()) {
 
                         response.put("message", "Key not found");
                         response.put("key", serverRequest.pathVariable("key"));
@@ -44,7 +44,7 @@ public class NodeController {
                     } else {
 
                         response.put("action", "get");
-                        response.put("node", node);
+                        response.put("node", node.get());
                         serverResponse.set(
                                 ServerResponse.ok()
                                         .contentType(MediaType.APPLICATION_JSON)
@@ -104,7 +104,7 @@ public class NodeController {
 
                     Map<String,Object> response = new HashMap<>();
 
-                    if (node == null) {
+                    if (node.isEmpty()) {
 
                         response.put("message", "Key not found");
                         response.put("key", serverRequest.pathVariable("key"));
@@ -117,7 +117,7 @@ public class NodeController {
                     } else {
 
                         response.put("action", "delete");
-                        response.put("node", new Node(node.getCreatedIndex(), node.getKey(), null));
+                        response.put("node", new Node(node.get().getCreatedIndex(), node.get().getKey(), null));
                         response.put("prevNode", node);
                         responseEntity.set(
                                 ServerResponse.ok()
