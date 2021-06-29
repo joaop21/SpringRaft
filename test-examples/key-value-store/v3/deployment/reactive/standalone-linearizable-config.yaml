@@ -7,6 +7,6 @@ services:
     image: key-value-store-v3:reactive-independent
     container_name: reactive-kvs-linearizable
     environment:
-      - NODE_SERVICE_STRATEGY=Linearizable
+      - NODE_SERVICE_STRATEGY=Publisher
     ports:
       - "8001:8080"
