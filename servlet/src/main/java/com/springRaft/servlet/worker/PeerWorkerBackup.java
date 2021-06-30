@@ -20,12 +20,13 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BooleanSupplier;
 
+
 @Component
 @Scope("prototype")
-public class PeerWorker implements Runnable, MessageSubscriber {
+public class PeerWorkerBackup implements Runnable, MessageSubscriber {
 
     /* Logger */
-    private static final Logger log = LoggerFactory.getLogger(PeerWorker.class);
+    private static final Logger log = LoggerFactory.getLogger(PeerWorkerBackup.class);
 
     /* Outbound context for communication to other servers */
     private final OutboundContext outbound;
@@ -54,7 +55,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
     /* --------------------------------------------------- */
 
-    public PeerWorker(
+    public PeerWorkerBackup(
             OutboundContext outbound,
             ConsensusModule consensusModule,
             RaftProperties raftProperties,
@@ -72,7 +73,6 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
     /* --------------------------------------------------- */
 
-    @Override
     public void newMessage() {
 
         lock.lock();
@@ -86,7 +86,6 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
     }
 
-    @Override
     public void clearMessages() {
 
         lock.lock();
@@ -318,4 +317,45 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
     }
 
+
+
+
+
+    /* --------------------------------------------------- */
+
+
+
+
+
+
+
+    @Override
+    public void sendRequestVote(RequestVote requestVote) {
+
+    }
+
+    @Override
+    public void sendAuthorityHeartbeat(AppendEntries heartbeat) {
+
+    }
+
+    @Override
+    public void sendHeartbeat(AppendEntries heartbeat, String to) {
+
+    }
+
+    @Override
+    public void sendAppendEntries(AppendEntries appendEntries, String to) {
+
+    }
+
+    @Override
+    public void newClientRequest() {
+
+    }
+
+    @Override
+    public void newFollowerState() {
+
+    }
 }

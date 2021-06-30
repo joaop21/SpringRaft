@@ -2,9 +2,9 @@ package com.springRaft.servlet.config.startup;
 
 import com.springRaft.servlet.communication.outbound.OutboundContext;
 import com.springRaft.servlet.communication.outbound.OutboundManager;
+import com.springRaft.servlet.communication.outbound.PeerWorker;
 import com.springRaft.servlet.config.RaftProperties;
 import com.springRaft.servlet.consensusModule.ConsensusModule;
-import com.springRaft.servlet.worker.PeerWorker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.ApplicationArguments;
@@ -61,9 +61,9 @@ public class PeerWorkers implements ApplicationRunner {
         ConsensusModule module = this.applicationContext.getBean(ConsensusModule.class);
 
         for(String addr : this.raftProperties.getCluster()) {
-            PeerWorker pw = this.applicationContext.getBean(PeerWorker.class, context, module, raftProperties, addr);
-            this.outboundManager.subscribe(pw);
-            this.taskExecutor.execute(pw);
+            PeerWorker worker = this.applicationContext.getBean(PeerWorker.class, context, module, raftProperties, addr);
+            this.outboundManager.subscribe(addr, worker);
+            this.taskExecutor.execute(worker);
         }
 
     }
