@@ -5,6 +5,8 @@ import com.springRaft.reactive.persistence.log.LogService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -31,6 +33,9 @@ public class StateMachineWorker implements CommitmentSubscriber {
     /* Sink for publish new commits */
     private final Sinks.Many<Boolean> commitSink;
 
+
+    private final Object templateResponse;
+
     /* --------------------------------------------------- */
 
     /**
@@ -41,6 +46,8 @@ public class StateMachineWorker implements CommitmentSubscriber {
         this.logService = logService;
         this.waitingRequests = waitingRequests;
         this.commitSink = Sinks.many().unicast().onBackpressureBuffer();
+
+        this.templateResponse = new ResponseEntity<>(HttpStatus.OK);
 
         this.commitmentsHandler().subscribe();
     }
@@ -86,13 +93,21 @@ public class StateMachineWorker implements CommitmentSubscriber {
                 .collectSortedList(Comparator.comparing(Entry::getIndex))
                 .flatMapIterable(entries -> entries)
                 // apply command depending on the strategy
-                .flatMap(entry ->
+                /*.flatMap(entry ->
                         this.strategy.apply(entry.getCommand())
                                 // increment lastApplied in the Log State
                                 .flatMap(response -> this.logService.incrementLastApplied().map(logState -> response))
                                 // notify client of the response
                                 .flatMap(response -> this.waitingRequests.putResponse(entry.getIndex(), response))
-                ,1)
+                ,1)*/
+
+                // added for remove state machine application
+                .flatMap(entry ->
+                    // increment lastApplied in the Log State
+                    this.logService.incrementLastApplied()
+                            // notify client of the response
+                            .flatMap(logState -> this.waitingRequests.putResponse(entry.getIndex(), this.templateResponse))
+                , 1)
                 .then();
 
     }

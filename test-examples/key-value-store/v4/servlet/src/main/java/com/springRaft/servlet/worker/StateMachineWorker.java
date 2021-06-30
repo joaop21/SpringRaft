@@ -43,6 +43,7 @@ public class StateMachineWorker implements Runnable, CommitmentSubscriber {
     /* Dictates whether there are new commitments */
     private boolean newCommits;
 
+
     private final Object templateResponse;
 
     /* --------------------------------------------------- */
