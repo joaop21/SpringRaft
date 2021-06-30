@@ -10,6 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Scope;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.locks.Condition;
@@ -41,6 +43,8 @@ public class StateMachineWorker implements Runnable, CommitmentSubscriber {
     /* Dictates whether there are new commitments */
     private boolean newCommits;
 
+    private final Object templateResponse;
+
     /* --------------------------------------------------- */
 
     @Autowired
@@ -51,6 +55,8 @@ public class StateMachineWorker implements Runnable, CommitmentSubscriber {
         this.lock = new ReentrantLock();
         this.newCommitCondition = this.lock.newCondition();
         this.newCommits = false;
+
+        this.templateResponse = new ResponseEntity<>(HttpStatus.OK);
     }
 
     /* --------------------------------------------------- */
@@ -127,13 +133,13 @@ public class StateMachineWorker implements Runnable, CommitmentSubscriber {
             String command = entry.getCommand();
 
             // apply command depending on the strategy
-            Object response = this.strategy.apply(command);
+            //Object response = this.strategy.apply(command);
 
             // increment lastApplied in the Log State
             this.logService.incrementLastApplied();
 
             // notify client of the response
-            this.waitingRequests.putResponse(index, response);
+            this.waitingRequests.putResponse(index, this.templateResponse);
 
         }
 
