@@ -9,7 +9,7 @@ import org.springframework.r2dbc.connection.init.ConnectionFactoryInitializer;
 import org.springframework.r2dbc.connection.init.ResourceDatabasePopulator;
 
 @Configuration
-@Profile("h2")
+@Profile("R2DBC-h2")
 public class H2Config {
 
     /**

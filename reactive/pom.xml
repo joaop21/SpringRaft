@@ -12,7 +12,7 @@
 
 	<groupId>com.springRaft</groupId>
 	<artifactId>reactive</artifactId>
-	<version>0.0.1</version>
+	<version>0.0.2</version>
 	<name>reactive</name>
 	<description>Raft Consensus module for Spring WebFlux (Reactive)</description>
 
@@ -22,6 +22,7 @@
 
 	<dependencies>
 
+		<!-- Spring boot webflux and tests -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webflux</artifactId>
@@ -37,10 +38,19 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- Use R2DBC -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-r2dbc</artifactId>
 		</dependency>
+
+		<!-- Use JPA -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+
+		<!-- Use H2 database -->
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
@@ -51,6 +61,8 @@
 			<artifactId>r2dbc-h2</artifactId>
 			<scope>runtime</scope>
 		</dependency>
+
+		<!-- Use PostgreSQL -->
 		<dependency>
 			<groupId>io.r2dbc</groupId>
 			<artifactId>r2dbc-postgresql</artifactId>
@@ -62,12 +74,14 @@
 			<scope>runtime</scope>
 		</dependency>
 
+		<!-- To use a configuration processor for application properties -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-configuration-processor</artifactId>
 			<optional>true</optional>
 		</dependency>
 
+		<!-- To reduce some boilerplate configuration -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
