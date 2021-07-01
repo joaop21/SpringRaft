@@ -10,7 +10,7 @@ import org.springframework.r2dbc.connection.init.ResourceDatabasePopulator;
 
 @Configuration
 @Profile("R2DBC-h2")
-public class H2Config {
+public class ReactiveH2Config {
 
     /**
      * Bean for a Connection Factory Initializer in order to open connection to the database and
@@ -25,7 +25,7 @@ public class H2Config {
 
         ConnectionFactoryInitializer initializer = new ConnectionFactoryInitializer();
         initializer.setConnectionFactory(connectionFactory);
-        initializer.setDatabasePopulator(new ResourceDatabasePopulator(new ClassPathResource("schema-h2.sql")));
+        initializer.setDatabasePopulator(new ResourceDatabasePopulator(new ClassPathResource("schema-R2DBC-h2.sql")));
 
         return initializer;
     }
