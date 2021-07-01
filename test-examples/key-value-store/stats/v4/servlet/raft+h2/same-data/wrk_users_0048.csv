@@ -1,0 +1,8 @@
+Running 1m test @ http://34.140.4.86:8001
+  48 threads and 48 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency     6.44ms    2.65ms  34.47ms   83.37%
+    Req/Sec   155.13     30.84   222.00     62.01%
+  54730 requests in 1.00m, 3.80MB read
+Requests/sec:    910.83
+Transfer/sec:     64.84KB
