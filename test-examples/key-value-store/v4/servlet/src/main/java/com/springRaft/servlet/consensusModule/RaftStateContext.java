@@ -1,0 +1,240 @@
+package com.springRaft.servlet.consensusModule;
+
+import com.springRaft.servlet.communication.message.AppendEntries;
+import com.springRaft.servlet.communication.message.AppendEntriesReply;
+import com.springRaft.servlet.communication.message.RequestVote;
+import com.springRaft.servlet.communication.message.RequestVoteReply;
+import com.springRaft.servlet.communication.outbound.OutboundManager;
+import com.springRaft.servlet.config.RaftProperties;
+import com.springRaft.servlet.persistence.log.Entry;
+import com.springRaft.servlet.persistence.log.LogService;
+import com.springRaft.servlet.persistence.log.LogState;
+import com.springRaft.servlet.persistence.state.StateService;
+import com.springRaft.servlet.stateMachine.CommitmentPublisher;
+import com.springRaft.servlet.stateMachine.WaitingRequests;
+import lombok.AllArgsConstructor;
+import org.springframework.context.ApplicationContext;
+
+import java.util.Comparator;
+import java.util.List;
+
+@AllArgsConstructor
+public abstract class RaftStateContext {
+
+    /* Application Context for getting beans */
+    protected final ApplicationContext applicationContext;
+
+    /* Module that has the consensus functions to invoke */
+    protected final ConsensusModule consensusModule;
+
+    /* Service to access persisted state repository */
+    protected final StateService stateService;
+
+    /* Service to access persisted log repository */
+    protected final LogService logService;
+
+    /* Raft properties that need to be accessed */
+    protected final RaftProperties raftProperties;
+
+    /* Timer handles for timeouts */
+    protected final TransitionManager transitionManager;
+
+    /* Publisher of messages */
+    protected final OutboundManager outboundManager;
+
+    /* Publisher of new commitments to State Machine */
+    protected final CommitmentPublisher commitmentPublisher;
+
+    /* Map that contains the clients waiting requests */
+    protected final WaitingRequests waitingRequests;
+
+    /* --------------------------------------------------- */
+
+    /**
+     * TODO
+     * */
+    protected void checkLog(RequestVote requestVote, RequestVoteReply reply) {
+
+        LogState logState = this.logService.getState();
+
+        if (requestVote.getLastLogTerm() > logState.getCommittedTerm()) {
+
+            // vote for this request if not voted for anyone yet
+            this.setVote(requestVote, reply);
+
+        } else if (requestVote.getLastLogTerm() < logState.getCommittedTerm()) {
+
+            // revoke request
+            reply.setVoteGranted(false);
+
+        } else if (requestVote.getLastLogTerm() == (long) logState.getCommittedTerm()) {
+
+            if (requestVote.getLastLogIndex() >= logState.getCommittedIndex()) {
+
+                // vote for this request if not voted for anyone yet
+                this.setVote(requestVote, reply);
+
+            } else if (requestVote.getLastLogIndex() < logState.getCommittedIndex()) {
+
+                // revoke request
+                reply.setVoteGranted(false);
+
+            }
+
+        }
+
+    }
+
+    /**
+     * TODO
+     * */
+    private void setVote(RequestVote requestVote, RequestVoteReply reply) {
+
+        String votedFor = this.stateService.getVotedFor();
+
+        if (votedFor == null || votedFor.equals(requestVote.getCandidateId())) {
+
+            this.stateService.setVotedFor(requestVote.getCandidateId());
+            reply.setVoteGranted(true);
+
+        } else {
+
+            reply.setVoteGranted(false);
+
+        }
+
+    }
+
+    /* --------------------------------------------------- */
+
+    /**
+     * TODO
+     * */
+    protected AppendEntriesReply appendEntries(AppendEntries appendEntries) {
+
+        AppendEntriesReply reply = this.applicationContext.getBean(AppendEntriesReply.class);
+
+        long currentTerm = this.stateService.getCurrentTerm();
+
+        if (appendEntries.getTerm() < currentTerm) {
+
+            reply.setTerm(currentTerm);
+            reply.setSuccess(false);
+
+        } else {
+
+            if (appendEntries.getTerm() > currentTerm) {
+                // update term
+                this.stateService.setState(appendEntries.getTerm(), null);
+            }
+
+            this.setAppendEntriesReply(appendEntries, reply);
+            this.postAppendEntries(appendEntries);
+
+        }
+
+        return reply;
+
+    }
+
+    /**
+     * A method that encapsulates replicated code, and has the function of setting
+     * the reply for the received AppendEntries.
+     *
+     * @param appendEntries The received AppendEntries communication.
+     * @param reply AppendEntriesReply object, to send as response to the leader.
+     * */
+    private void setAppendEntriesReply(AppendEntries appendEntries, AppendEntriesReply reply) {
+
+        // reply with the current term
+        reply.setTerm(appendEntries.getTerm());
+
+        Entry entry = this.logService.getEntryByIndex(appendEntries.getPrevLogIndex());
+        entry = entry == null ? new Entry((long) 0, (long) 0, null) : entry;
+
+        if(entry.getIndex() == (long) appendEntries.getPrevLogIndex()) {
+
+            if (entry.getTerm() == (long) appendEntries.getPrevLogTerm()) {
+
+                reply.setSuccess(true);
+
+                this.applyAppendEntries(appendEntries);
+
+            } else {
+
+                reply.setSuccess(false);
+
+            }
+
+        } else {
+
+            reply.setSuccess(false);
+
+        }
+
+    }
+
+    /**
+     * Method for insert new entries in log and update the committed values in log state.
+     *
+     * @param appendEntries The received AppendEntries communication.
+     * */
+    private void applyAppendEntries(AppendEntries appendEntries) {
+
+        if (appendEntries.getEntries().size() != 0) {
+
+            // delete all the following conflict entries
+            this.logService.deleteIndexesGreaterThan(appendEntries.getPrevLogIndex());
+
+            // insert entries
+            List<Entry> entries = this.logService.saveAllEntries(appendEntries.getEntries());
+            entries.sort(Comparator.comparing(Entry::getIndex).reversed());
+
+            // update committed entries in LogState
+            this.updateCommittedEntries(appendEntries, entries.get(0));
+
+        } else {
+
+            this.updateCommittedEntries(appendEntries, this.logService.getLastEntry());
+
+        }
+
+    }
+
+    /**
+     * Method that updates the log state in case of leaderCommit > committedIndex.
+     * It also notifies the state machine worker because of a new commit if that's the case.
+     *
+     * @param appendEntries The received AppendEntries communication.
+     * @param lastEntry The last Entry to compare values.
+     * */
+    private void updateCommittedEntries (AppendEntries appendEntries, Entry lastEntry) {
+
+        LogState logState = this.logService.getState();
+        if (appendEntries.getLeaderCommit() > logState.getCommittedIndex()) {
+
+            Entry entry = lastEntry.getIndex() <= appendEntries.getLeaderCommit()
+                    ? lastEntry
+                    : this.logService.getEntryByIndex(appendEntries.getLeaderCommit());
+
+            logState.setCommittedIndex(entry.getIndex());
+            logState.setCommittedTerm(entry.getTerm());
+            this.logService.saveState(logState);
+
+            // notify state machine of a new commit
+            this.commitmentPublisher.newCommit();
+
+        }
+
+    }
+
+    /**
+     * Abstract method for the Raft state to implement it for post execution operations.
+     *
+     * @param appendEntries The received AppendEntries communication.
+     * */
+    protected abstract void postAppendEntries(AppendEntries appendEntries);
+
+    /* --------------------------------------------------- */
+
+}
