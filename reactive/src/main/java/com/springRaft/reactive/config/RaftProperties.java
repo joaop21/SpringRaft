@@ -141,7 +141,7 @@ public class RaftProperties {
                 .append("\tEntries per Communication: ").append(entriesPerCommunication).append("\n")
                 .append("\nState Machine strategy is: ").append(stateMachineStrategy).append("\n")
                 .append("\nApplication Server is: ").append(applicationServer).append("\n")
-                .append("\nPeristence:\n")
+                .append("\nPersistence:\n")
                 .append("\tDatabase Engine: ").append(this.database).append("\n")
                 .append("\tDatabase Connectivity API: ").append(this.databaseConnectivity).append("\n")
                 .append("\n*****************************************\n");
