@@ -1,11 +1,13 @@
 package com.springRaft.reactive.persistence.log;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public interface EntryRepository extends ReactiveCrudRepository<Entry,Long> {
+@ConditionalOnProperty(name = "raft.database-connectivity", havingValue = "R2DBC")
+public interface R2DBCEntryRepository extends ReactiveCrudRepository<Entry,Long> {
 
     /**
      * Select method for find the last entry's index in the log.
