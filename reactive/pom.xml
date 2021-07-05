@@ -18,6 +18,7 @@
     <modules>
         <module>persistence</module>
         <module>persistence-r2dbc</module>
+        <module>persistence-jpa</module>
     </modules>
 
 </project>
