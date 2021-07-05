@@ -9,7 +9,7 @@ public interface StateService {
      *
      * @return Mono<State> A mono with state.
      * */
-    Mono<State> getState();
+    Mono<? extends State> getState();
 
     /**
      * Method for inserting or updating the current persisted state.
@@ -17,7 +17,7 @@ public interface StateService {
      * @param state New state to insert/update.
      * @return Mono<State> New persisted state.
      * */
-    Mono<State> saveState(State state);
+    Mono<? extends State> saveState(Object state);
 
 
     /**
@@ -25,7 +25,7 @@ public interface StateService {
      *
      * @return Mono<State> New state after transit to candidate state.
      * */
-    Mono<State> newCandidateState();
+    Mono<? extends State> newCandidateState();
 
     /**
      * Method for getting the current state's term from persistence mechanism.
@@ -48,7 +48,7 @@ public interface StateService {
      *
      * @return Mono<State> A mono with the new persisted state.
      * */
-    Mono<State> setVotedFor(String votedFor);
+    Mono<? extends State> setVotedFor(String votedFor);
 
     /**
      * Method that sets and saves the new state.
@@ -58,7 +58,7 @@ public interface StateService {
      *
      * @return Mono<State> A mono with the new persisted state.
      * */
-    Mono<State> setState(Long term, String votedFor);
+    Mono<? extends State> setState(Long term, String votedFor);
 
 }
 

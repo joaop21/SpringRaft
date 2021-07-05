@@ -8,6 +8,8 @@
     <artifactId>reactive</artifactId>
     <version>1.0</version>
 
+    <packaging>pom</packaging>
+
     <properties>
         <maven.compiler.source>16</maven.compiler.source>
         <maven.compiler.target>16</maven.compiler.target>
@@ -15,6 +17,7 @@
 
     <modules>
         <module>persistence</module>
+        <module>persistence-r2dbc</module>
     </modules>
 
 </project>

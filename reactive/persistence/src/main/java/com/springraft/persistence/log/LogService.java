@@ -12,14 +12,14 @@ public interface LogService {
      *
      * @return Mono<LogState> A mono with log state.
      * */
-    Mono<LogState> getState();
+    Mono<? extends LogState> getState();
 
     /**
      * Method that sets the last applied field of the LogState and persist it.
      *
      * @return The updated LogState.
      * */
-    Mono<LogState> incrementLastApplied();
+    Mono<? extends LogState> incrementLastApplied();
 
     /**
      * Method for inserting or updating the current persisted log state.
@@ -27,7 +27,7 @@ public interface LogService {
      * @param logState New log state to insert/update.
      * @return Mono<LogState> New persisted log state.
      * */
-    Mono<LogState> saveState(LogState logState);
+    Mono<? extends LogState> saveState(Object logState);
 
 
     /**
@@ -37,21 +37,21 @@ public interface LogService {
      *
      * @return Mono<Entry> Entry found in that specific index.
      * */
-    Mono<Entry> getEntryByIndex(Long index);
+    Mono<? extends Entry> getEntryByIndex(Long index);
 
     /**
      * Method that gets the index of the last stored entry in the log.
      *
      * @return Mono<Long> Long which is the index of the last entry in the log.
      * */
-    Mono<Long> getLastEntryIndex();
+    Mono<? extends Long> getLastEntryIndex();
 
     /**
      * Method that gets the last entry in the log.
      *
      * @return Mono<Entry> Last entry in the log.
      * */
-    Mono<Entry> getLastEntry();
+    Mono<? extends Entry> getLastEntry();
 
     /**
      * Method that gets the entries between two indexes.
@@ -61,7 +61,7 @@ public interface LogService {
      *
      * @return Flux of the Entries found.
      * */
-    Flux<Entry> getEntriesBetweenIndexes(Long minIndex, Long maxIndex);
+    Flux<? extends Entry> getEntriesBetweenIndexes(Long minIndex, Long maxIndex);
 
     /**
      * Method that inserts a contiguously new entry in the existing log.
@@ -70,7 +70,7 @@ public interface LogService {
      *
      * @return Mono<Entry> The new persisted entry.
      * */
-    Mono<Entry> insertEntry(Entry entry);
+    Mono<? extends Entry> insertEntry(Object entry);
 
     /**
      * Method that deletes all the log entries with an index greater than a specific value.
@@ -88,6 +88,6 @@ public interface LogService {
      *
      * @return Flux<Entry> Entries saved.
      * */
-    Flux<Entry> saveAllEntries(List<Entry> entries);
+    Flux<? extends Entry> saveAllEntries(List<? extends Entry> entries);
 
 }
