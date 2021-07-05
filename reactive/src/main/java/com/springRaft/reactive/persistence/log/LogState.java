@@ -4,10 +4,11 @@ import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.domain.Persistable;
-import org.springframework.data.relational.core.mapping.Table;
+
+import javax.persistence.Entity;
 
 @Data
-@Table
+@Entity
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
@@ -17,6 +18,7 @@ public class LogState implements Persistable<Long> {
 
     /* Id of the object */
     @Id
+    @javax.persistence.Id
     private Long id;
 
     /* Index of the highest log entry known to be committed */

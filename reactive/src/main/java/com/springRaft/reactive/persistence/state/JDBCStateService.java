@@ -18,7 +18,7 @@ import reactor.core.scheduler.Scheduler;
 public class JDBCStateService implements StateService {
 
     /* Logger */
-    private static final Logger log = LoggerFactory.getLogger(JDBCStateRepository.class);
+    private static final Logger log = LoggerFactory.getLogger(JDBCStateService.class);
 
     /* Repository for State operations */
     private final JDBCStateRepository repository;

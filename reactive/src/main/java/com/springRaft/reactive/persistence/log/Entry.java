@@ -4,10 +4,11 @@ import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.Transient;
 import org.springframework.data.domain.Persistable;
-import org.springframework.data.relational.core.mapping.Table;
+
+import javax.persistence.Entity;
 
 @Data
-@Table
+@Entity
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
@@ -17,6 +18,7 @@ public class Entry implements Persistable<Long> {
 
     /* Index of an Entry in the log */
     @Id
+    @javax.persistence.Id
     private Long index;
 
     /* Term in which this entry was inserted */

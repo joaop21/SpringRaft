@@ -20,6 +20,54 @@
 		<java.version>16</java.version>
 	</properties>
 
+	<profiles>
+		<profile>
+			<id>JDBC</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+				<property>
+					<name>app.database-connectivity</name>
+					<value>JDBC</value>
+				</property>
+			</activation>
+			<dependencies>
+				<!-- Use JPA -->
+				<dependency>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-starter-data-jpa</artifactId>
+				</dependency>
+			</dependencies>
+		</profile>
+		<profile>
+			<id>R2DBC</id>
+			<activation>
+				<property>
+					<name>app.database-connectivity</name>
+					<value>R2DBC</value>
+				</property>
+			</activation>
+			<dependencies>
+				<!-- Use Data R2DBC -->
+				<dependency>
+					<groupId>org.springframework.boot</groupId>
+					<artifactId>spring-boot-starter-data-r2dbc</artifactId>
+				</dependency>
+				<!-- Use H2 database -->
+				<dependency>
+					<groupId>io.r2dbc</groupId>
+					<artifactId>r2dbc-h2</artifactId>
+					<scope>runtime</scope>
+				</dependency>
+				<!-- Use PostgreSQL -->
+				<dependency>
+					<groupId>io.r2dbc</groupId>
+					<artifactId>r2dbc-postgresql</artifactId>
+					<scope>runtime</scope>
+				</dependency>
+			</dependencies>
+		</profile>
+	</profiles>
+
 	<dependencies>
 
 		<!-- Spring boot webflux and tests -->
@@ -38,36 +86,14 @@
 			<scope>test</scope>
 		</dependency>
 
-		<!-- Use R2DBC -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-r2dbc</artifactId>
-		</dependency>
-
-		<!-- Use JPA -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-jpa</artifactId>
-		</dependency>
-
 		<!-- Use H2 database -->
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
 			<scope>runtime</scope>
 		</dependency>
-		<dependency>
-			<groupId>io.r2dbc</groupId>
-			<artifactId>r2dbc-h2</artifactId>
-			<scope>runtime</scope>
-		</dependency>
 
 		<!-- Use PostgreSQL -->
-		<dependency>
-			<groupId>io.r2dbc</groupId>
-			<artifactId>r2dbc-postgresql</artifactId>
-			<scope>runtime</scope>
-		</dependency>
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
