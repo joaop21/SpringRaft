@@ -12,7 +12,7 @@ import javax.persistence.Id;
 @Getter
 @Setter
 @ToString
-public class LogState extends com.springraft.persistence.log.LogState {
+public class LogState extends com.springraft.persistence.log.LogStateModel {
 
     @Override
     @Id

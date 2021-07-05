@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 @Getter
 @Setter
 @ToString
-public class Entry {
+public class EntryModel {
 
     /* Index of an Entry in the log */
     private Long index;
@@ -25,7 +25,7 @@ public class Entry {
     /**
      * Specific constructor for ge
      * */
-    public Entry(Long term, String command) {
+    public EntryModel(Long term, String command) {
         this.index = null;
         this.term = term;
         this.command = command;

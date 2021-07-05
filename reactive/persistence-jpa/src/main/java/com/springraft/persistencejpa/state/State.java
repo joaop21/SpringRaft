@@ -12,7 +12,7 @@ import javax.persistence.Id;
 @Getter
 @Setter
 @ToString
-public class State extends com.springraft.persistence.state.State {
+public class State extends com.springraft.persistence.state.StateModel {
 
     @Override
     @Id

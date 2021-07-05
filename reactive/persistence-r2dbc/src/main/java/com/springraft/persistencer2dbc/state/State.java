@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 @Setter
 @ToString
 @EqualsAndHashCode(callSuper = true)
-public class State extends com.springraft.persistence.state.State implements Persistable<Long> {
+public class State extends com.springraft.persistence.state.StateModel implements Persistable<Long> {
 
     /* Transient flag that states ith the object is new or already in database */
     @Transient

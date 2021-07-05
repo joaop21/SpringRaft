@@ -12,7 +12,7 @@ import javax.persistence.Id;
 @Getter
 @Setter
 @ToString
-public class Entry extends com.springraft.persistence.log.Entry {
+public class Entry extends com.springraft.persistence.log.EntryModel {
 
     /* --------------------------------------------------- */
 

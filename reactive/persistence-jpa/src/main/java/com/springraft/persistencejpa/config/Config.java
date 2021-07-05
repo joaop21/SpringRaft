@@ -16,9 +16,9 @@ public class Config {
 
     /* --------------------------------------------------- */
 
-    @Bean(name = "jdbcScheduler")
-    public Scheduler jdbcScheduler() {
-        return Schedulers.newBoundedElastic(connectionPoolSize, Integer.MAX_VALUE, "jdbcScheduler");
+    @Bean(name = "jpaScheduler")
+    public Scheduler jpaScheduler() {
+        return Schedulers.newBoundedElastic(connectionPoolSize, Integer.MAX_VALUE, "jpaScheduler");
     }
 
     @Bean

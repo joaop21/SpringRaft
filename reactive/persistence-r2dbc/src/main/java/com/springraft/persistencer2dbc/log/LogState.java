@@ -11,7 +11,7 @@ import org.springframework.data.domain.Persistable;
 @Setter
 @ToString
 @EqualsAndHashCode(callSuper = true)
-public class LogState extends com.springraft.persistence.log.LogState implements Persistable<Long> {
+public class LogState extends com.springraft.persistence.log.LogStateModel implements Persistable<Long> {
 
     /* Transient flag that states ith the object is new or already in database */
     @Transient

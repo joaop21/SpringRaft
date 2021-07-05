@@ -108,7 +108,7 @@ public class LogServiceImpl implements LogService {
     }
 
     @Override
-    public Flux<Entry> saveAllEntries(List<? extends com.springraft.persistence.log.Entry> entries) {
+    public Flux<Entry> saveAllEntries(List<? extends com.springraft.persistence.log.EntryModel> entries) {
         return this.entryRepository.saveAll((List<Entry>) entries);
     }
 

@@ -1,6 +1,6 @@
 package com.springraft.persistencejpa.state;
 
-import com.springraft.persistence.state.State;
+import com.springraft.persistence.state.StateModel;
 import com.springraft.persistence.state.StateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,24 +33,24 @@ public class StateServiceImpl implements StateService {
     public StateServiceImpl(
             StateRepository repository,
             //RaftProperties properties,
-            @Qualifier("jdbcScheduler") Scheduler jdbcScheduler)
+            @Qualifier("jpaScheduler") Scheduler jpaScheduler)
     {
         this.repository = repository;
         //this.raftProperties = properties;
-        this.scheduler = jdbcScheduler;
+        this.scheduler = jpaScheduler;
     }
 
     /* --------------------------------------------------- */
 
     @Override
-    public Mono<State> getState() {
+    public Mono<StateModel> getState() {
         return Mono.fromCallable(() -> this.repository.findById((long) 1))
                 .subscribeOn(this.scheduler)
                 .flatMap(optional -> optional.map(Mono::just).orElseGet(Mono::empty));
     }
 
     @Override
-    public Mono<? extends State> saveState(Object state) {
+    public Mono<? extends StateModel> saveState(Object state) {
         return Mono.fromCallable(() -> this.repository.save((com.springraft.persistencejpa.state.State)state))
                 .subscribeOn(this.scheduler)
                 .doOnError(error -> log.error("\nError on saveState method: \n" + error));
@@ -59,7 +59,7 @@ public class StateServiceImpl implements StateService {
     /* --------------------------------------------------- */
 
     @Override
-    public Mono<State> newCandidateState() {
+    public Mono<StateModel> newCandidateState() {
         return this.getState()
                 .flatMap(state -> {
                     state.setCurrentTerm(state.getCurrentTerm() + 1);
@@ -71,7 +71,7 @@ public class StateServiceImpl implements StateService {
     @Override
     public Mono<Long> getCurrentTerm() {
         return this.getState()
-                .map(State::getCurrentTerm);
+                .map(StateModel::getCurrentTerm);
     }
 
     @Override
@@ -85,7 +85,7 @@ public class StateServiceImpl implements StateService {
     }
 
     @Override
-    public Mono<State> setVotedFor(String votedFor) {
+    public Mono<StateModel> setVotedFor(String votedFor) {
         return this.getState()
                 .flatMap(state -> {
                     state.setVotedFor(votedFor);
@@ -94,7 +94,7 @@ public class StateServiceImpl implements StateService {
     }
 
     @Override
-    public Mono<State> setState(Long term, String votedFor) {
+    public Mono<StateModel> setState(Long term, String votedFor) {
         return this.getState()
                 .flatMap(state -> {
                     state.setCurrentTerm(term);

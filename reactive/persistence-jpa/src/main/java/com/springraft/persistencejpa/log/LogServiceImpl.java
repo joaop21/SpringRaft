@@ -41,11 +41,11 @@ public class LogServiceImpl implements LogService {
     public LogServiceImpl(
             EntryRepository entryRepository,
             LogStateRepository logStateRepository,
-            @Qualifier("jdbcScheduler") Scheduler jdbcScheduler
+            @Qualifier("jpaScheduler") Scheduler jpaScheduler
     ) {
         this.entryRepository = entryRepository;
         this.logStateRepository = logStateRepository;
-        this.scheduler = jdbcScheduler;
+        this.scheduler = jpaScheduler;
     }
 
     /* --------------------------------------------------- */
@@ -136,7 +136,7 @@ public class LogServiceImpl implements LogService {
     }
 
     @Override
-    public Flux<Entry> saveAllEntries(List<? extends com.springraft.persistence.log.Entry> entries) {
+    public Flux<Entry> saveAllEntries(List<? extends com.springraft.persistence.log.EntryModel> entries) {
         return Mono.fromCallable(() -> this.entryRepository.saveAll((List<Entry>)entries))
                 .subscribeOn(this.scheduler)
                 .flatMapMany(Flux::fromIterable);

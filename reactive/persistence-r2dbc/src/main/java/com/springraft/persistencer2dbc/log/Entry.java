@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 @Setter
 @ToString
 @EqualsAndHashCode(callSuper = true)
-public class Entry extends com.springraft.persistence.log.Entry implements Persistable<Long> {
+public class Entry extends com.springraft.persistence.log.EntryModel implements Persistable<Long> {
 
     /* Transient flag that states ith the object is new or already in database */
     @Transient
