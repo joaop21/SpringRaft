@@ -83,7 +83,7 @@ public class LogServiceImpl implements LogService {
     /* --------------------------------------------------- */
 
     @Override
-    public Mono<? extends Entry> getEntryByIndex(Long index) {
+    public Mono<Entry> getEntryByIndex(Long index) {
         return Mono.fromCallable(() -> this.entryRepository.findById(index))
                 .subscribeOn(this.scheduler)
                 .flatMap(optional -> optional.map(Mono::just).orElseGet(Mono::empty));

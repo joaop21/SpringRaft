@@ -66,8 +66,9 @@ public class LogServiceImpl implements LogService {
     /* --------------------------------------------------- */
 
     @Override
-    public Mono<? extends Entry> getEntryByIndex(Long index) {
-        return this.entryRepository.findById(index);
+    public Mono<Entry> getEntryByIndex(Long index) {
+        return this.entryRepository.findById(index)
+                .cast(Entry.class);
     }
 
     @Override

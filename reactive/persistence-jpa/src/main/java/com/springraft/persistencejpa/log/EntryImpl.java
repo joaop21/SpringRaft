@@ -35,6 +35,15 @@ public class EntryImpl implements Entry {
 
     /* --------------------------------------------------- */
 
+    public EntryImpl(long term, String command, boolean isNew) {
+        this.index = null;
+        this.term = term;
+        this.command = command;
+        this.isNew = isNew;
+    }
+
+    /* --------------------------------------------------- */
+
     @Override
     public Entry Entry(long index, long term, String command, boolean isNew) {
         return new EntryImpl(index, term, command, isNew);

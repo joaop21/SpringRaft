@@ -37,7 +37,7 @@ public interface LogService {
      *
      * @return Mono<Entry> Entry found in that specific index.
      * */
-    Mono<? extends Entry> getEntryByIndex(Long index);
+    Mono<Entry> getEntryByIndex(Long index);
 
     /**
      * Method that gets the index of the last stored entry in the log.
