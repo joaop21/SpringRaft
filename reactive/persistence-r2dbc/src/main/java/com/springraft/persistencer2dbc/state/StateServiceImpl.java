@@ -2,9 +2,9 @@ package com.springraft.persistencer2dbc.state;
 
 import com.springraft.persistence.state.State;
 import com.springraft.persistence.state.StateService;
-import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,7 +13,6 @@ import reactor.core.publisher.Mono;
 @Service
 @Scope("singleton")
 @Transactional
-@AllArgsConstructor
 public class StateServiceImpl implements StateService {
 
     /* Logger */
@@ -22,8 +21,18 @@ public class StateServiceImpl implements StateService {
     /* Repository for State operations */
     private final StateRepository repository;
 
-    /* Raft properties that need to be accessed */
-    //protected final RaftProperties raftProperties;
+    /* Raft property that need to be accessed */
+    private final String host;
+
+    /* --------------------------------------------------- */
+
+    public StateServiceImpl(
+            StateRepository repository,
+            @Value("raft.hostname") String host
+    ) {
+        this.repository = repository;
+        this.host = host;
+    }
 
     /* --------------------------------------------------- */
 
@@ -49,7 +58,7 @@ public class StateServiceImpl implements StateService {
                 .cast(StateImpl.class)
                 .flatMap(state -> {
                     state.setCurrentTerm(state.getCurrentTerm() + 1);
-                    //state.setVotedFor(this.raftProperties.getHost());
+                    state.setVotedFor(this.host);
                     state.setNew(false);
                     return this.saveState(state);
                 });

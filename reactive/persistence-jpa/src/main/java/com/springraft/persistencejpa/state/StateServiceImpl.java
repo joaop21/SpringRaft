@@ -5,6 +5,7 @@ import com.springraft.persistence.state.StateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,8 +23,8 @@ public class StateServiceImpl implements StateService {
     /* Repository for State operations */
     private final StateRepository repository;
 
-    /* Raft properties that need to be accessed */
-    //protected final RaftProperties raftProperties;
+    /* Raft property that need to be accessed */
+    private final String host;
 
     /* Scheduler to execute database operations */
     private final Scheduler scheduler;
@@ -32,11 +33,11 @@ public class StateServiceImpl implements StateService {
 
     public StateServiceImpl(
             StateRepository repository,
-            //RaftProperties properties,
-            @Qualifier("jpaScheduler") Scheduler jpaScheduler)
-    {
+            @Value("raft.hostname") String host,
+            @Qualifier("jpaScheduler") Scheduler jpaScheduler
+    ) {
         this.repository = repository;
-        //this.raftProperties = properties;
+        this.host = host;
         this.scheduler = jpaScheduler;
     }
 
@@ -64,7 +65,7 @@ public class StateServiceImpl implements StateService {
                 .cast(StateImpl.class)
                 .flatMap(state -> {
                     state.setCurrentTerm(state.getCurrentTerm() + 1);
-                    //state.setVotedFor(this.raftProperties.getHost());
+                    state.setVotedFor(this.host);
                     return this.saveState(state);
                 });
     }
