@@ -7,14 +7,14 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Repository
-public interface EntryRepository extends ReactiveCrudRepository<Entry,Long> {
+public interface EntryRepository extends ReactiveCrudRepository<EntryImpl,Long> {
 
     /**
      * Select method for find the last entry's index in the log.
      *
      * @return Long Index of the last entry.
      * */
-    @Query("SELECT MAX(entry.index) FROM Entry entry")
+    @Query("SELECT MAX(entry.index) FROM EntryImpl entry")
     Mono<Long> findLastEntryIndex();
 
     /**
@@ -22,8 +22,8 @@ public interface EntryRepository extends ReactiveCrudRepository<Entry,Long> {
      *
      * @return Entry Last log entry.
      * */
-    @Query("SELECT * FROM Entry entry WHERE entry.index = (SELECT MAX(entry.index) FROM Entry entry)")
-    Mono<Entry> findLastEntry();
+    @Query("SELECT * FROM EntryImpl entry WHERE entry.index = (SELECT MAX(entry.index) FROM EntryImpl entry)")
+    Mono<EntryImpl> findLastEntry();
 
     /**
      * Method that gets the entries between two indexes.
@@ -33,8 +33,8 @@ public interface EntryRepository extends ReactiveCrudRepository<Entry,Long> {
      *
      * @return List of the Entries found.
      * */
-    @Query("SELECT * FROM Entry entry WHERE entry.index >= ?1 AND entry.index < ?2")
-    Flux<Entry> getNextEntries(Long minIndex, Long maxIndex);
+    @Query("SELECT * FROM EntryImpl entry WHERE entry.index >= ?1 AND entry.index < ?2")
+    Flux<EntryImpl> getNextEntries(Long minIndex, Long maxIndex);
 
     /**
      * Delete Method for deleting entries with an index greater than a specific number.

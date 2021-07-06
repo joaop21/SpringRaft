@@ -37,7 +37,7 @@ public interface LogService {
      *
      * @return Mono<Entry> Entry found in that specific index.
      * */
-    Mono<? extends EntryModel> getEntryByIndex(Long index);
+    Mono<? extends Entry> getEntryByIndex(Long index);
 
     /**
      * Method that gets the index of the last stored entry in the log.
@@ -51,7 +51,7 @@ public interface LogService {
      *
      * @return Mono<Entry> Last entry in the log.
      * */
-    Mono<? extends EntryModel> getLastEntry();
+    Mono<? extends Entry> getLastEntry();
 
     /**
      * Method that gets the entries between two indexes.
@@ -61,7 +61,7 @@ public interface LogService {
      *
      * @return Flux of the Entries found.
      * */
-    Flux<? extends EntryModel> getEntriesBetweenIndexes(Long minIndex, Long maxIndex);
+    Flux<? extends Entry> getEntriesBetweenIndexes(Long minIndex, Long maxIndex);
 
     /**
      * Method that inserts a contiguously new entry in the existing log.
@@ -70,7 +70,7 @@ public interface LogService {
      *
      * @return Mono<Entry> The new persisted entry.
      * */
-    Mono<? extends EntryModel> insertEntry(Object entry);
+    Mono<? extends Entry> insertEntry(Entry entry);
 
     /**
      * Method that deletes all the log entries with an index greater than a specific value.
@@ -88,6 +88,6 @@ public interface LogService {
      *
      * @return Flux<Entry> Entries saved.
      * */
-    Flux<? extends EntryModel> saveAllEntries(List<? extends EntryModel> entries);
+    Flux<? extends Entry> saveAllEntries(List<? extends Entry> entries);
 
 }

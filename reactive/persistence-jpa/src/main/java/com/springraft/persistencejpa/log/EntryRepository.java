@@ -7,14 +7,14 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface EntryRepository extends JpaRepository<Entry,Long> {
+public interface EntryRepository extends JpaRepository<EntryImpl,Long> {
 
     /**
      * Select method for find the last entry's index in the log.
      *
      * @return Long Index of the last entry.
      * */
-    @Query("SELECT MAX(entry.index) FROM Entry entry")
+    @Query("SELECT MAX(entry.index) FROM EntryImpl entry")
     Long findLastEntryIndex();
 
     /**
@@ -22,8 +22,8 @@ public interface EntryRepository extends JpaRepository<Entry,Long> {
      *
      * @return Entry Last log entry.
      * */
-    @Query("SELECT entry FROM Entry entry WHERE entry.index = (SELECT MAX(entry.index) FROM Entry entry)")
-    Entry findLastEntry();
+    @Query("SELECT entry FROM EntryImpl entry WHERE entry.index = (SELECT MAX(entry.index) FROM EntryImpl entry)")
+    EntryImpl findLastEntry();
 
     /**
      * Method that gets the entries between two indexes.
@@ -33,8 +33,8 @@ public interface EntryRepository extends JpaRepository<Entry,Long> {
      *
      * @return List of the Entries found.
      * */
-    @Query("SELECT entry FROM Entry entry WHERE entry.index >= ?1 AND entry.index < ?2")
-    List<Entry> getNextEntries(Long minIndex, Long maxIndex);
+    @Query("SELECT entry FROM EntryImpl entry WHERE entry.index >= ?1 AND entry.index < ?2")
+    List<EntryImpl> getNextEntries(Long minIndex, Long maxIndex);
 
     /**
      * Delete Method for deleting entries with an index greater than a specific number.
