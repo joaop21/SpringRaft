@@ -1,6 +1,8 @@
 package com.springraft.persistencejpa.log;
 
+import com.springraft.persistence.log.Entry;
 import com.springraft.persistence.log.LogService;
+import com.springraft.persistence.log.LogState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -51,15 +53,16 @@ public class LogServiceImpl implements LogService {
     /* --------------------------------------------------- */
 
     @Override
-    public Mono<LogState> getState() {
+    public Mono<? extends LogState> getState() {
         return Mono.fromCallable(() -> this.logStateRepository.findById((long) 1))
                 .subscribeOn(this.scheduler)
                 .flatMap(optional -> optional.map(Mono::just).orElseGet(Mono::empty));
     }
 
     @Override
-    public Mono<LogState> incrementLastApplied() {
+    public Mono<? extends LogState> incrementLastApplied() {
         return this.getState()
+                .cast(LogStateImpl.class)
                 .map(logState -> {
                     logState.setLastApplied(logState.getLastApplied() + 1);
                     return logState;
@@ -71,8 +74,8 @@ public class LogServiceImpl implements LogService {
     }
 
     @Override
-    public Mono<LogState> saveState(Object logState) {
-        return Mono.fromCallable(() -> this.logStateRepository.save((LogState) logState))
+    public Mono<? extends LogState> saveState(Object logState) {
+        return Mono.fromCallable(() -> this.logStateRepository.save((LogStateImpl) logState))
                 .subscribeOn(this.scheduler)
                 .doOnError(error -> log.error("\nError on saveState method: \n" + error));
     }
@@ -80,7 +83,7 @@ public class LogServiceImpl implements LogService {
     /* --------------------------------------------------- */
 
     @Override
-    public Mono<Entry> getEntryByIndex(Long index) {
+    public Mono<? extends Entry> getEntryByIndex(Long index) {
         return Mono.fromCallable(() -> this.entryRepository.findById(index))
                 .subscribeOn(this.scheduler)
                 .flatMap(optional -> optional.map(Mono::just).orElseGet(Mono::empty));
@@ -94,10 +97,10 @@ public class LogServiceImpl implements LogService {
     }
 
     @Override
-    public Mono<Entry> getLastEntry() {
+    public Mono<? extends Entry> getLastEntry() {
         return Mono.fromCallable(this.entryRepository::findLastEntry)
                 .subscribeOn(this.scheduler)
-                .switchIfEmpty(Mono.just(new Entry((long) 0, (long) 0, null)));
+                .switchIfEmpty(Mono.just(new EntryImpl((long) 0, (long) 0, null, false)));
     }
 
     @Override
@@ -108,14 +111,14 @@ public class LogServiceImpl implements LogService {
     }
 
     @Override
-    public Mono<Entry> insertEntry(Object entry) {
+    public Mono<? extends Entry> insertEntry(Entry entry) {
 
         return Mono.<Entry>defer(() -> {
             lock.lock();
             return this.getLastEntryIndex()
-                    .doOnNext(lastIndex -> ((Entry)entry).setIndex(lastIndex + 1))
+                    .doOnNext(lastIndex -> ((EntryImpl)entry).setIndex(lastIndex + 1))
                     .flatMap(lastIndex ->
-                            Mono.fromCallable(() -> this.entryRepository.save((Entry) entry))
+                            Mono.fromCallable(() -> this.entryRepository.save((EntryImpl) entry))
                                     .subscribeOn(this.scheduler)
                     )
                     .flatMap(savedEntry ->
@@ -136,8 +139,8 @@ public class LogServiceImpl implements LogService {
     }
 
     @Override
-    public Flux<Entry> saveAllEntries(List<? extends com.springraft.persistence.log.EntryModel> entries) {
-        return Mono.fromCallable(() -> this.entryRepository.saveAll((List<Entry>)entries))
+    public Flux<? extends Entry> saveAllEntries(List<? extends Entry> entries) {
+        return Mono.fromCallable(() -> this.entryRepository.saveAll((List<EntryImpl>)entries))
                 .subscribeOn(this.scheduler)
                 .flatMapMany(Flux::fromIterable);
     }

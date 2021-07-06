@@ -1,6 +1,8 @@
 package com.springraft.persistencer2dbc.log;
 
+import com.springraft.persistence.log.Entry;
 import com.springraft.persistence.log.LogService;
+import com.springraft.persistence.log.LogState;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,13 +38,14 @@ public class LogServiceImpl implements LogService {
     /* --------------------------------------------------- */
 
     @Override
-    public Mono<LogState> getState() {
+    public Mono<? extends LogState> getState() {
         return this.logStateRepository.findById((long) 1);
     }
 
     @Override
     public Mono<LogState> incrementLastApplied() {
         return this.getState()
+                .cast(LogStateImpl.class)
                 .map(logState -> {
                     logState.setLastApplied(logState.getLastApplied() + 1);
                     logState.setNew(false);
@@ -52,9 +55,9 @@ public class LogServiceImpl implements LogService {
     }
 
     @Override
-    public Mono<LogState> saveState(Object logState) {
+    public Mono<? extends LogState> saveState(Object logState) {
         return Mono.just(logState)
-                .cast(LogState.class)
+                .cast(LogStateImpl.class)
                 .flatMap(this.logStateRepository::save)
                 .doOnError(error -> log.error("\nError on saveState method: \n" + error));
     }
@@ -62,7 +65,7 @@ public class LogServiceImpl implements LogService {
     /* --------------------------------------------------- */
 
     @Override
-    public Mono<Entry> getEntryByIndex(Long index) {
+    public Mono<? extends Entry> getEntryByIndex(Long index) {
         return this.entryRepository.findById(index);
     }
 
@@ -73,24 +76,24 @@ public class LogServiceImpl implements LogService {
     }
 
     @Override
-    public Mono<Entry> getLastEntry() {
+    public Mono<? extends Entry> getLastEntry() {
         return this.entryRepository.findLastEntry()
-                .switchIfEmpty(Mono.just(new Entry((long) 0, (long) 0, null, false)));
+                .switchIfEmpty(Mono.just(new EntryImpl((long) 0, (long) 0, null, false)));
     }
 
     @Override
-    public Flux<Entry> getEntriesBetweenIndexes(Long minIndex, Long maxIndex) {
+    public Flux<? extends Entry> getEntriesBetweenIndexes(Long minIndex, Long maxIndex) {
         return this.entryRepository.getNextEntries(minIndex, maxIndex);
     }
 
     @Override
-    public Mono<Entry> insertEntry(Object entry) {
+    public Mono<? extends Entry> insertEntry(Entry entry) {
 
         return Mono.<Entry>defer(() -> {
             lock.lock();
             return this.getLastEntryIndex()
-                    .doOnNext(lastIndex -> ((Entry)entry).setIndex(lastIndex + 1))
-                    .flatMap(lastIndex -> this.entryRepository.save(((Entry)entry)))
+                    .doOnNext(lastIndex -> ((EntryImpl)entry).setIndex(lastIndex + 1))
+                    .flatMap(lastIndex -> this.entryRepository.save(((EntryImpl)entry)))
                     .flatMap(savedEntry ->
                             Mono.create(monoSink -> {
                                 lock.unlock();
@@ -108,8 +111,8 @@ public class LogServiceImpl implements LogService {
     }
 
     @Override
-    public Flux<Entry> saveAllEntries(List<? extends com.springraft.persistence.log.EntryModel> entries) {
-        return this.entryRepository.saveAll((List<Entry>) entries);
+    public Flux<? extends Entry> saveAllEntries(List<? extends Entry> entries) {
+        return this.entryRepository.saveAll((List<EntryImpl>) entries);
     }
 
 }

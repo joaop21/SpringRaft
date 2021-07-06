@@ -12,14 +12,14 @@ public interface LogService {
      *
      * @return Mono<LogState> A mono with log state.
      * */
-    Mono<? extends LogStateModel> getState();
+    Mono<? extends LogState> getState();
 
     /**
      * Method that sets the last applied field of the LogState and persist it.
      *
      * @return The updated LogState.
      * */
-    Mono<? extends LogStateModel> incrementLastApplied();
+    Mono<? extends LogState> incrementLastApplied();
 
     /**
      * Method for inserting or updating the current persisted log state.
@@ -27,7 +27,7 @@ public interface LogService {
      * @param logState New log state to insert/update.
      * @return Mono<LogState> New persisted log state.
      * */
-    Mono<? extends LogStateModel> saveState(Object logState);
+    Mono<? extends LogState> saveState(Object logState);
 
 
     /**
