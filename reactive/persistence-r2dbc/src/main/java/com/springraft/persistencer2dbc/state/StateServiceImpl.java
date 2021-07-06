@@ -28,8 +28,9 @@ public class StateServiceImpl implements StateService {
     /* --------------------------------------------------- */
 
     @Override
-    public Mono<? extends State> getState() {
-        return this.repository.findById((long) 1);
+    public Mono<State> getState() {
+        return this.repository.findById((long) 1)
+                .cast(State.class);
     }
 
     @Override

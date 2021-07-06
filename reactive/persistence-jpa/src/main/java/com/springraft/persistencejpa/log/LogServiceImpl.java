@@ -53,7 +53,7 @@ public class LogServiceImpl implements LogService {
     /* --------------------------------------------------- */
 
     @Override
-    public Mono<? extends LogState> getState() {
+    public Mono<LogState> getState() {
         return Mono.fromCallable(() -> this.logStateRepository.findById((long) 1))
                 .subscribeOn(this.scheduler)
                 .flatMap(optional -> optional.map(Mono::just).orElseGet(Mono::empty));

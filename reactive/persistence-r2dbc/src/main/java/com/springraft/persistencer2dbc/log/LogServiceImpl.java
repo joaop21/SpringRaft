@@ -38,8 +38,9 @@ public class LogServiceImpl implements LogService {
     /* --------------------------------------------------- */
 
     @Override
-    public Mono<? extends LogState> getState() {
-        return this.logStateRepository.findById((long) 1);
+    public Mono<LogState> getState() {
+        return this.logStateRepository.findById((long) 1)
+                .cast(LogState.class);
     }
 
     @Override

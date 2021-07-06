@@ -9,7 +9,7 @@ public interface StateService {
      *
      * @return Mono<State> A mono with state.
      * */
-    Mono<? extends State> getState();
+    Mono<State> getState();
 
     /**
      * Method for inserting or updating the current persisted state.

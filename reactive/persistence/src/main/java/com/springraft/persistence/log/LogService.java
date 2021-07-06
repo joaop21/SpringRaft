@@ -12,7 +12,7 @@ public interface LogService {
      *
      * @return Mono<LogState> A mono with log state.
      * */
-    Mono<? extends LogState> getState();
+    Mono<LogState> getState();
 
     /**
      * Method that sets the last applied field of the LogState and persist it.

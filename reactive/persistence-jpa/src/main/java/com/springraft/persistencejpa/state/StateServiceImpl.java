@@ -43,7 +43,7 @@ public class StateServiceImpl implements StateService {
     /* --------------------------------------------------- */
 
     @Override
-    public Mono<? extends State> getState() {
+    public Mono<State> getState() {
         return Mono.fromCallable(() -> this.repository.findById((long) 1))
                 .subscribeOn(this.scheduler)
                 .flatMap(optional -> optional.map(Mono::just).orElseGet(Mono::empty));
