@@ -4,12 +4,13 @@ import lombok.*;
 import org.springframework.stereotype.Component;
 
 @Component
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
 @Setter
 @ToString
-public class EntryModel {
+public abstract class EntryModel {
 
     /* Index of an Entry in the log */
     private Long index;

@@ -3,10 +3,7 @@ package com.springraft.persistence;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@SpringBootApplication(scanBasePackages = {
-        "com.springraft.persistence",
-        "com.springraft.persistence.*"
-})
+@SpringBootApplication
 public class PersistenceApplication {
 
     public static void main(String[] args) {

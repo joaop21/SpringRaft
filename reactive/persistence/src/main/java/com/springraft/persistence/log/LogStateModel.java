@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 @Getter
 @Setter
 @ToString
-public class LogStateModel {
+public abstract class LogStateModel {
 
     /* Id of the object */
     private Long id;
