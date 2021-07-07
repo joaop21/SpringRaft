@@ -36,8 +36,8 @@ public class StateMachineWorker implements CommitmentSubscriber {
     /**
      * TODO
      * */
-    public StateMachineWorker(LogService logService, WaitingRequests waitingRequests) {
-        this.strategy = null;
+    public StateMachineWorker(StateMachineStrategy strategy, LogService logService, WaitingRequests waitingRequests) {
+        this.strategy = strategy;
         this.logService = logService;
         this.waitingRequests = waitingRequests;
         this.commitSink = Sinks.many().unicast().onBackpressureBuffer();

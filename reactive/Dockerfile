@@ -1,3 +1,5 @@
+################################################
+
 # Pull maven environment to build the app
 FROM maven:3.8.1-openjdk-16 AS build
 
@@ -7,10 +9,13 @@ WORKDIR /app
 # Copy the external folder to the /app folder
 COPY . .
 
-# Run the maven command to install the necessary dependencies
-RUN mvn clean install -P JPA
+# Injected profile argument
+ARG profile
 
-###############################################3
+# Run the maven command to install the necessary dependencies
+RUN mvn clean install -P ${profile}
+
+################################################
 
 # Pull server environment execution image
 FROM openjdk:16-jdk-alpine
