@@ -4,10 +4,7 @@ import com.springraft.raft.communication.outbound.OutboundContext;
 import com.springraft.raft.communication.outbound.OutboundStrategy;
 import com.springraft.raft.communication.outbound.REST;
 import com.springraft.raft.config.RaftProperties;
-import com.springraft.raft.stateMachine.EmbeddedServer;
-import com.springraft.raft.stateMachine.IndependentServer;
-import com.springraft.raft.stateMachine.StateMachineStrategy;
-import com.springraft.raft.stateMachine.StateMachineWorker;
+import com.springraft.raft.stateMachine.*;
 import lombok.AllArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -57,20 +54,6 @@ public class Strategies implements ApplicationRunner {
 
         Mono.zip(applicationCommunicationStrategy, Mono.just(this.applicationContext.getBean(OutboundContext.class)))
                 .doOnNext(tuple -> tuple.getT2().setApplicationCommunicationStrategy(tuple.getT1()))
-                .block();
-
-
-        // STATE MACHINE
-        Mono<StateMachineStrategy> stateMachineStrategy = Mono.just(this.raftProperties.getStateMachineStrategy().toUpperCase())
-                .map(strategy ->
-                        switch (strategy) {
-                            case "EMBEDDED" -> this.applicationContext.getBean(EmbeddedServer.class);
-                            default -> this.applicationContext.getBean(IndependentServer.class);
-                        }
-                );
-
-        Mono.zip(stateMachineStrategy, Mono.just(this.applicationContext.getBean(StateMachineWorker.class)))
-                .doOnNext(tuple -> tuple.getT2().setStrategy(tuple.getT1()))
                 .block();
 
     }

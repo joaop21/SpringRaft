@@ -58,9 +58,7 @@ public class PersistentState implements ApplicationRunner {
     private Mono<LogState> checkAndSetLogState() {
         return this.logService.getState()
                 .switchIfEmpty(Mono.just((LogState) this.applicationContext.getBean("InitialLogState")))
-                .flatMap(this.logService::saveState)
-                .cast(LogState.class)
-                .doOnNext(logState -> System.out.println(logState.toString()));
+                .flatMap(this.logService::saveState);
     }
 
 }
