@@ -35,6 +35,14 @@ public class InstantiationBeans {
         return new StateImpl((long) 1,(long) 1,null, true);
     }
 
+    /**
+     * TODO
+     * */
+    @Bean(name = "NullState")
+    public State nullState() {
+        return new StateImpl(null, null, null, true);
+    }
+
     /* --------------------------------------------------- */
 
     /**

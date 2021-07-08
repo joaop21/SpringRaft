@@ -14,7 +14,7 @@ public interface EntryRepository extends ReactiveCrudRepository<EntryImpl,Long> 
      *
      * @return Long Index of the last entry.
      * */
-    @Query("SELECT MAX(entry.index) FROM EntryImpl entry")
+    @Query("SELECT MAX(entry.index) FROM Entry entry")
     Mono<Long> findLastEntryIndex();
 
     /**
@@ -22,7 +22,7 @@ public interface EntryRepository extends ReactiveCrudRepository<EntryImpl,Long> 
      *
      * @return Entry Last log entry.
      * */
-    @Query("SELECT * FROM EntryImpl entry WHERE entry.index = (SELECT MAX(entry.index) FROM EntryImpl entry)")
+    @Query("SELECT * FROM Entry entry WHERE entry.index = (SELECT MAX(entry.index) FROM Entry entry)")
     Mono<EntryImpl> findLastEntry();
 
     /**
@@ -33,7 +33,7 @@ public interface EntryRepository extends ReactiveCrudRepository<EntryImpl,Long> 
      *
      * @return List of the Entries found.
      * */
-    @Query("SELECT * FROM EntryImpl entry WHERE entry.index >= ?1 AND entry.index < ?2")
+    @Query("SELECT * FROM Entry entry WHERE entry.index >= ?1 AND entry.index < ?2")
     Flux<EntryImpl> getNextEntries(Long minIndex, Long maxIndex);
 
     /**

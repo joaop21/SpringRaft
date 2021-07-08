@@ -12,11 +12,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 import reactor.core.scheduler.Scheduler;
 
 import java.util.List;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 @Scope("singleton")
@@ -32,8 +31,8 @@ public class LogServiceImpl implements LogService {
     /* Repository for Entry operations */
     private final LogStateRepository logStateRepository;
 
-    /* Mutex for some operations */
-    private final Lock lock = new ReentrantLock();
+    /* Sink for publish entry insertions */
+    private final Sinks.Many<Mono<?>> insertionSink;
 
     /* Scheduler to execute database operations */
     private final Scheduler scheduler;
@@ -47,7 +46,10 @@ public class LogServiceImpl implements LogService {
     ) {
         this.entryRepository = entryRepository;
         this.logStateRepository = logStateRepository;
+        this.insertionSink = Sinks.many().unicast().onBackpressureBuffer();
         this.scheduler = jpaScheduler;
+
+        this.insertionHandler().subscribe();
     }
 
     /* --------------------------------------------------- */
@@ -111,28 +113,6 @@ public class LogServiceImpl implements LogService {
     }
 
     @Override
-    public Mono<? extends Entry> insertEntry(Entry entry) {
-
-        return Mono.<Entry>defer(() -> {
-            lock.lock();
-            return this.getLastEntryIndex()
-                    .doOnNext(lastIndex -> ((EntryImpl)entry).setIndex(lastIndex + 1))
-                    .flatMap(lastIndex ->
-                            Mono.fromCallable(() -> this.entryRepository.save((EntryImpl) entry))
-                                    .subscribeOn(this.scheduler)
-                    )
-                    .flatMap(savedEntry ->
-                            Mono.create(monoSink -> {
-                                lock.unlock();
-                                monoSink.success(savedEntry);
-                            })
-                    );
-        })
-                .onErrorResume(DataIntegrityViolationException.class, error -> this.insertEntry(entry));
-
-    }
-
-    @Override
     public Mono<Integer> deleteIndexesGreaterThan(Long index) {
         return Mono.fromCallable(() -> this.entryRepository.deleteEntryByIndexGreaterThan(index))
                 .subscribeOn(this.scheduler);
@@ -143,6 +123,39 @@ public class LogServiceImpl implements LogService {
         return Mono.fromCallable(() -> this.entryRepository.saveAll((List<EntryImpl>)entries))
                 .subscribeOn(this.scheduler)
                 .flatMapMany(Flux::fromIterable);
+    }
+
+    /* --------------------------------------------------- */
+
+    @Override
+    public Mono<? extends Entry> insertEntry(Entry entry) {
+
+        return Mono.just(Sinks.<EntryImpl>one())
+                .doOnNext(responseSink -> {
+                    while(this.insertionSink.tryEmitNext(insertEntryImpl(entry).doOnSuccess(responseSink::tryEmitValue)) != Sinks.EmitResult.OK);
+                })
+                .flatMap(Sinks.Empty::asMono);
+
+    }
+
+    /**
+     * TODO
+     * */
+    private Flux<?> insertionHandler() {
+        return this.insertionSink.asFlux().flatMap(mono -> mono,1);
+    }
+
+    /**
+     * TODO
+     * */
+    private Mono<EntryImpl> insertEntryImpl(Entry entry) {
+        return this.getLastEntryIndex()
+                .doOnNext(lastIndex -> ((EntryImpl)entry).setIndex(lastIndex + 1))
+                .flatMap(lastIndex ->
+                        Mono.fromCallable(() -> this.entryRepository.save((EntryImpl) entry))
+                                .subscribeOn(this.scheduler)
+                )
+                .onErrorResume(DataIntegrityViolationException.class, error -> this.insertEntryImpl(entry));
     }
 
 }

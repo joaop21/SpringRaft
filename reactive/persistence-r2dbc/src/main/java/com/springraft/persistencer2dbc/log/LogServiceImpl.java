@@ -3,7 +3,6 @@ package com.springraft.persistencer2dbc.log;
 import com.springraft.persistence.log.Entry;
 import com.springraft.persistence.log.LogService;
 import com.springraft.persistence.log.LogState;
-import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
@@ -12,15 +11,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
 
 import java.util.List;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 @Scope("singleton")
 @Transactional
-@AllArgsConstructor
 public class LogServiceImpl implements LogService {
 
     /* Logger */
@@ -32,8 +29,21 @@ public class LogServiceImpl implements LogService {
     /* Repository for Entry operations */
     private final LogStateRepository logStateRepository;
 
-    /* Mutex for some operations */
-    private final Lock lock = new ReentrantLock();
+    /* Sink for publish entry insertions */
+    private final Sinks.Many<Mono<?>> insertionSink;
+
+    /* --------------------------------------------------- */
+
+    public LogServiceImpl(
+            EntryRepository entryRepository,
+            LogStateRepository logStateRepository
+    ) {
+        this.entryRepository = entryRepository;
+        this.logStateRepository = logStateRepository;
+        this.insertionSink = Sinks.many().unicast().onBackpressureBuffer();
+
+        this.insertionHandler().subscribe();
+    }
 
     /* --------------------------------------------------- */
 
@@ -89,25 +99,6 @@ public class LogServiceImpl implements LogService {
     }
 
     @Override
-    public Mono<? extends Entry> insertEntry(Entry entry) {
-
-        return Mono.<Entry>defer(() -> {
-            lock.lock();
-            return this.getLastEntryIndex()
-                    .doOnNext(lastIndex -> ((EntryImpl)entry).setIndex(lastIndex + 1))
-                    .flatMap(lastIndex -> this.entryRepository.save(((EntryImpl)entry)))
-                    .flatMap(savedEntry ->
-                            Mono.create(monoSink -> {
-                                lock.unlock();
-                                monoSink.success(savedEntry);
-                            })
-                    );
-        })
-                .onErrorResume(DataIntegrityViolationException.class, error -> this.insertEntry(entry));
-
-    }
-
-    @Override
     public Mono<Integer> deleteIndexesGreaterThan(Long index) {
         return this.entryRepository.deleteEntryByIndexGreaterThan(index);
     }
@@ -115,6 +106,36 @@ public class LogServiceImpl implements LogService {
     @Override
     public Flux<? extends Entry> saveAllEntries(List<? extends Entry> entries) {
         return this.entryRepository.saveAll((List<EntryImpl>) entries);
+    }
+
+    /* --------------------------------------------------- */
+
+    @Override
+    public Mono<? extends Entry> insertEntry(Entry entry) {
+
+        return Mono.just(Sinks.<EntryImpl>one())
+                .doOnNext(responseSink -> {
+                    while(this.insertionSink.tryEmitNext(insertEntryImpl(entry).doOnSuccess(responseSink::tryEmitValue)) != Sinks.EmitResult.OK);
+                })
+                .flatMap(Sinks.Empty::asMono);
+
+    }
+
+    /**
+     * TODO
+     * */
+    private Flux<?> insertionHandler() {
+        return this.insertionSink.asFlux().flatMap(mono -> mono,1);
+    }
+
+    /**
+     * TODO
+     * */
+    private Mono<EntryImpl> insertEntryImpl(Entry entry) {
+        return this.getLastEntryIndex()
+                .doOnNext(lastIndex -> ((EntryImpl)entry).setIndex(lastIndex + 1))
+                .flatMap(lastIndex -> this.entryRepository.save((EntryImpl) entry))
+                .onErrorResume(DataIntegrityViolationException.class, error -> this.insertEntryImpl(entry));
     }
 
 }
