@@ -1,0 +1,43 @@
+version: '3'
+
+services:
+
+  #####################################################
+  # Cluster containers
+
+  raft1:
+    build: 
+      context: ../../../../reactive
+      args:
+        profile: JPA
+    image: spring-raft:reactive-jpa
+    container_name: raft1
+    environment:
+      - RAFT_HOSTNAME=raft1:8080
+      - RAFT_DATABASE-CONNECTIVITY=JPA
+    env_file:
+      - reactive-raft-properties.env
+    ports:
+      - 8001:8080
+
+  raft2:
+    image: spring-raft:reactive-jpa
+    container_name: raft2
+    environment:
+      - RAFT_HOSTNAME=raft2:8080
+      - RAFT_DATABASE-CONNECTIVITY=JPA
+    env_file:
+      - reactive-raft-properties.env
+    ports:
+      - 8002:8080
+
+  raft3:
+    image: spring-raft:reactive-jpa
+    container_name: raft3
+    environment:
+      - RAFT_HOSTNAME=raft3:8080
+      - RAFT_DATABASE-CONNECTIVITY=JPA
+    env_file:
+      - reactive-raft-properties.env
+    ports:
+      - 8003:8080
