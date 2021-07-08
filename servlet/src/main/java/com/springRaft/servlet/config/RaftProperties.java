@@ -54,6 +54,12 @@ public class RaftProperties {
     /* Maximum of entries that a communication can carry */
     private final Integer entriesPerCommunication;
 
+    /* Database engine to use */
+    private final String database;
+
+    /* Connectivity API to use */
+    private final String databaseConnectivity;
+
     /* --------------------------------------------------- */
 
     public RaftProperties(
@@ -70,7 +76,9 @@ public class RaftProperties {
             @DefaultValue("REST") String applicationCommunicationStrategy,
             @DefaultValue("INDEPENDENT") String stateMachineStrategy,
             @DefaultValue("localhost:9002") String applicationServer,
-            @DefaultValue("10") int entriesPerCommunication
+            @DefaultValue("10") int entriesPerCommunication,
+            @DefaultValue("h2") String database,
+            @DefaultValue("JPA") String databaseConnectivity
     ) {
 
         this.electionTimeoutMin = electionTimeoutMin;
@@ -95,6 +103,9 @@ public class RaftProperties {
         this.applicationServer = applicationServer;
 
         this.entriesPerCommunication = entriesPerCommunication;
+
+        this.database = database;
+        this.databaseConnectivity = databaseConnectivity;
 
         log.info(this.toString());
 
@@ -130,7 +141,10 @@ public class RaftProperties {
                 .append("\tEntries per Communication: ").append(entriesPerCommunication).append("\n")
                 .append("\nState Machine strategy is: ").append(stateMachineStrategy).append("\n")
                 .append("\nApplication Server is: ").append(applicationServer).append("\n")
-                .append("\n*****************************************");
+                .append("\nPersistence:\n")
+                .append("\tDatabase Engine: ").append(this.database).append("\n")
+                .append("\tDatabase Connectivity API: ").append(this.databaseConnectivity).append("\n")
+                .append("\n*****************************************\n");
 
         return builder.toString();
     }
