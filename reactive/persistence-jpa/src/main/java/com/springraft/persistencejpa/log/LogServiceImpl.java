@@ -114,7 +114,7 @@ public class LogServiceImpl implements LogService {
 
     @Override
     public Mono<Integer> deleteIndexesGreaterThan(Long index) {
-        return Mono.fromCallable(() -> this.entryRepository.deleteEntryByIndexGreaterThan(index))
+        return Mono.fromCallable(() -> this.entryRepository.deleteEntryImplByIndexGreaterThan(index))
                 .subscribeOn(this.scheduler);
     }
 
