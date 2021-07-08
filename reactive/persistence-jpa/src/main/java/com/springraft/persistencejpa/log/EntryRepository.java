@@ -43,6 +43,6 @@ public interface EntryRepository extends JpaRepository<EntryImpl,Long> {
      *
      * @return Integer which represents the number of deleted entries.
      * */
-    Integer deleteEntryByIndexGreaterThan(Long index);
+    Integer deleteEntryImplByIndexGreaterThan(Long index);
 
 }
