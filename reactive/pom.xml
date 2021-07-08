@@ -22,4 +22,13 @@
         <module>raft</module>
     </modules>
 
+    <!-- Publish packages on github -->
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub joaop21 Apache Maven Packages</name>
+            <url>https://maven.pkg.github.com/joaop21/SpringRaft</url>
+        </repository>
+    </distributionManagement>
+
 </project>
