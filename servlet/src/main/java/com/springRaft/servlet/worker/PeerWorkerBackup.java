@@ -113,8 +113,8 @@ public class PeerWorkerBackup implements Runnable, MessageSubscriber {
             Pair<Message,Boolean> pair = this.consensusModule.getNextMessage(this.targetServerName);
 
             // send message
-            if (pair.getFirst() != null)
-                this.send(pair.getFirst(), pair.getSecond());
+            if (pair.first() != null)
+                this.send(pair.first(), pair.second());
 
         }
 
