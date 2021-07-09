@@ -1,7 +1,6 @@
 package com.springRaft.servlet.consensusModule;
 
 import com.springRaft.servlet.communication.message.*;
-import com.springRaft.servlet.util.Pair;
 
 public interface RaftState {
 
@@ -39,26 +38,16 @@ public interface RaftState {
     void requestVoteReply(RequestVoteReply requestVoteReply);
 
     /**
-     * Method for getting the next message for a specific server.
-     *
-     * @param to String that represents the server.
-     *
-     * @return Pair<Message, Boolean> Message to send to the target server and a boolean that signals
-     *      if this message is a heartbeat.
-     * */
-    Pair<Message, Boolean> getNextMessage(String to);
-
-    /**
-     * Method for doing the work that it's required on startup.
-     * */
-    void start();
-
-    /**
      * Method for handling the replication of a client request.
      * @param command String command to replicate and apply to the FSM.
      *
      * @return RequestReply Reply for the income request.
      * */
     RequestReply clientRequest(String command);
+
+    /**
+     * Method for doing the work that it's required on startup.
+     * */
+    void start();
 
 }

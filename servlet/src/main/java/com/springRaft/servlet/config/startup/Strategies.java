@@ -4,10 +4,6 @@ import com.springRaft.servlet.communication.outbound.OutboundContext;
 import com.springRaft.servlet.communication.outbound.OutboundStrategy;
 import com.springRaft.servlet.communication.outbound.REST;
 import com.springRaft.servlet.config.RaftProperties;
-import com.springRaft.servlet.stateMachine.EmbeddedServer;
-import com.springRaft.servlet.stateMachine.IndependentServer;
-import com.springRaft.servlet.stateMachine.StateMachineStrategy;
-import com.springRaft.servlet.worker.StateMachineWorker;
 import lombok.AllArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -31,30 +27,32 @@ public class Strategies implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
 
-        // COMMUNICATION
+        // CLUSTER COMMUNICATION
         OutboundContext context = this.applicationContext.getBean(OutboundContext.class);
         OutboundStrategy outboundStrategy;
 
-        switch (this.raftProperties.getCommunicationStrategy().toUpperCase()) {
+        switch (this.raftProperties.getClusterCommunicationStrategy().toUpperCase()) {
 
             case "REST":
 
             default:
                 outboundStrategy = applicationContext.getBean(REST.class);
-                context.setCommunicationStrategy(outboundStrategy);
+                context.setClusterCommunicationStrategy(outboundStrategy);
                 break;
 
         }
 
-        // STATE MACHINE
-        StateMachineWorker worker = this.applicationContext.getBean(StateMachineWorker.class);
+        // APPLICATION COMMUNICATION
+        switch (this.raftProperties.getApplicationCommunicationStrategy().toUpperCase()) {
 
-        StateMachineStrategy stateMachineStrategy = switch (this.raftProperties.getStateMachineStrategy().toUpperCase()) {
-            case "EMBEDDED" -> this.applicationContext.getBean(EmbeddedServer.class);
-            default -> this.applicationContext.getBean(IndependentServer.class);
-        };
+            case "REST":
 
-        worker.setStrategy(stateMachineStrategy);
+            default:
+                outboundStrategy = applicationContext.getBean(REST.class);
+                context.setApplicationCommunicationStrategy(outboundStrategy);
+                break;
+
+        }
 
     }
 

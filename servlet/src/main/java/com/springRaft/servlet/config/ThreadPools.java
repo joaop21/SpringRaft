@@ -17,11 +17,11 @@ public class ThreadPools {
      * @return TaskExecutor general purpose threads.
      * */
     @Bean(name = "generalPurposeExecutor")
-    public TaskExecutor generalPurposeExecutor() {
+    public ThreadPoolTaskExecutor generalPurposeExecutor() {
 
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(1);
-        executor.setMaxPoolSize(5);
+        executor.setCorePoolSize(5);
+        executor.setMaxPoolSize(2000);
         executor.setThreadNamePrefix("GeneralWorker-");
         executor.initialize();
 

@@ -1,11 +1,8 @@
-package com.springRaft.servlet.worker;
+package com.springRaft.servlet.stateMachine;
 
 import com.springRaft.servlet.persistence.log.Entry;
 import com.springRaft.servlet.persistence.log.LogService;
 import com.springRaft.servlet.persistence.log.LogState;
-import com.springRaft.servlet.stateMachine.CommitmentSubscriber;
-import com.springRaft.servlet.stateMachine.StateMachineStrategy;
-import com.springRaft.servlet.stateMachine.WaitingRequests;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,8 +41,8 @@ public class StateMachineWorker implements Runnable, CommitmentSubscriber {
     /* --------------------------------------------------- */
 
     @Autowired
-    public StateMachineWorker(LogService logService, WaitingRequests waitingRequests) {
-        this.strategy = null;
+    public StateMachineWorker(StateMachineStrategy stateMachineStrategy, LogService logService, WaitingRequests waitingRequests) {
+        this.strategy = stateMachineStrategy;
         this.logService = logService;
         this.waitingRequests = waitingRequests;
         this.lock = new ReentrantLock();

@@ -5,9 +5,8 @@ import com.springRaft.servlet.communication.outbound.OutboundManager;
 import com.springRaft.servlet.config.RaftProperties;
 import com.springRaft.servlet.persistence.log.LogService;
 import com.springRaft.servlet.persistence.state.StateService;
-import com.springRaft.servlet.stateMachine.CommitmentPublisher;
+import com.springRaft.servlet.stateMachine.StateMachineWorker;
 import com.springRaft.servlet.stateMachine.WaitingRequests;
-import com.springRaft.servlet.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -39,14 +38,14 @@ public class Follower extends RaftStateContext implements RaftState {
             RaftProperties raftProperties,
             TransitionManager transitionManager,
             OutboundManager outboundManager,
-            CommitmentPublisher commitmentPublisher,
+            StateMachineWorker stateMachineWorker,
             WaitingRequests waitingRequests
     ) {
         super(
                 applicationContext, consensusModule,
                 stateService, logService, raftProperties,
                 transitionManager, outboundManager,
-                commitmentPublisher, waitingRequests
+                stateMachineWorker, waitingRequests
         );
         this.scheduledFuture = null;
         this.leaderId = raftProperties.getHost();
@@ -81,11 +80,7 @@ public class Follower extends RaftStateContext implements RaftState {
             // update term
             this.stateService.setState(appendEntriesReply.getTerm(), null);
 
-            // begin new follower state and delete the existing task
-            this.transitionManager.cancelScheduledTask(this.scheduledFuture);
-
-            // set a new timeout, it's equivalent to transit to a new follower state
-            this.setTimeout();
+            this.cleanBeforeTransit();
 
         }
 
@@ -114,11 +109,7 @@ public class Follower extends RaftStateContext implements RaftState {
             // check if candidate's log is at least as up-to-date as mine
             this.checkLog(requestVote, reply);
 
-            // begin new follower state and delete the existing task
-            this.transitionManager.cancelScheduledTask(this.scheduledFuture);
-
-            // set a new timeout, it's equivalent to transit to a new follower state
-            this.setTimeout();
+            this.cleanBeforeTransit();
 
         } else if (requestVote.getTerm() == currentTerm) {
 
@@ -142,19 +133,18 @@ public class Follower extends RaftStateContext implements RaftState {
             // update term
             this.stateService.setState(requestVoteReply.getTerm(), null);
 
-            // begin new follower state and delete the existing task
-            this.transitionManager.cancelScheduledTask(this.scheduledFuture);
-
-            // set a new timeout, it's equivalent to transit to a new follower state
-            this.setTimeout();
+            this.cleanBeforeTransit();
 
         }
 
     }
 
     @Override
-    public Pair<Message, Boolean> getNextMessage(String to) {
-        return new Pair<>(null, false);
+    public RequestReply clientRequest(String command) {
+
+        // When in follower state, we need to redirect the request to the leader
+        return this.applicationContext.getBean(RequestReply.class, false, new Object(), true, this.leaderId);
+
     }
 
     @Override
@@ -166,13 +156,7 @@ public class Follower extends RaftStateContext implements RaftState {
 
         this.setTimeout();
 
-    }
-
-    @Override
-    public RequestReply clientRequest(String command) {
-
-        // When in follower state, we need to redirect the request to the leader
-        return this.applicationContext.getBean(RequestReply.class, false, new Object(), true, this.leaderId);
+        this.outboundManager.newFollowerState();
 
     }
 
@@ -189,11 +173,7 @@ public class Follower extends RaftStateContext implements RaftState {
 
         this.leaderId = appendEntries.getLeaderId();
 
-        // remove the scheduled task
-        this.transitionManager.cancelScheduledTask(this.scheduledFuture);
-
-        // set a new timeout, it's equivalent to transit to a new follower state
-        this.setTimeout();
+        this.cleanBeforeTransit();
 
     }
 
@@ -209,6 +189,19 @@ public class Follower extends RaftStateContext implements RaftState {
 
         // store runnable
         this.setScheduledFuture(schedule);
+
+    }
+
+    /**
+     * Method that cleans the volatile state before set a new timeout.
+     * */
+    private void cleanBeforeTransit() {
+
+        // begin new follower state and delete the existing task
+        this.transitionManager.cancelScheduledTask(this.scheduledFuture);
+
+        // set a new timeout, it's equivalent to transit to a new follower state
+        this.setTimeout();
 
     }
 

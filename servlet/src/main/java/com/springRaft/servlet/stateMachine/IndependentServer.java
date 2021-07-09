@@ -2,11 +2,13 @@ package com.springRaft.servlet.stateMachine;
 
 import com.springRaft.servlet.communication.outbound.OutboundContext;
 import com.springRaft.servlet.config.RaftProperties;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
 @Component
 @Scope("singleton")
+@ConditionalOnProperty(name = "raft.state-machine-strategy", havingValue = "INDEPENDENT")
 public class IndependentServer extends SMStrategyContext implements StateMachineStrategy {
 
     /* --------------------------------------------------- */

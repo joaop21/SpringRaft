@@ -1,16 +1,28 @@
 package com.springRaft.servlet.persistence.state;
 
-import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional
-@AllArgsConstructor
 public class StateService {
 
     /* Repository for State operations */
     private final StateRepository repository;
+
+    /* Raft property that need to be accessed */
+    private final String host;
+
+    /* --------------------------------------------------- */
+
+    public StateService(
+            StateRepository repository,
+            @Value("${raft.hostname}") String host
+    ) {
+        this.repository = repository;
+        this.host = host;
+    }
 
     /* --------------------------------------------------- */
 
@@ -21,6 +33,22 @@ public class StateService {
         return this.repository
                 .findById((long) 1)
                 .orElse(null);
+    }
+
+    /**
+     * TODO
+     * */
+    public State saveState(State state) {
+        return this.repository.save(state);
+    }
+
+    /* --------------------------------------------------- */
+
+    public State newCandidateState() {
+        State state = this.getState();
+        state.setCurrentTerm(state.getCurrentTerm() + 1);
+        state.setVotedFor(this.host);
+        return this.saveState(state);
     }
 
     /**
@@ -46,15 +74,6 @@ public class StateService {
     /**
      * TODO
      * */
-    public void incrementCurrentTerm() {
-        State state = this.getState();
-        state.setCurrentTerm(state.getCurrentTerm() + 1);
-        this.repository.save(state);
-    }
-
-    /**
-     * TODO
-     * */
     public State setVotedFor(String votedFor) {
         State state = this.getState();
         state.setVotedFor(votedFor);
@@ -69,13 +88,6 @@ public class StateService {
         state.setCurrentTerm(term);
         state.setVotedFor(votedFor);
         this.repository.save(state);
-    }
-
-    /**
-     * TODO
-     * */
-    public State saveState(State state) {
-        return this.repository.save(state);
     }
 
 }
