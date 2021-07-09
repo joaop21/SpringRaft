@@ -2,7 +2,6 @@ package com.springRaft.servlet.config.startup;
 
 import com.springRaft.servlet.consensusModule.ConsensusModule;
 import com.springRaft.servlet.consensusModule.Follower;
-import com.springRaft.servlet.worker.StateTransition;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.ApplicationArguments;
@@ -44,9 +43,12 @@ public class Initialization implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        StateTransition transition = applicationContext
-                .getBean(StateTransition.class, applicationContext, consensusModule, Follower.class);
-        taskExecutor.execute(transition);
+        taskExecutor.execute(
+                () -> {
+                    Follower follower = this.applicationContext.getBean(Follower.class);
+                    this.consensusModule.setAndStartNewState(follower);
+                }
+        );
     }
 
 }

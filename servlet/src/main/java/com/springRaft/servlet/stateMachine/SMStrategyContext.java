@@ -2,7 +2,6 @@ package com.springRaft.servlet.stateMachine;
 
 import com.springRaft.servlet.communication.outbound.OutboundContext;
 import com.springRaft.servlet.config.RaftProperties;
-import com.springRaft.servlet.worker.StateMachineWorker;
 import lombok.AllArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

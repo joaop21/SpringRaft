@@ -10,8 +10,8 @@ import com.springRaft.servlet.persistence.log.Entry;
 import com.springRaft.servlet.persistence.log.LogService;
 import com.springRaft.servlet.persistence.log.LogState;
 import com.springRaft.servlet.persistence.state.StateService;
-import com.springRaft.servlet.stateMachine.CommitmentPublisher;
 import com.springRaft.servlet.stateMachine.WaitingRequests;
+import com.springRaft.servlet.stateMachine.StateMachineWorker;
 import lombok.AllArgsConstructor;
 import org.springframework.context.ApplicationContext;
 
@@ -43,7 +43,7 @@ public abstract class RaftStateContext {
     protected final OutboundManager outboundManager;
 
     /* Publisher of new commitments to State Machine */
-    protected final CommitmentPublisher commitmentPublisher;
+    protected final StateMachineWorker stateMachineWorker;
 
     /* Map that contains the clients waiting requests */
     protected final WaitingRequests waitingRequests;
@@ -51,7 +51,10 @@ public abstract class RaftStateContext {
     /* --------------------------------------------------- */
 
     /**
-     * TODO
+     * Method that prepares a reply to the RequestVoteRPC after checking the log against the RequestVote received.
+     *
+     * @param requestVote Message sent when invoking a RequestVote RPC.
+     * @param reply Object that represents the reply to send that has to be filled.
      * */
     protected void checkLog(RequestVote requestVote, RequestVoteReply reply) {
 
@@ -86,7 +89,10 @@ public abstract class RaftStateContext {
     }
 
     /**
-     * TODO
+     * Method that has replicated code used in checkLog method.
+     *
+     * @param requestVote Message sent when invoking a RequestVote RPC.
+     * @param reply Object that represents the reply to send that has to be filled.
      * */
     private void setVote(RequestVote requestVote, RequestVoteReply reply) {
 
@@ -108,7 +114,11 @@ public abstract class RaftStateContext {
     /* --------------------------------------------------- */
 
     /**
-     * TODO
+     * Shared method between the 3 raft states for the handling of an AppendEntriesRPC.
+     *
+     * @param appendEntries Message that contains the information of an AppendEntries request communication.
+     *
+     * @return AppendEntriesReply Object that represents the reply of that RPC.
      * */
     protected AppendEntriesReply appendEntries(AppendEntries appendEntries) {
 
@@ -150,21 +160,12 @@ public abstract class RaftStateContext {
         reply.setTerm(appendEntries.getTerm());
 
         Entry entry = this.logService.getEntryByIndex(appendEntries.getPrevLogIndex());
-        entry = entry == null ? new Entry((long) 0, (long) 0, null) : entry;
+        entry = entry == null ? (Entry) this.applicationContext.getBean("EntryZero") : entry;
 
-        if(entry.getIndex() == (long) appendEntries.getPrevLogIndex()) {
+        if((entry.getIndex() == (long) appendEntries.getPrevLogIndex()) && (entry.getTerm() == (long) appendEntries.getPrevLogTerm())) {
 
-            if (entry.getTerm() == (long) appendEntries.getPrevLogTerm()) {
-
-                reply.setSuccess(true);
-
-                this.applyAppendEntries(appendEntries);
-
-            } else {
-
-                reply.setSuccess(false);
-
-            }
+            reply.setSuccess(true);
+            this.applyAppendEntries(appendEntries);
 
         } else {
 
@@ -222,7 +223,7 @@ public abstract class RaftStateContext {
             this.logService.saveState(logState);
 
             // notify state machine of a new commit
-            this.commitmentPublisher.newCommit();
+            this.stateMachineWorker.newCommit();
 
         }
 

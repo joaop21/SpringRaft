@@ -8,9 +8,8 @@ import com.springRaft.servlet.persistence.log.LogService;
 import com.springRaft.servlet.persistence.log.LogState;
 import com.springRaft.servlet.persistence.state.State;
 import com.springRaft.servlet.persistence.state.StateService;
-import com.springRaft.servlet.stateMachine.CommitmentPublisher;
+import com.springRaft.servlet.stateMachine.StateMachineWorker;
 import com.springRaft.servlet.stateMachine.WaitingRequests;
-import com.springRaft.servlet.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -44,14 +43,14 @@ public class Leader extends RaftStateContext implements RaftState {
             RaftProperties raftProperties,
             TransitionManager transitionManager,
             OutboundManager outboundManager,
-            CommitmentPublisher commitmentPublisher,
+            StateMachineWorker stateMachineWorker,
             WaitingRequests waitingRequests
     ) {
         super(
                 applicationContext, consensusModule,
                 stateService, logService, raftProperties,
                 transitionManager, outboundManager,
-                commitmentPublisher, waitingRequests
+                stateMachineWorker, waitingRequests
         );
 
         this.nextIndex = new HashMap<>();
@@ -70,33 +69,30 @@ public class Leader extends RaftStateContext implements RaftState {
     @Override
     public void appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
 
+        if (appendEntriesReply == null) {
+            this.sendNextAppendEntries(from, this.nextIndex.get(from), this.matchIndex.get(from));
+            return;
+        }
+
         if (appendEntriesReply.getSuccess()) {
 
             long nextIndex = this.nextIndex.get(from);
             long matchIndex = this.matchIndex.get(from);
 
-            // compare last entry with next index for "from" server
-            if (nextIndex != this.logService.getLastEntryIndex() + 1) {
+            if ((nextIndex != this.logService.getLastEntryIndex() + 1) && (matchIndex == (nextIndex - 1))) {
+                // check if it is needed to set committed index
+                this.setCommitIndex(from);
 
-                if (matchIndex != (nextIndex - 1)) {
-
-                    this.matchIndex.put(from, nextIndex - 1);
-
-                } else {
-
-                    this.matchIndex.put(from, nextIndex);
-                    this.nextIndex.put(from, nextIndex + 1);
-
-                }
-
-            } else {
-
-                this.matchIndex.put(from, nextIndex - 1);
-
+                this.sendNextAppendEntries(from, nextIndex, matchIndex);
+                return;
             }
+
+            this.matchIndex.put(from, nextIndex - 1);
 
             // check if it is needed to set committed index
             this.setCommitIndex(from);
+
+            this.sendNextAppendEntries(from, nextIndex, nextIndex - 1);
 
         } else {
 
@@ -109,16 +105,17 @@ public class Leader extends RaftStateContext implements RaftState {
                 // clean leader's state
                 this.cleanVolatileState();
 
-                // deactivate PeerWorker
-                this.outboundManager.clearMessages();
-
                 // transit to follower state
                 this.transitionManager.setNewFollowerState();
 
             } else {
 
-                this.nextIndex.put(from, this.nextIndex.get(from) - 1);
+                long newNextIndex = this.nextIndex.get(from) - 1;
+
+                this.nextIndex.put(from, newNextIndex);
                 this.matchIndex.put(from, (long) 0);
+
+                this.sendNextAppendEntries(from, newNextIndex, 0);
 
             }
 
@@ -139,7 +136,7 @@ public class Leader extends RaftStateContext implements RaftState {
             reply.setTerm(currentTerm);
             reply.setVoteGranted(false);
 
-        } else if (requestVote.getTerm() > currentTerm) {
+        } else {
 
             // update term
             this.stateService.setState(requestVote.getTerm(), null);
@@ -151,8 +148,8 @@ public class Leader extends RaftStateContext implements RaftState {
 
             this.cleanVolatileState();
 
-            // deactivate PeerWorker
-            this.outboundManager.clearMessages();
+            // set new follower state in PeerWorker
+            this.outboundManager.newFollowerState();
 
             // transit to follower state
             this.transitionManager.setNewFollowerState();
@@ -174,64 +171,13 @@ public class Leader extends RaftStateContext implements RaftState {
             // clean leader's state
             this.cleanVolatileState();
 
-            // deactivate PeerWorker
-            this.outboundManager.clearMessages();
+            // set new follower state in PeerWorker
+            this.outboundManager.newFollowerState();
 
             // transit to follower state
             this.transitionManager.setNewFollowerState();
 
         }
-
-    }
-
-    @Override
-    public Pair<Message, Boolean> getNextMessage(String to) {
-
-        // get next index for specific "to" server
-        Long nextIndex = this.nextIndex.get(to);
-        Long matchIndex = this.matchIndex.get(to);
-        Entry entry = this.logService.getEntryByIndex(nextIndex);
-
-        if (entry == null && matchIndex == (nextIndex - 1)) {
-            // if there is no entry in log then send heartbeat
-
-            return new Pair<>(this.heartbeatAppendEntries(), true);
-
-        } else if (entry == null) {
-            // if there is no entry and the logs are not matching
-
-            return new Pair<>(this.heartbeatAppendEntries(), false);
-
-        } else if (matchIndex == (nextIndex - 1)) {
-            // if there is an entry, and the logs are matching,
-            // send that entry
-
-            List<Entry> entries = this.logService.getEntryBetweenIndex(nextIndex, nextIndex + this.raftProperties.getEntriesPerCommunication());
-            entries.sort(Comparator.comparing(Entry::getIndex));
-
-            this.nextIndex.put(to, nextIndex + entries.size());
-
-            return new Pair<>(this.createAppendEntries(entries.get(0), entries), false);
-
-        } else {
-            // if there is an entry, but the logs are not matching,
-            // send the appendEntries with no entries
-
-            return new Pair<>(this.createAppendEntries(entry), false);
-
-        }
-
-    }
-
-    @Override
-    public void start() {
-
-        log.info("LEADER");
-
-        this.reinitializeVolatileState();
-
-        // issue empty AppendEntries in parallel to each of the other servers in the cluster
-        this.outboundManager.newMessage();
 
     }
 
@@ -247,7 +193,7 @@ public class Leader extends RaftStateContext implements RaftState {
         }
 
         // notify PeerWorkers that a new request is available
-        this.outboundManager.newMessage();
+        this.outboundManager.newClientRequest();
 
         // get response after state machine applied it
         Object response = this.waitingRequests
@@ -260,6 +206,18 @@ public class Leader extends RaftStateContext implements RaftState {
 
     }
 
+    @Override
+    public void start() {
+
+        log.info("LEADER");
+
+        this.reinitializeVolatileState();
+
+        // issue empty AppendEntries in parallel to each of the other servers in the cluster
+        this.outboundManager.sendAuthorityHeartbeat(this.heartbeatAppendEntries());
+
+    }
+
     /* --------------------------------------------------- */
 
     @Override
@@ -268,7 +226,7 @@ public class Leader extends RaftStateContext implements RaftState {
         this.cleanVolatileState();
 
         // deactivate PeerWorker
-        this.outboundManager.clearMessages();
+        this.outboundManager.newFollowerState();
 
         // transit to follower state
         this.transitionManager.setNewFollowerState();
@@ -303,6 +261,48 @@ public class Leader extends RaftStateContext implements RaftState {
 
         this.nextIndex = new HashMap<>();
         this.matchIndex = new HashMap<>();
+
+    }
+
+    /* --------------------------------------------------- */
+
+    /**
+     * TODO
+     * */
+    private void sendNextAppendEntries(String to, long nextIndex, long matchIndex) {
+
+        Entry entry = this.logService.getEntryByIndex(nextIndex);
+        if (entry == null)
+            entry = (Entry) this.applicationContext.getBean("NullEntry");
+
+        if (entry.getIndex() == null && matchIndex == (nextIndex - 1)) {
+            // if there is no entry in log then send heartbeat
+
+            this.outboundManager.sendHeartbeat(this.heartbeatAppendEntries(), to);
+
+        } else if (entry.getIndex() == null) {
+            // if there is no entry and the logs are not matching
+
+            this.outboundManager.sendAppendEntries(this.heartbeatAppendEntries(), to);
+
+        } else if (matchIndex == (nextIndex - 1)) {
+            // if there is an entry, and the logs are matching,
+            // send that entry
+
+            List<Entry> entries = this.logService.getEntryBetweenIndex(nextIndex, nextIndex + this.raftProperties.getEntriesPerCommunication());
+            entries.sort(Comparator.comparing(Entry::getIndex));
+
+            this.nextIndex.put(to, nextIndex + entries.size());
+
+            this.outboundManager.sendAppendEntries(this.createAppendEntries(entries.get(0), entries), to);
+
+        } else {
+            // if there is an entry, but the logs are not matching,
+            // send the appendEntries with no entries
+
+            this.outboundManager.sendAppendEntries(this.createAppendEntries(entry), to);
+
+        }
 
     }
 
@@ -347,7 +347,7 @@ public class Leader extends RaftStateContext implements RaftState {
         State state = this.stateService.getState();
         LogState logState = this.logService.getState();
         Entry lastEntry = this.logService.getEntryByIndex(entry.getIndex() - 1);
-        lastEntry = lastEntry == null ? new Entry((long) 0, (long) 0, null) : lastEntry;
+        lastEntry = lastEntry == null ? (Entry) this.applicationContext.getBean("EntryZero") : lastEntry;
 
         return this.createAppendEntries(state, logState, lastEntry, entries);
 
@@ -401,7 +401,7 @@ public class Leader extends RaftStateContext implements RaftState {
                 this.logService.saveState(logState);
 
                 // notify state machine of a new commit
-                this.commitmentPublisher.newCommit();
+                this.stateMachineWorker.newCommit();
 
             }
         } catch (NullPointerException e) {

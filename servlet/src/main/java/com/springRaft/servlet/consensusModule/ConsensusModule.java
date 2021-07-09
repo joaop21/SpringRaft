@@ -1,7 +1,6 @@
 package com.springRaft.servlet.consensusModule;
 
 import com.springRaft.servlet.communication.message.*;
-import com.springRaft.servlet.util.Pair;
 import lombok.Getter;
 import lombok.Synchronized;
 import org.springframework.context.annotation.Scope;
@@ -32,6 +31,17 @@ public class ConsensusModule implements RaftState {
         this.current = state;
     }
 
+    /**
+     * Setter method which sets the new state in consensus module and starts that state.
+     *
+     * @param state The new raft state of this consensus module.
+     * */
+    @Synchronized
+    public void setAndStartNewState(RaftState state) {
+        this.setCurrentState(state);
+        this.start();
+    }
+
     /* --------------------------------------------------- */
 
     @Override
@@ -56,12 +66,6 @@ public class ConsensusModule implements RaftState {
     @Synchronized
     public void requestVoteReply(RequestVoteReply requestVoteReply) {
         this.current.requestVoteReply(requestVoteReply);
-    }
-
-    @Override
-    @Synchronized
-    public Pair<Message, Boolean> getNextMessage(String to) {
-        return this.current.getNextMessage(to);
     }
 
     @Override

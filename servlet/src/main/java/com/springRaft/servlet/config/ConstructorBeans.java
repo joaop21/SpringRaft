@@ -1,5 +1,6 @@
 package com.springRaft.servlet.config;
 
+import com.springRaft.servlet.persistence.log.Entry;
 import com.springRaft.servlet.persistence.log.LogState;
 import com.springRaft.servlet.persistence.state.State;
 import org.springframework.context.annotation.Bean;
@@ -8,16 +9,6 @@ import org.springframework.web.client.RestTemplate;
 
 @Configuration
 public class ConstructorBeans {
-
-    /**
-     * Bean for creating LogState Objects.
-     *
-     * @return LogState created with initialization arguments.
-     * */
-    @Bean(name = "InitialLogState")
-    public LogState newLogState() {
-        return new LogState((long) 1, (long) 0, (long) 0, (long) 0);
-    }
 
     /**
      * Bean for creating RestTemplate Objects.
@@ -29,6 +20,20 @@ public class ConstructorBeans {
         return new RestTemplate();
     }
 
+    /* --------------------------------------------------- */
+
+    /**
+     * Bean for creating LogState Objects.
+     *
+     * @return LogState created with initialization arguments.
+     * */
+    @Bean(name = "InitialLogState")
+    public LogState newLogState() {
+        return new LogState((long) 1, (long) 0, (long) 0, (long) 0);
+    }
+
+    /* --------------------------------------------------- */
+
     /**
      * Bean for creating State Objects.
      *
@@ -37,6 +42,24 @@ public class ConstructorBeans {
     @Bean(name = "InitialState")
     public State newState() {
         return new State((long) 1,(long) 1,null);
+    }
+
+    /* --------------------------------------------------- */
+
+    /**
+     * TODO
+     * */
+    @Bean(name = "NullEntry")
+    public Entry nullEntry() {
+        return new Entry(null, null, null);
+    }
+
+    /**
+     * TODO
+     * */
+    @Bean(name = "EntryZero")
+    public Entry entryZero() {
+        return new Entry((long) 0, (long) 0, null);
     }
 
 }

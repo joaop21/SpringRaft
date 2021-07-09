@@ -7,7 +7,7 @@ import com.springRaft.servlet.config.RaftProperties;
 import com.springRaft.servlet.stateMachine.EmbeddedServer;
 import com.springRaft.servlet.stateMachine.IndependentServer;
 import com.springRaft.servlet.stateMachine.StateMachineStrategy;
-import com.springRaft.servlet.worker.StateMachineWorker;
+import com.springRaft.servlet.stateMachine.StateMachineWorker;
 import lombok.AllArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;

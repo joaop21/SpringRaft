@@ -1,7 +1,6 @@
 package com.springRaft.servlet.consensusModule;
 
 import com.springRaft.servlet.config.RaftProperties;
-import com.springRaft.servlet.worker.StateTransition;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationContext;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -50,9 +49,6 @@ public class TransitionManager {
      * */
     public ScheduledFuture<?> setElectionTimeout() {
 
-        StateTransition transition = applicationContext
-                .getBean(StateTransition.class, applicationContext, consensusModule, Candidate.class);
-
         Long timeout = this.getRandomLongBetweenRange(
                 this.raftProperties.getElectionTimeoutMin().toMillis(),
                 this.raftProperties.getElectionTimeoutMax().toMillis()
@@ -61,21 +57,30 @@ public class TransitionManager {
         Date date = new Date(System.currentTimeMillis() + timeout);
 
         // schedule task
-        return this.threadPoolTaskScheduler.schedule(transition, date);
+        return this.threadPoolTaskScheduler.schedule(
+                () -> {
+                    RaftState raftState = applicationContext.getBean(Candidate.class);
+                    this.consensusModule.setAndStartNewState(raftState);
+                }
+            , date);
     }
 
     /**
-     * TODO
+     * Method for creating a new follower state transition which takes place on transition scheduler.
      * */
     public void setNewFollowerState() {
-        this.setNewState(Follower.class);
+        Follower follower =  this.applicationContext.getBean(Follower.class);
+        this.consensusModule.setCurrentState(follower);
+        follower.start();
     }
 
     /**
-     * TODO
+     * Method for creating a new leader state transition which takes place on transition scheduler.
      * */
     public void setNewLeaderState() {
-        this.setNewState(Leader.class);
+        Leader leader =  this.applicationContext.getBean(Leader.class);
+        this.consensusModule.setCurrentState(leader);
+        leader.start();
     }
 
     /**
@@ -104,12 +109,4 @@ public class TransitionManager {
         return op.isPresent() ? op.getAsLong() : min;
     }
 
-    /**
-     * TODO
-     * */
-    private void setNewState(Class<? extends RaftState> stateClass) {
-        RaftState state = applicationContext.getBean(stateClass);
-        this.consensusModule.setCurrentState(state);
-        state.start();
-    }
 }

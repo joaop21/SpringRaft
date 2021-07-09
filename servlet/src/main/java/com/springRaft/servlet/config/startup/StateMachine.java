@@ -1,7 +1,6 @@
 package com.springRaft.servlet.config.startup;
 
-import com.springRaft.servlet.stateMachine.CommitmentPublisher;
-import com.springRaft.servlet.worker.StateMachineWorker;
+import com.springRaft.servlet.stateMachine.StateMachineWorker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.ApplicationArguments;
@@ -38,10 +37,6 @@ public class StateMachine implements ApplicationRunner {
     public void run(ApplicationArguments args) {
 
         StateMachineWorker worker = this.applicationContext.getBean(StateMachineWorker.class);
-
-        // state machine subscribes events from a publisher of commits
-        CommitmentPublisher publisher = this.applicationContext.getBean(CommitmentPublisher.class);
-        publisher.subscribe(worker);
 
         this.taskExecutor.execute(worker);
 

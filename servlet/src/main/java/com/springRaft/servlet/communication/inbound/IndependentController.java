@@ -5,7 +5,7 @@ import com.springRaft.servlet.communication.outbound.OutboundContext;
 import com.springRaft.servlet.config.RaftProperties;
 import com.springRaft.servlet.consensusModule.ConsensusModule;
 import lombok.AllArgsConstructor;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.servlet.http.HttpServletRequest;
 
 @RestController
-@ConditionalOnProperty(name = "raft.state-machine-strategy", havingValue = "INDEPENDENT")
+@ConditionalOnExpression("'${raft.state-machine-strategy}'.equals('INDEPENDENT') || '${raft.state-machine-strategy}'.equals('NONE')")
 @AllArgsConstructor
 public class IndependentController implements ClientInboundCommunication {
 
