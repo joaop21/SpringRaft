@@ -41,8 +41,8 @@ public class StateMachineWorker implements Runnable, CommitmentSubscriber {
     /* --------------------------------------------------- */
 
     @Autowired
-    public StateMachineWorker(LogService logService, WaitingRequests waitingRequests) {
-        this.strategy = null;
+    public StateMachineWorker(StateMachineStrategy stateMachineStrategy, LogService logService, WaitingRequests waitingRequests) {
+        this.strategy = stateMachineStrategy;
         this.logService = logService;
         this.waitingRequests = waitingRequests;
         this.lock = new ReentrantLock();
