@@ -9,6 +9,7 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.task.TaskExecutor;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -30,7 +31,7 @@ public class Initialization implements ApplicationRunner {
     public Initialization(
             ApplicationContext applicationContext,
             ConsensusModule consensusModule,
-            @Qualifier(value = "generalPurposeExecutor") TaskExecutor taskExecutor
+            @Qualifier(value = "generalPurposeExecutor") ThreadPoolTaskExecutor taskExecutor
     ) {
 
         this.applicationContext = applicationContext;

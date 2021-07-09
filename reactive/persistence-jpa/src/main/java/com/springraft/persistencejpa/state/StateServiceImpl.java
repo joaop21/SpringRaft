@@ -33,7 +33,7 @@ public class StateServiceImpl implements StateService {
 
     public StateServiceImpl(
             StateRepository repository,
-            @Value("raft.hostname") String host,
+            @Value("${raft.hostname}") String host,
             @Qualifier("jpaScheduler") Scheduler jpaScheduler
     ) {
         this.repository = repository;

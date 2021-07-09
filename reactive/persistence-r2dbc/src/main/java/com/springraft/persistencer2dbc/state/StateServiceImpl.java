@@ -28,7 +28,7 @@ public class StateServiceImpl implements StateService {
 
     public StateServiceImpl(
             StateRepository repository,
-            @Value("raft.hostname") String host
+            @Value("${raft.hostname}") String host
     ) {
         this.repository = repository;
         this.host = host;

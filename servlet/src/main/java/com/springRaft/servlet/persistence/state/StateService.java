@@ -18,7 +18,7 @@ public class StateService {
 
     public StateService(
             StateRepository repository,
-            @Value("raft.hostname") String host
+            @Value("${raft.hostname}") String host
     ) {
         this.repository = repository;
         this.host = host;
