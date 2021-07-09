@@ -43,7 +43,7 @@ public class RaftController implements RaftInboundCommunication {
 
         AppendEntriesReply reply = this.appendEntries(appendEntries);
 
-        log.info("\nREQUEST: " + appendEntries.toString() + "\n" + "RESPONSE: " + reply);
+        // log.info("\nREQUEST: " + appendEntries.toString() + "\n" + "RESPONSE: " + reply);
 
         return new ResponseEntity<>(reply, HttpStatus.OK);
 
@@ -62,7 +62,7 @@ public class RaftController implements RaftInboundCommunication {
 
         RequestVoteReply reply = this.requestVote(requestVote);
 
-        log.info("\nREQUEST: " + requestVote.toString() + "\n" + "RESPONSE: " + reply);
+        // log.info("\nREQUEST: " + requestVote.toString() + "\n" + "RESPONSE: " + reply);
 
         return new ResponseEntity<>(reply, HttpStatus.OK);
 
