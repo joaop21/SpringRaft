@@ -7,10 +7,10 @@ services:
 
   raft1:
     build: 
-      context: ../../../../reactive
+      context: ../../../../servlet
       args:
         profile: JPA
-    image: spring-raft:reactive-jpa
+    image: spring-raft:servlet-jpa
     container_name: raft1
     environment:
       - RAFT_HOSTNAME=raft1:8080
@@ -21,7 +21,7 @@ services:
       - 8001:8080
 
   raft2:
-    image: spring-raft:reactive-jpa
+    image: spring-raft:servlet-jpa
     container_name: raft2
     environment:
       - RAFT_HOSTNAME=raft2:8080
@@ -32,7 +32,7 @@ services:
       - 8002:8080
 
   raft3:
-    image: spring-raft:reactive-jpa
+    image: spring-raft:servlet-jpa
     container_name: raft3
     environment:
       - RAFT_HOSTNAME=raft3:8080

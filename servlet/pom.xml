@@ -1,117 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
 
-	<parent>
-		<groupId>org.springframework.boot</groupId>
-		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>2.5.2</version>
-		<relativePath/> <!-- lookup parent from repository -->
-	</parent>
+    <groupId>org.springRaft</groupId>
+    <artifactId>servlet</artifactId>
+    <version>1.0</version>
 
-	<groupId>com.springRaft</groupId>
-	<artifactId>servlet</artifactId>
-	<version>0.0.5</version>
-	<packaging>jar</packaging>
+    <packaging>pom</packaging>
 
-	<name>servlet</name>
-	<description>Raft Consensus module for Spring MVC (Servlet)</description>
+    <properties>
+        <maven.compiler.source>16</maven.compiler.source>
+        <maven.compiler.target>16</maven.compiler.target>
+    </properties>
 
-	<properties>
-		<java.version>16</java.version>
-	</properties>
+    <modules>
+        <module>persistence</module>
+        <module>persistence-jpa</module>
+        <module>raft</module>
+    </modules>
 
-	<profiles>
-
-		<profile>
-			<id>JPA</id>
-			<activation>
-				<activeByDefault>true</activeByDefault>
-				<property>
-					<name>raft.database-connectivity</name>
-					<value>JPA</value>
-				</property>
-			</activation>
-			<dependencies>
-				<!-- Use JPA -->
-				<dependency>
-					<groupId>org.springframework.boot</groupId>
-					<artifactId>spring-boot-starter-data-jpa</artifactId>
-				</dependency>
-			</dependencies>
-		</profile>
-
-	</profiles>
-
-	<dependencies>
-
-		<!-- Spring boot and tests -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-web</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-
-		<!-- To reduce some boilerplate configuration -->
-		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-			<optional>true</optional>
-		</dependency>
-
-		<!-- To use a configuration processor for application properties -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-configuration-processor</artifactId>
-			<optional>true</optional>
-		</dependency>
-
-		<!-- Use H2 database -->
-		<dependency>
-			<groupId>com.h2database</groupId>
-			<artifactId>h2</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-
-		<!-- Use PostgreSQL -->
-		<dependency>
-			<groupId>org.postgresql</groupId>
-			<artifactId>postgresql</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-
-	</dependencies>
-
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-				<configuration>
-					<classifier>exec</classifier>
-					<excludes>
-						<exclude>
-							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
-						</exclude>
-					</excludes>
-				</configuration>
-			</plugin>
-		</plugins>
-	</build>
-
-	<!-- Publish packages on github -->
-	<distributionManagement>
-		<repository>
-			<id>github</id>
-			<name>GitHub joaop21 Apache Maven Packages</name>
-			<url>https://maven.pkg.github.com/joaop21/SpringRaft</url>
-		</repository>
-	</distributionManagement>
+    <!-- Publish packages on github -->
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub joaop21 Apache Maven Packages</name>
+            <url>https://maven.pkg.github.com/joaop21/SpringRaft</url>
+        </repository>
+    </distributionManagement>
 
 </project>
