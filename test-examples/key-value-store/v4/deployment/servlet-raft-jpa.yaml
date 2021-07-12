@@ -6,35 +6,38 @@ services:
   # Cluster containers
 
   raft1:
-    build: ../servlet
-    image: spring-raft-v4:servlet
+    build: 
+      context: ../../../../servlet
+      args:
+        profile: JPA
+    image: spring-raft:servlet-jpa
     container_name: raft1
     environment:
       - RAFT_HOSTNAME=raft1:8080
-      - RAFT_APPLICATION-SERVER=localhost:8080
+      - RAFT_DATABASE-CONNECTIVITY=JPA
     env_file:
-      - servlet-raft-properties.env
+      - raft-properties.env
     ports:
       - 8001:8080
 
   raft2:
-    image: spring-raft-v4:servlet
+    image: spring-raft:servlet-jpa
     container_name: raft2
     environment:
       - RAFT_HOSTNAME=raft2:8080
-      - RAFT_APPLICATION-SERVER=localhost:8080
+      - RAFT_DATABASE-CONNECTIVITY=JPA
     env_file:
-      - servlet-raft-properties.env
+      - raft-properties.env
     ports:
       - 8002:8080
 
   raft3:
-    image: spring-raft-v4:servlet
+    image: spring-raft:servlet-jpa
     container_name: raft3
     environment:
       - RAFT_HOSTNAME=raft3:8080
-      - RAFT_APPLICATION-SERVER=localhost:8080
+      - RAFT_DATABASE-CONNECTIVITY=JPA
     env_file:
-      - servlet-raft-properties.env
+      - raft-properties.env
     ports:
       - 8003:8080

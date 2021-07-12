@@ -16,7 +16,7 @@ services:
       - RAFT_HOSTNAME=raft1:8080
       - RAFT_DATABASE-CONNECTIVITY=JPA
     env_file:
-      - reactive-raft-properties.env
+      - raft-properties.env
     ports:
       - 8001:8080
 
@@ -27,7 +27,7 @@ services:
       - RAFT_HOSTNAME=raft2:8080
       - RAFT_DATABASE-CONNECTIVITY=JPA
     env_file:
-      - reactive-raft-properties.env
+      - raft-properties.env
     ports:
       - 8002:8080
 
@@ -38,6 +38,6 @@ services:
       - RAFT_HOSTNAME=raft3:8080
       - RAFT_DATABASE-CONNECTIVITY=JPA
     env_file:
-      - reactive-raft-properties.env
+      - raft-properties.env
     ports:
       - 8003:8080
