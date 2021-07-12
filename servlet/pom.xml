@@ -17,6 +17,8 @@
 
     <modules>
         <module>persistence</module>
+        <module>persistence-jpa</module>
+        <module>raft</module>
     </modules>
 
     <!-- Publish packages on github -->
