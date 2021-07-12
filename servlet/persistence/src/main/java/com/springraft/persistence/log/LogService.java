@@ -24,7 +24,7 @@ public interface LogService {
      * @param logState New log state to insert/update.
      * @return LogState New persisted log state.
      * */
-    LogState saveState(Object logState);
+    LogState saveState(LogState logState);
 
     /**
      * Method for getting an entry with a specific index.
@@ -57,7 +57,7 @@ public interface LogService {
      *
      * @return List of the Entries found.
      * */
-    List<Entry> getEntryBetweenIndex(Long minIndex, Long maxIndex);
+    List<? extends Entry> getEntryBetweenIndex(Long minIndex, Long maxIndex);
 
     /**
      * Method that inserts a contiguously new entry in the existing log.
@@ -82,6 +82,6 @@ public interface LogService {
      *
      * @return List<Entry> Entries saved.
      * */
-    List<Entry> saveAllEntries(List<Entry> entries);
+    List<? extends Entry> saveAllEntries(List<? extends Entry> entries);
 
 }
