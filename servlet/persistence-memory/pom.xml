@@ -11,50 +11,14 @@
     </parent>
 
     <groupId>com.springRaft</groupId>
-    <artifactId>raft</artifactId>
+    <artifactId>persistence-memory</artifactId>
     <version>0.0.1</version>
-    <name>raft</name>
+    <name>persistence-memory</name>
     <description>Demo project for Spring Boot</description>
 
     <properties>
         <java.version>16</java.version>
     </properties>
-
-    <profiles>
-        <profile>
-            <id>JPA</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-                <property>
-                    <name>raft.database-connectivity</name>
-                    <value>JPA</value>
-                </property>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>com.springRaft</groupId>
-                    <artifactId>persistence-jpa</artifactId>
-                    <version>0.0.1</version>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
-            <id>MEMORY</id>
-            <activation>
-                <property>
-                    <name>raft.database-connectivity</name>
-                    <value>MEMORY</value>
-                </property>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>com.springRaft</groupId>
-                    <artifactId>persistence-memory</artifactId>
-                    <version>0.0.1</version>
-                </dependency>
-            </dependencies>
-        </profile>
-    </profiles>
 
     <dependencies>
         <dependency>
@@ -78,7 +42,6 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Internal dependencies -->
         <dependency>
             <groupId>com.springRaft</groupId>
             <artifactId>persistence</artifactId>
@@ -92,7 +55,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <classifier>exec</classifier>
+
                     <excludes>
                         <exclude>
                             <groupId>org.projectlombok</groupId>
