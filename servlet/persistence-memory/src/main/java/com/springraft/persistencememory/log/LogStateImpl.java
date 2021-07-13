@@ -26,9 +26,24 @@ public class LogStateImpl implements LogState {
 
     /* --------------------------------------------------- */
 
+    public LogStateImpl(LogStateImpl logState) {
+        this.id = logState.getId();
+        this.committedIndex = logState.getCommittedIndex();
+        this.committedTerm = logState.getCommittedTerm();
+        this.lastApplied = logState.getLastApplied();
+    }
+
+    /* --------------------------------------------------- */
+
     @Override
     public LogState LogState(Long id, Long committedIndex, Long committedTerm, Long lastApplied) {
         return new LogStateImpl(id, committedIndex, committedTerm, lastApplied);
+    }
+
+    /* --------------------------------------------------- */
+
+    public LogStateImpl clone() {
+        return new LogStateImpl(this);
     }
 
 }

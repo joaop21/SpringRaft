@@ -27,13 +27,13 @@ public class StateServiceImpl implements StateService {
 
     @Override
     public State getState() {
-        return this.state;
+        return this.state == null ? null : this.state.clone();
     }
 
     @Override
     public State saveState(State state) {
-        this.state = (StateImpl) state;
-        return this.state;
+        this.state = ((StateImpl) state).clone();
+        return this.state.clone();
     }
 
     /* --------------------------------------------------- */

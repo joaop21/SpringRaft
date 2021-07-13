@@ -23,9 +23,23 @@ public class StateImpl implements State {
 
     /* --------------------------------------------------- */
 
+    public StateImpl(StateImpl state) {
+        this.id = state.getId();
+        this.currentTerm = state.getCurrentTerm();
+        this.votedFor = state.getVotedFor();
+    }
+
+    /* --------------------------------------------------- */
+
     @Override
     public State State(long id, long currentTerm, String votedFor) {
         return new StateImpl(id, currentTerm, votedFor);
+    }
+
+    /* --------------------------------------------------- */
+
+    public StateImpl clone() {
+        return new StateImpl(this);
     }
 
 }

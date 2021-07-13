@@ -50,4 +50,10 @@ public class EntryImpl implements Entry {
         return new EntryImpl(index, term, command);
     }
 
+    /* --------------------------------------------------- */
+
+    public EntryImpl clone() {
+        return new EntryImpl(this);
+    }
+
 }
