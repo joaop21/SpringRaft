@@ -82,7 +82,7 @@ public class LogServiceImpl implements LogService {
 
     @Override
     public void deleteIndexesGreaterThan(Long index) {
-        this.clonedSublist(Math.toIntExact(index), this.log.size()).clear();
+        this.log.subList(Math.toIntExact(index), this.log.size()).clear();
     }
 
     @Override

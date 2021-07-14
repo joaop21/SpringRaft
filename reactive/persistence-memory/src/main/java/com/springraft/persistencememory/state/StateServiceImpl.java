@@ -2,8 +2,6 @@ package com.springraft.persistencememory.state;
 
 import com.springraft.persistence.state.State;
 import com.springraft.persistence.state.StateService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
@@ -12,9 +10,6 @@ import reactor.core.publisher.Mono;
 @Service
 @Scope("singleton")
 public class StateServiceImpl implements StateService {
-
-    /* Logger */
-    private static final Logger log = LoggerFactory.getLogger(StateServiceImpl.class);
 
     /* Repository for State operations */
     private StateImpl state;

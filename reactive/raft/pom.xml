@@ -55,6 +55,22 @@
                 </dependency>
             </dependencies>
         </profile>
+        <profile>
+            <id>MEMORY</id>
+            <activation>
+                <property>
+                    <name>raft.database-connectivity</name>
+                    <value>MEMORY</value>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>com.springRaft</groupId>
+                    <artifactId>persistence-memory</artifactId>
+                    <version>0.0.1</version>
+                </dependency>
+            </dependencies>
+        </profile>
 
     </profiles>
 
