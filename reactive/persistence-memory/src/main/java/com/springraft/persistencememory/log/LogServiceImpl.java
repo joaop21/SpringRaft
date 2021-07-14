@@ -108,7 +108,6 @@ public class LogServiceImpl implements LogService {
 
     @Override
     public Flux<? extends Entry> saveAllEntries(List<? extends Entry> entries) {
-
         return Flux.defer(() -> {
             for (Entry entry : entries)
                 this.log.add(((EntryImpl) entry).clone());
@@ -141,7 +140,7 @@ public class LogServiceImpl implements LogService {
      * TODO
      * */
     private Mono<EntryImpl> insertEntryImpl(Entry entry) {
-        return this.getLastEntryIndex()
+        return Mono.defer(this::getLastEntryIndex)
                 .doOnNext(lastIndex -> ((EntryImpl)entry).setIndex(lastIndex + 1))
                 .doOnNext(lastIndex -> this.log.add(((EntryImpl) entry).clone()))
                 .flatMap(lastIndex -> Mono.just(this.log.get(this.log.size() - 1).clone()));
