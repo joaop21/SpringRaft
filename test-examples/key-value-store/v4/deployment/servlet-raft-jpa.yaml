@@ -14,6 +14,7 @@ services:
     container_name: raft1
     environment:
       - RAFT_HOSTNAME=raft1:8080
+      - RAFT_DATABASE=h2
       - RAFT_DATABASE-CONNECTIVITY=JPA
     env_file:
       - raft-properties.env
@@ -25,6 +26,7 @@ services:
     container_name: raft2
     environment:
       - RAFT_HOSTNAME=raft2:8080
+      - RAFT_DATABASE=h2
       - RAFT_DATABASE-CONNECTIVITY=JPA
     env_file:
       - raft-properties.env
@@ -36,6 +38,7 @@ services:
     container_name: raft3
     environment:
       - RAFT_HOSTNAME=raft3:8080
+      - RAFT_DATABASE=h2
       - RAFT_DATABASE-CONNECTIVITY=JPA
     env_file:
       - raft-properties.env

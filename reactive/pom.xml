@@ -19,6 +19,7 @@
         <module>persistence</module>
         <module>persistence-r2dbc</module>
         <module>persistence-jpa</module>
+        <module>persistence-memory</module>
         <module>raft</module>
     </modules>
 

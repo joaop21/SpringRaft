@@ -11,68 +11,14 @@
     </parent>
 
     <groupId>com.springRaft</groupId>
-    <artifactId>raft</artifactId>
+    <artifactId>persistence-memory</artifactId>
     <version>0.0.1</version>
-    <name>raft</name>
+    <name>persistence-memory</name>
     <description>Demo project for Spring Boot</description>
 
     <properties>
         <java.version>16</java.version>
     </properties>
-
-    <profiles>
-
-        <profile>
-            <id>JPA</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-                <property>
-                    <name>raft.database-connectivity</name>
-                    <value>JPA</value>
-                </property>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>com.springRaft</groupId>
-                    <artifactId>persistence-jpa</artifactId>
-                    <version>0.0.1</version>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
-            <id>R2DBC</id>
-            <activation>
-                <property>
-                    <name>raft.database-connectivity</name>
-                    <value>R2DBC</value>
-                </property>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>com.springRaft</groupId>
-                    <artifactId>persistence-r2dbc</artifactId>
-                    <version>0.0.1</version>
-                </dependency>
-            </dependencies>
-        </profile>
-        <profile>
-            <id>MEMORY</id>
-            <activation>
-                <property>
-                    <name>raft.database-connectivity</name>
-                    <value>MEMORY</value>
-                </property>
-            </activation>
-            <dependencies>
-                <dependency>
-                    <groupId>com.springRaft</groupId>
-                    <artifactId>persistence-memory</artifactId>
-                    <version>0.0.1</version>
-                </dependency>
-            </dependencies>
-        </profile>
-
-    </profiles>
 
     <dependencies>
         <dependency>
@@ -99,12 +45,6 @@
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-test</artifactId>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.h2database</groupId>
-            <artifactId>h2</artifactId>
-            <version>1.4.200</version>
-            <scope>compile</scope>
         </dependency>
 
         <!-- Internal dependencies -->
