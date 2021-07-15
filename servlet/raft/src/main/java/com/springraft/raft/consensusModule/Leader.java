@@ -112,6 +112,9 @@ public class Leader extends RaftStateContext implements RaftState {
 
                 long newNextIndex = this.nextIndex.get(from) - 1;
 
+                if (this.nextIndex.get(from) > this.nextIndex.get(from) - (appendEntriesReply.getToIndex() - appendEntriesReply.getFromIndex()))
+                    newNextIndex = this.nextIndex.get(from) - (appendEntriesReply.getToIndex() - appendEntriesReply.getFromIndex()) - 1;
+
                 this.nextIndex.put(from, newNextIndex);
                 this.matchIndex.put(from, (long) 0);
 
