@@ -123,6 +123,8 @@ public abstract class RaftStateContext {
     protected AppendEntriesReply appendEntries(AppendEntries appendEntries) {
 
         AppendEntriesReply reply = this.applicationContext.getBean(AppendEntriesReply.class);
+        reply.setFromIndex(0L);
+        reply.setToIndex(0L);
 
         long currentTerm = this.stateService.getCurrentTerm();
 
@@ -165,7 +167,7 @@ public abstract class RaftStateContext {
         if((entry.getIndex() == (long) appendEntries.getPrevLogIndex()) && (entry.getTerm() == (long) appendEntries.getPrevLogTerm())) {
 
             reply.setSuccess(true);
-            this.applyAppendEntries(appendEntries);
+            this.applyAppendEntries(appendEntries, reply);
 
         } else {
 
@@ -180,9 +182,15 @@ public abstract class RaftStateContext {
      *
      * @param appendEntries The received AppendEntries communication.
      * */
-    private void applyAppendEntries(AppendEntries appendEntries) {
+    private void applyAppendEntries(AppendEntries appendEntries, AppendEntriesReply reply) {
 
-        if (appendEntries.getEntries().size() != 0) {
+        int appendEntriesSize = appendEntries.getEntries().size();
+
+        if (appendEntriesSize != 0) {
+
+            // update reply
+            reply.setFromIndex(appendEntries.getEntries().get(0).getIndex());
+            reply.setToIndex(appendEntries.getEntries().get(appendEntriesSize - 1).getIndex());
 
             // delete all the following conflict entries
             this.logService.deleteIndexesGreaterThan(appendEntries.getPrevLogIndex());

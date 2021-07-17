@@ -54,6 +54,9 @@ public class RaftProperties {
     /* Maximum of entries that a communication can carry */
     private final Integer entriesPerCommunication;
 
+    /* Maximum of communications in transit in a given time */
+    private final Integer communicationsInTransit;
+
     /* Database engine to use */
     private final String database;
 
@@ -76,7 +79,8 @@ public class RaftProperties {
             @DefaultValue("REST") String applicationCommunicationStrategy,
             @DefaultValue("INDEPENDENT") String stateMachineStrategy,
             @DefaultValue("localhost:9002") String applicationServer,
-            @DefaultValue("10") int entriesPerCommunication,
+            @DefaultValue("1") int entriesPerCommunication,
+            @DefaultValue("1") int communicationsInTransit,
             @DefaultValue("h2") String database,
             @DefaultValue("JPA") String databaseConnectivity
     ) {
@@ -103,6 +107,7 @@ public class RaftProperties {
         this.applicationServer = applicationServer;
 
         this.entriesPerCommunication = entriesPerCommunication;
+        this.communicationsInTransit = communicationsInTransit;
 
         this.database = database;
         this.databaseConnectivity = databaseConnectivity;
@@ -139,6 +144,7 @@ public class RaftProperties {
                 .append("\tStrategy for Cluster: ").append(clusterCommunicationStrategy).append("\n")
                 .append("\tStrategy for Application: ").append(applicationCommunicationStrategy).append("\n")
                 .append("\tEntries per Communication: ").append(entriesPerCommunication).append("\n")
+                .append("\tCommunications in Transit: ").append(communicationsInTransit).append("\n")
                 .append("\nState Machine strategy is: ").append(stateMachineStrategy).append("\n")
                 .append("\nApplication Server is: ").append(applicationServer).append("\n")
                 .append("\nPersistence:\n")
