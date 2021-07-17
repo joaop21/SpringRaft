@@ -44,7 +44,7 @@ public class PeerWorker implements Runnable, MessageSubscriber {
     private final ConcurrentQueue<Pair<Boolean, Callable<Void>>> rpcQueue;
 
     /* Disposable of the ongoing communication */
-    private List<Future<Void>> ongoingCommunications;
+    private final List<Future<Void>> ongoingCommunications;
 
     /* Flag that marks if the ongoing communication is an heartbeat */
     private final AtomicBoolean isHeartbeat;
@@ -128,7 +128,6 @@ public class PeerWorker implements Runnable, MessageSubscriber {
 
             // if the operation requires the ongoing communications to be cancelled
             if (rpc.first()) {
-                int size = this.ongoingCommunications.size();
                 for (int i = this.ongoingCommunications.size() - 1 ; i >= 0 ; i--) {
                     Future<Void> communication = this.ongoingCommunications.remove(i);
                     if (communication != null && !communication.isCancelled())
