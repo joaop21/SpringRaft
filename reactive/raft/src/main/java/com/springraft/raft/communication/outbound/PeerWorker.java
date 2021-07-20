@@ -3,6 +3,7 @@ package com.springraft.raft.communication.outbound;
 import com.springraft.raft.communication.message.*;
 import com.springraft.raft.config.RaftProperties;
 import com.springraft.raft.consensusModule.ConsensusModule;
+import com.springraft.raft.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Scope;
@@ -15,6 +16,8 @@ import reactor.core.publisher.Sinks;
 
 import java.net.ConnectException;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -39,14 +42,14 @@ public class PeerWorker implements MessageSubscriber {
     /* String of the address of the target server */
     private final String targetServerName;
 
-    /* Sink for publish new rpcs */
-    private final Sinks.Many<Mono<?>> rpcSink;
+    /* Sink for publish new rpcs and a boolean which represents the need to delete the ongoing communications */
+    private final Sinks.Many<Pair<Boolean,Mono<?>>> rpcSink;
 
     /* Sink for publish new client requests */
     private final Sinks.Many<Boolean> requestsSink;
 
     /* Disposable of the ongoing communication */
-    private Disposable ongoingCommunication;
+    private List<Disposable> ongoingCommunications;
 
     /* Flag that marks if the ongoing communication is an heartbeat */
     private final AtomicBoolean isHeartbeat;
@@ -70,7 +73,7 @@ public class PeerWorker implements MessageSubscriber {
         this.rpcSink = Sinks.many().unicast().onBackpressureBuffer();
         this.requestsSink = Sinks.many().unicast().onBackpressureBuffer();
 
-        this.ongoingCommunication = null;
+        this.ongoingCommunications = new ArrayList<>();
         this.isHeartbeat = new AtomicBoolean(false);
         this.communicationStart = new AtomicLong(0);
 
@@ -82,27 +85,27 @@ public class PeerWorker implements MessageSubscriber {
 
     @Override
     public Mono<Void> sendRequestVote(RequestVote requestVote) {
-        return Mono.just(this.rpcSink.tryEmitNext(this.handleRequestVote(requestVote))).then();
+        return Mono.just(this.rpcSink.tryEmitNext(new Pair<>(true, this.handleRequestVote(requestVote)))).then();
     }
 
     @Override
     public Mono<Void> sendAuthorityHeartbeat(AppendEntries heartbeat) {
-        return Mono.just(this.rpcSink.tryEmitNext(this.handleHeartbeat(heartbeat))).then();
+        return Mono.just(this.rpcSink.tryEmitNext(new Pair<>(true, this.handleHeartbeat(heartbeat)))).then();
     }
 
     @Override
     public Mono<Void> sendHeartbeat(AppendEntries heartbeat, String to) {
-        return Mono.just(this.rpcSink.tryEmitNext(this.handleHeartbeat(heartbeat))).then();
+        return Mono.just(this.rpcSink.tryEmitNext(new Pair<>(true, this.handleHeartbeat(heartbeat)))).then();
     }
 
     @Override
     public Mono<Void> sendAppendEntries(AppendEntries appendEntries, String to) {
-        return Mono.just(this.rpcSink.tryEmitNext(this.handleNormalAppendEntries(appendEntries))).then();
+        return Mono.just(this.rpcSink.tryEmitNext(new Pair<>(false, this.handleNormalAppendEntries(appendEntries)))).then();
     }
 
     @Override
     public Mono<Void> newFollowerState() {
-        return Mono.just(this.rpcSink.tryEmitNext(Mono.empty())).then();
+        return Mono.just(this.rpcSink.tryEmitNext(new Pair<>(true, Mono.empty()))).then();
     }
 
     /**
@@ -113,20 +116,26 @@ public class PeerWorker implements MessageSubscriber {
      * */
     private Flux<?> communicationsHandler() {
         return this.rpcSink.asFlux()
-                .doOnNext(mono -> this.disposeCurrentAndSetNew(mono.subscribe()));
+                .doOnNext(pair -> this.disposeCurrentAndSetNew(pair.first(), pair.second().subscribe()));
     }
 
     /**
      * Method that dispose the current communication task, if exists one, and set a new one.
      *
+     * @param deleteOngoing Boolean thar tells if it is necessary to remove the current ongoing communications
      * @param disposable New communication task
      * */
-    private void disposeCurrentAndSetNew(Disposable disposable) {
+    private void disposeCurrentAndSetNew(Boolean deleteOngoing, Disposable disposable) {
 
-        if (this.ongoingCommunication != null && !this.ongoingCommunication.isDisposed())
-            this.ongoingCommunication.dispose();
+        if(deleteOngoing) {
+            for (int i = this.ongoingCommunications.size() - 1 ; i >= 0 ; i--) {
+                Disposable communication = this.ongoingCommunications.remove(i);
+                if(communication != null && !communication.isDisposed())
+                    communication.dispose();
+            }
+        }
 
-        this.ongoingCommunication = disposable;
+        this.ongoingCommunications.add(disposable);
 
     }
 
@@ -146,10 +155,12 @@ public class PeerWorker implements MessageSubscriber {
                 .flatMap(bool -> {
                     if (this.isHeartbeat.get()) {
 
-                        if (this.ongoingCommunication != null && !this.ongoingCommunication.isDisposed())
-                            this.ongoingCommunication.dispose();
+                        for (int i = this.ongoingCommunications.size() - 1 ; i >= 0 ; i--) {
+                            Disposable communication = this.ongoingCommunications.remove(i);
+                            if(communication != null && !communication.isDisposed())
+                                communication.dispose();
+                        }
 
-                        this.ongoingCommunication = null;
                         this.isHeartbeat.set(false);
 
                         return this.consensusModule.appendEntriesReply(null, this.targetServerName);
