@@ -19,4 +19,10 @@ public class AppendEntriesReply implements Message {
     /* True if follower contained entry matching prevLogIndex and prevLogTerm */
     private Boolean success;
 
+    /* Field that contains the lower entry index in the AppendEntries communication */
+    private Long fromIndex;
+
+    /* Field that contains the higher entry index in the AppendEntries communication */
+    private Long toIndex;
+
 }
