@@ -37,6 +37,10 @@ public class Leader extends RaftStateContext implements RaftState {
         (initialized to 0, increases monotonically) */
     private Map<String,Long> matchIndex;
 
+    /* for each server, number of communications in transit left
+        (initialized to raft.communications-in-transit) */
+    private Map<String,Integer> communicationsInTransit;
+
     /* --------------------------------------------------- */
 
     public Leader(
@@ -243,10 +247,12 @@ public class Leader extends RaftStateContext implements RaftState {
                                 .doFirst(() -> {
                                     this.nextIndex = new HashMap<>();
                                     this.matchIndex = new HashMap<>();
+                                    this.communicationsInTransit = new HashMap<>();
                                 })
                                 .doOnNext(serverName -> {
                                     this.nextIndex.put(serverName, (long) defaultNextIndex);
                                     this.matchIndex.put(serverName, (long) 0);
+                                    this.communicationsInTransit.put(serverName, this.raftProperties.getCommunicationsInTransit());
                                 })
                                 .then()
 
@@ -261,6 +267,7 @@ public class Leader extends RaftStateContext implements RaftState {
 
         this.nextIndex = new HashMap<>();
         this.matchIndex = new HashMap<>();
+        this.communicationsInTransit = new HashMap<>();
 
     }
 
