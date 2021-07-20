@@ -49,7 +49,7 @@ public class PeerWorker implements MessageSubscriber {
     private final Sinks.Many<Boolean> requestsSink;
 
     /* Disposable of the ongoing communication */
-    private List<Disposable> ongoingCommunications;
+    private final List<Disposable> ongoingCommunications;
 
     /* Flag that marks if the ongoing communication is an heartbeat */
     private final AtomicBoolean isHeartbeat;
