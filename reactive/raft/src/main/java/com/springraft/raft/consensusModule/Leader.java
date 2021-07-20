@@ -39,7 +39,7 @@ public class Leader extends RaftStateContext implements RaftState {
 
     /* for each server, number of communications in transit left
         (initialized to raft.communications-in-transit) */
-    private Map<String,Integer> communicationsInTransit;
+    private Map<String,Integer> missingCommunicationsInTransit;
 
     /* --------------------------------------------------- */
 
@@ -62,6 +62,7 @@ public class Leader extends RaftStateContext implements RaftState {
         );
         this.nextIndex = new HashMap<>();
         this.matchIndex = new HashMap<>();
+        this.missingCommunicationsInTransit = new HashMap<>();
     }
 
     /* --------------------------------------------------- */
@@ -73,6 +74,10 @@ public class Leader extends RaftStateContext implements RaftState {
 
     @Override
     public Mono<Void> appendEntriesReply(AppendEntriesReply appendEntriesReply, String from) {
+
+        // Increment the communications in transit that left to reach the max
+        if (this.missingCommunicationsInTransit.get(from) < this.raftProperties.getCommunicationsInTransit())
+            this.missingCommunicationsInTransit.put(from, this.missingCommunicationsInTransit.get(from) + 1);
 
         if (appendEntriesReply == null)
             return this.sendNextAppendEntries(from, this.nextIndex.get(from), this.matchIndex.get(from));
@@ -247,12 +252,12 @@ public class Leader extends RaftStateContext implements RaftState {
                                 .doFirst(() -> {
                                     this.nextIndex = new HashMap<>();
                                     this.matchIndex = new HashMap<>();
-                                    this.communicationsInTransit = new HashMap<>();
+                                    this.missingCommunicationsInTransit = new HashMap<>();
                                 })
                                 .doOnNext(serverName -> {
                                     this.nextIndex.put(serverName, (long) defaultNextIndex);
                                     this.matchIndex.put(serverName, (long) 0);
-                                    this.communicationsInTransit.put(serverName, this.raftProperties.getCommunicationsInTransit());
+                                    this.missingCommunicationsInTransit.put(serverName, this.raftProperties.getCommunicationsInTransit());
                                 })
                                 .then()
 
@@ -267,7 +272,7 @@ public class Leader extends RaftStateContext implements RaftState {
 
         this.nextIndex = new HashMap<>();
         this.matchIndex = new HashMap<>();
-        this.communicationsInTransit = new HashMap<>();
+        this.missingCommunicationsInTransit = new HashMap<>();
 
     }
 
@@ -286,13 +291,19 @@ public class Leader extends RaftStateContext implements RaftState {
                         // if there is no entry in log then send heartbeat
 
                         return this.heartbeatAppendEntries()
-                                .flatMap(heartbeat -> this.outboundManager.sendHeartbeat(heartbeat, to));
+                                .flatMap(heartbeat -> this.outboundManager.sendHeartbeat(heartbeat, to))
+                                .doOnTerminate(() ->
+                                        this.missingCommunicationsInTransit.put(to, this.missingCommunicationsInTransit.get(to) - 1)
+                                );
 
                     } else if(entry.getIndex() == null) {
                         // if there is no entry and the logs are not matching
 
                         return this.heartbeatAppendEntries()
-                                .flatMap(appendEntries -> this.outboundManager.sendAppendEntries(appendEntries,to));
+                                .flatMap(appendEntries -> this.outboundManager.sendAppendEntries(appendEntries,to))
+                                .doOnTerminate(() ->
+                                        this.missingCommunicationsInTransit.put(to, this.missingCommunicationsInTransit.get(to) - 1)
+                                );
 
                     } else if(matchIndex == (nextIndex - 1)) {
                         // if there is an entry, and the logs are matching,
@@ -300,24 +311,52 @@ public class Leader extends RaftStateContext implements RaftState {
 
                         return this.logService.getEntriesBetweenIndexes(
                                 nextIndex,
-                                nextIndex + this.raftProperties.getEntriesPerCommunication()
+                                nextIndex + ((long) this.raftProperties.getEntriesPerCommunication() * this.missingCommunicationsInTransit.get(to))
                         )
                                 .collectSortedList(Comparator.comparing(Entry::getIndex))
+                                .flatMapMany(entries ->
+                                    Flux.<List<? extends Entry>>create(sink -> {
+                                        int messagesToSend = this.messagesToSend(entries.size());
+                                        for (int i = 1 ; i <= messagesToSend ; i++) {
+                                            List<? extends Entry> entriesSet =
+                                                    entries.subList(
+                                                            this.raftProperties.getEntriesPerCommunication() * (i - 1),
+                                                            Math.min(entries.size(), this.raftProperties.getEntriesPerCommunication() + this.raftProperties.getEntriesPerCommunication() * (i - 1))
+                                                    );
+                                            sink.next(entriesSet);
+                                        }
+                                        sink.complete();
+                                    })
+                                )
                                 .doOnNext(entries -> this.nextIndex.put(to, nextIndex + entries.size()))
                                 .flatMap(entries -> this.createAppendEntries(entries.get(0), (List<Entry>) entries))
-                                .flatMap(appendEntries -> this.outboundManager.sendAppendEntries(appendEntries,to));
+                                .flatMap(appendEntries -> this.outboundManager.sendAppendEntries(appendEntries,to))
+                                .doOnTerminate(() ->
+                                        this.missingCommunicationsInTransit.put(to, this.missingCommunicationsInTransit.get(to) - 1)
+                                )
+                                .then();
 
                     } else {
                         // if there is an entry, but the logs are not matching,
                         // send the appendEntries with no entries
 
                         return this.createAppendEntries(entry)
-                                .flatMap(appendEntries -> this.outboundManager.sendAppendEntries(appendEntries,to));
+                                .flatMap(appendEntries -> this.outboundManager.sendAppendEntries(appendEntries,to))
+                                .doOnTerminate(() ->
+                                        this.missingCommunicationsInTransit.put(to, this.missingCommunicationsInTransit.get(to) - 1)
+                                );
 
                     }
 
                 });
 
+    }
+
+    /**
+     * TODO
+     * */
+    private int messagesToSend(int entriesSize) {
+        return entriesSize <= 0 ? 0 : ((entriesSize - 1) / this.raftProperties.getEntriesPerCommunication()) + 1;
     }
 
     /**
