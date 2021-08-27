@@ -1,5 +1,5 @@
 # Pull server environment execution image
-FROM openjdk:15-jdk-alpine
+FROM openjdk:16-jdk-alpine
 
 # Modify the application jar
 ARG JAR_FILE=target/*-exec.jar
