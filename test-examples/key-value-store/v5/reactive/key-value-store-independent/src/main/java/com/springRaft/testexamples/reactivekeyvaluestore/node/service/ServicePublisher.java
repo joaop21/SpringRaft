@@ -84,16 +84,22 @@ public class ServicePublisher implements NodeService {
 
     private Mono<Node> safeGet(String key, Sinks.One<Node> sinkOne) {
         return this.repository.findNodeByKey(key)
+                .subscribeOn(this.repoScheduler)
                 .doOnSuccess(sinkOne::tryEmitValue);
     }
 
     private Mono<Node> safeUpsert(String key, String text, Sinks.Many<Node> sinkMany) {
         return this.repository.findNodeByKey(key)
+                .subscribeOn(this.repoScheduler)
                 .flatMap(node ->
                         repository.deleteNodeByKey(key)
+                                .subscribeOn(this.repoScheduler)
                                 .doOnSuccess(result -> sinkMany.tryEmitNext(node))
                 )
-                .then(this.repository.save(new Node(key,text.replaceFirst("value=", ""))))
+                .then(
+                        this.repository.save(new Node(key,text.replaceFirst("value=", "")))
+                                .subscribeOn(this.repoScheduler)
+                )
                 .doOnNext(savedNode -> {
                     sinkMany.tryEmitNext(savedNode);
                     sinkMany.tryEmitComplete();
@@ -102,8 +108,10 @@ public class ServicePublisher implements NodeService {
 
     private Mono<Node> safeDelete(String key, Sinks.One<Node> sinkNode) {
         return this.repository.findNodeByKey(key)
+                .subscribeOn(this.repoScheduler)
                 .flatMap(node ->
                         this.repository.deleteNodeByKey(key)
+                                .subscribeOn(this.repoScheduler)
                                 .then(Mono.just(node))
                 )
                 .doOnSuccess(sinkNode::tryEmitValue);
