@@ -23,4 +23,9 @@ public class ConstructorBeans {
         return Schedulers.newBoundedElastic(2000,1000, "RequestScheduler");
     }
 
+    @Bean(name = "repoScheduler")
+    public Scheduler jdbcScheduler() {
+        return Schedulers.newBoundedElastic(10, Integer.MAX_VALUE, "jdbcScheduler");
+    }
+
 }

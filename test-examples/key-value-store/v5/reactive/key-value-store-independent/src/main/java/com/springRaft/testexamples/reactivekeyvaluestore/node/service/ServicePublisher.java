@@ -3,47 +3,43 @@ package com.springRaft.testexamples.reactivekeyvaluestore.node.service;
 import com.springRaft.testexamples.reactivekeyvaluestore.node.Node;
 import com.springRaft.testexamples.reactivekeyvaluestore.node.NodeRepository;
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
+import reactor.core.scheduler.Scheduler;
 
 import java.util.List;
 
 @Service
 @Scope("singleton")
 @ConditionalOnProperty(name = "node.service.strategy", havingValue = "Publisher")
-@AllArgsConstructor
 public class ServicePublisher implements NodeService {
 
-    private final Sinks.Many<Mono<Node>> sink = Sinks.many().multicast().onBackpressureBuffer();
+    private final Sinks.Many<Mono<Node>> sink;
+
+    private final Scheduler repoScheduler;
 
     private final NodeRepository repository;
+
+    /* --------------------------------------------------- */
+
+    public ServicePublisher(NodeRepository repository, @Qualifier("repoScheduler") Scheduler repoScheduler) {
+        this.repository = repository;
+        this.repoScheduler = repoScheduler;
+        this.sink = Sinks.many().unicast().onBackpressureBuffer();
+
+        this.servicePublisher().subscribe();
+    }
 
     /* --------------------------------------------------- */
 
     @Override
     public Mono<Node> get(String key) {
 
-        // JUST
-        /*
-        Sinks.One<Node> responseSink = Sinks.one();
-
-        return Mono.just(responseSink)
-                .doOnNext(sinkNode -> this.sink.tryEmitNext(this.safeGet(key, sinkNode)))
-                .flatMap(Sinks.Empty::asMono);*/
-
-        // DEFER
-        /*return Mono.defer(() -> {
-            Sinks.One<Node> sinkNode = Sinks.one();
-            return Mono.just(sinkNode);
-        })
-                .doOnNext(sinkNode -> this.sink.tryEmitNext(this.safeGet(key, sinkNode)))
-                .flatMap(Sinks.Empty::asMono);*/
-
-        // CREATE
         return Mono.<Sinks.One<Node>>create(oneMonoSink -> {
             Sinks.One<Node> sinkNode = Sinks.one();
             this.sink.tryEmitNext(this.safeGet(key, sinkNode));
@@ -56,26 +52,6 @@ public class ServicePublisher implements NodeService {
     @Override
     public Mono<List<Node>> upsert(String key, String value) {
 
-        // JUST
-        /*
-        Sinks.Many<Node> responseSink = Sinks.many().unicast().onBackpressureBuffer();
-
-        return Mono.just(responseSink)
-                .doOnNext(sinkNode -> this.sink.tryEmitNext(this.safeUpsert(key, value, sinkNode)))
-                .flatMapMany(Sinks.Many::asFlux)
-                .collectList();*/
-
-        // DEFER
-        /*
-        return Mono.<Sinks.Many<Node>>create(createSink -> {
-            Sinks.Many<Node> sinkNode = Sinks.many().unicast().onBackpressureBuffer();
-            createSink.success(sinkNode);
-        })
-                .doOnNext(sinkNode -> this.sink.tryEmitNext(this.safeUpsert(key, value, sinkNode)))
-                .flatMapMany(Sinks.Many::asFlux)
-                .collectList();*/
-
-        // CREATE
         return Mono.<Sinks.Many<Node>>create(manyMonoSink -> {
             Sinks.Many<Node> sinkNode = Sinks.many().unicast().onBackpressureBuffer();
             this.sink.tryEmitNext(this.safeUpsert(key, value, sinkNode));
@@ -89,24 +65,6 @@ public class ServicePublisher implements NodeService {
     @Override
     public Mono<Node> delete(String key) {
 
-        // JUST
-        /*
-        Sinks.One<Node> responseSink = Sinks.one();
-
-        return Mono.just(responseSink)
-                .doOnNext(sinkNode -> this.sink.tryEmitNext(this.safeDelete(key, sinkNode)))
-                .flatMap(Sinks.Empty::asMono);*/
-
-        // DEFER
-        /*
-        return Mono.defer(() -> {
-            Sinks.One<Node> sinkNode = Sinks.one();
-            return Mono.just(sinkNode);
-        })
-                .doOnNext(sinkNode -> this.sink.tryEmitNext(this.safeDelete(key, sinkNode)))
-                .flatMap(Sinks.Empty::asMono);*/
-
-        // CREATE
         return Mono.<Sinks.One<Node>>create(nodeMonoSink -> {
             Sinks.One<Node> sinkNode = Sinks.one();
             this.sink.tryEmitNext(this.safeDelete(key, sinkNode));
