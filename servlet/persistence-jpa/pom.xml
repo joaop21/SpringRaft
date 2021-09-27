@@ -62,7 +62,7 @@
 
         <!-- Internal dependencies -->
         <dependency>
-            <groupId>com.springRaft</groupId>
+            <groupId>com.springRaft.servlet</groupId>
             <artifactId>persistence</artifactId>
             <version>0.0.1</version>
         </dependency>
