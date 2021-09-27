@@ -32,7 +32,7 @@
             </activation>
             <dependencies>
                 <dependency>
-                    <groupId>com.springRaft</groupId>
+                    <groupId>com.springRaft.servlet</groupId>
                     <artifactId>persistence-jpa</artifactId>
                     <version>0.0.1</version>
                 </dependency>
@@ -48,7 +48,7 @@
             </activation>
             <dependencies>
                 <dependency>
-                    <groupId>com.springRaft</groupId>
+                    <groupId>com.springRaft.servlet</groupId>
                     <artifactId>persistence-memory</artifactId>
                     <version>0.0.1</version>
                 </dependency>

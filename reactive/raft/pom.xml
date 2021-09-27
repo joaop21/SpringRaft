@@ -33,7 +33,7 @@
             </activation>
             <dependencies>
                 <dependency>
-                    <groupId>com.springRaft</groupId>
+                    <groupId>com.springRaft.reactive</groupId>
                     <artifactId>persistence-jpa</artifactId>
                     <version>0.0.1</version>
                 </dependency>
@@ -49,7 +49,7 @@
             </activation>
             <dependencies>
                 <dependency>
-                    <groupId>com.springRaft</groupId>
+                    <groupId>com.springRaft.reactive</groupId>
                     <artifactId>persistence-r2dbc</artifactId>
                     <version>0.0.1</version>
                 </dependency>
