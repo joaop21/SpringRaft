@@ -10,7 +10,7 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
 
-    <groupId>com.springRaft</groupId>
+    <groupId>com.springRaft.servlet</groupId>
     <artifactId>persistence-jpa</artifactId>
     <version>0.0.1</version>
     <name>persistence-jpa</name>
@@ -62,7 +62,7 @@
 
         <!-- Internal dependencies -->
         <dependency>
-            <groupId>com.springRaft</groupId>
+            <groupId>com.springRaft.servlet</groupId>
             <artifactId>persistence</artifactId>
             <version>0.0.1</version>
         </dependency>
@@ -85,5 +85,14 @@
             </plugin>
         </plugins>
     </build>
+
+    <!-- Publish packages on github -->
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub joaop21 Apache Maven Packages</name>
+            <url>https://maven.pkg.github.com/joaop21/SpringRaft</url>
+        </repository>
+    </distributionManagement>
 
 </project>
